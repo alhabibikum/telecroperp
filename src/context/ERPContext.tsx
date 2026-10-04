@@ -1564,25 +1564,25 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         },
         ...(purchaseData.dueAmount > 0
           ? [
-              {
-                accountCode: '2000',
-                accountName: 'Accounts Payable (Supplier Due)',
-                debit: 0,
-                credit: purchaseData.dueAmount,
-                memo: `Payable to ${purchaseData.supplierName}`
-              }
-            ]
+            {
+              accountCode: '2000',
+              accountName: 'Accounts Payable (Supplier Due)',
+              debit: 0,
+              credit: purchaseData.dueAmount,
+              memo: `Payable to ${purchaseData.supplierName}`
+            }
+          ]
           : []),
         ...(purchaseData.paidAmount > 0
           ? [
-              {
-                accountCode: purchaseData.paymentMethod === 'Cash' ? '1000' : '1010',
-                accountName: purchaseData.paymentMethod === 'Cash' ? 'Cash in Hand' : 'Bank Accounts',
-                debit: 0,
-                credit: purchaseData.paidAmount,
-                memo: `Paid via ${purchaseData.paymentMethod}`
-              }
-            ]
+            {
+              accountCode: purchaseData.paymentMethod === 'Cash' ? '1000' : '1010',
+              accountName: purchaseData.paymentMethod === 'Cash' ? 'Cash in Hand' : 'Bank Accounts',
+              debit: 0,
+              credit: purchaseData.paidAmount,
+              memo: `Paid via ${purchaseData.paymentMethod}`
+            }
+          ]
           : [])
       ],
       totalDebit: purchaseData.grandTotal,
@@ -1615,7 +1615,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // 2. SALES ENGINE (Wholesale & Retail POS)
   const createSale = (saleData: Omit<SalesInvoice, 'id' | 'invoiceNo' | 'createdAt'>) => {
     const customer = customers.find(c => c.id === saleData.customerId);
-    
+
     // Credit Limit Verification:
     if (customer && customer.customerType !== 'Walk-in') {
       const projectedDue = customer.currentDue + saleData.dueAmount;
@@ -1772,10 +1772,10 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         prev.map(s =>
           s.id === saleData.salesmanId
             ? {
-                ...s,
-                currentMonthSales: s.currentMonthSales + saleData.grandTotal,
-                currentMonthCollection: s.currentMonthCollection + saleData.paidAmount
-              }
+              ...s,
+              currentMonthSales: s.currentMonthSales + saleData.grandTotal,
+              currentMonthCollection: s.currentMonthCollection + saleData.paidAmount
+            }
             : s
         )
       );
@@ -1795,25 +1795,25 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const jvLines = [
       ...(saleData.dueAmount > 0
         ? [
-            {
-              accountCode: '1020',
-              accountName: 'Accounts Receivable (Customer Due)',
-              debit: saleData.dueAmount,
-              credit: 0,
-              memo: `Receivable from ${saleData.customerName}`
-            }
-          ]
+          {
+            accountCode: '1020',
+            accountName: 'Accounts Receivable (Customer Due)',
+            debit: saleData.dueAmount,
+            credit: 0,
+            memo: `Receivable from ${saleData.customerName}`
+          }
+        ]
         : []),
       ...(saleData.paidAmount > 0
         ? [
-            {
-              accountCode: '1000',
-              accountName: 'Cash in Hand (Main Vault & Till)',
-              debit: saleData.paidAmount,
-              credit: 0,
-              memo: `Paid at invoice issue via ${saleData.payments.map(p => p.method).join(', ')}`
-            }
-          ]
+          {
+            accountCode: '1000',
+            accountName: 'Cash in Hand (Main Vault & Till)',
+            debit: saleData.paidAmount,
+            credit: 0,
+            memo: `Paid at invoice issue via ${saleData.payments.map(p => p.method).join(', ')}`
+          }
+        ]
         : []),
       {
         accountCode: revAccountCode,
@@ -2139,22 +2139,22 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       prev.map(i =>
         i.imei1 === data.imei
           ? {
-              ...i,
-              status: isDamaged ? 'Damaged' : 'Returned',
-              condition: isDamaged ? 'Damaged' : 'Open Box',
-              warehouseId: data.restockWarehouseId,
-              returnReason: data.returnReason,
-              history: [
-                ...i.history,
-                {
-                  date: `${today} 12:00`,
-                  action: 'Customer Return Approved',
-                  description: `Returned via ${returnNo} (Reason: ${data.returnReason})`,
-                  user: currentUserRole,
-                  referenceNo: returnNo
-                }
-              ]
-            }
+            ...i,
+            status: isDamaged ? 'Damaged' : 'Returned',
+            condition: isDamaged ? 'Damaged' : 'Open Box',
+            warehouseId: data.restockWarehouseId,
+            returnReason: data.returnReason,
+            history: [
+              ...i.history,
+              {
+                date: `${today} 12:00`,
+                action: 'Customer Return Approved',
+                description: `Returned via ${returnNo} (Reason: ${data.returnReason})`,
+                user: currentUserRole,
+                referenceNo: returnNo
+              }
+            ]
+          }
           : i
       )
     );
@@ -2165,11 +2165,11 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         prev.map(p =>
           p.id === imeiRecord.productId
             ? {
-                ...p,
-                variants: p.variants.map(v =>
-                  v.id === imeiRecord.variantId ? { ...v, currentStock: v.currentStock + 1 } : v
-                )
-              }
+              ...p,
+              variants: p.variants.map(v =>
+                v.id === imeiRecord.variantId ? { ...v, currentStock: v.currentStock + 1 } : v
+              )
+            }
             : p
         )
       );
@@ -2214,21 +2214,21 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         },
         ...(!isDamaged
           ? [
-              {
-                accountCode: '1050',
-                accountName: 'Merchandise Inventory',
-                debit: imeiRecord.purchaseCost,
-                credit: 0,
-                memo: `Restock cost of ${imeiRecord.productName}`
-              },
-              {
-                accountCode: '5000',
-                accountName: 'Cost of Goods Sold (COGS)',
-                debit: 0,
-                credit: imeiRecord.purchaseCost,
-                memo: `COGS reversal on return`
-              }
-            ]
+            {
+              accountCode: '1050',
+              accountName: 'Merchandise Inventory',
+              debit: imeiRecord.purchaseCost,
+              credit: 0,
+              memo: `Restock cost of ${imeiRecord.productName}`
+            },
+            {
+              accountCode: '5000',
+              accountName: 'Cost of Goods Sold (COGS)',
+              debit: 0,
+              credit: imeiRecord.purchaseCost,
+              memo: `COGS reversal on return`
+            }
+          ]
           : [])
       ],
       totalDebit: data.refundOrCreditAmount + (!isDamaged ? imeiRecord.purchaseCost : 0),
@@ -2796,25 +2796,25 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       prev.map(i =>
         imeiNums.includes(i.imei1)
           ? {
-              ...i,
-              status: 'In Stock',
-              customerId: undefined,
-              customerName: undefined,
-              salesInvoiceNo: undefined,
-              salesDate: undefined,
-              salesPrice: undefined,
-              warrantyExpiry: undefined,
-              history: [
-                ...i.history,
-                {
-                  date: `${today} 12:00`,
-                  action: 'Sale Cancelled',
-                  description: `Invoice ${inv.invoiceNo} cancelled${reason ? ` (${reason})` : ''}; unit returned to stock`,
-                  user: currentUserRole,
-                  referenceNo: inv.invoiceNo
-                }
-              ]
-            }
+            ...i,
+            status: 'In Stock',
+            customerId: undefined,
+            customerName: undefined,
+            salesInvoiceNo: undefined,
+            salesDate: undefined,
+            salesPrice: undefined,
+            warrantyExpiry: undefined,
+            history: [
+              ...i.history,
+              {
+                date: `${today} 12:00`,
+                action: 'Sale Cancelled',
+                description: `Invoice ${inv.invoiceNo} cancelled${reason ? ` (${reason})` : ''}; unit returned to stock`,
+                user: currentUserRole,
+                referenceNo: inv.invoiceNo
+              }
+            ]
+          }
           : i
       )
     );
@@ -2846,10 +2846,10 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         prev.map(s =>
           s.id === inv.salesmanId
             ? {
-                ...s,
-                currentMonthSales: Math.max(0, s.currentMonthSales - inv.grandTotal),
-                currentMonthCollection: Math.max(0, s.currentMonthCollection - originalPaid)
-              }
+              ...s,
+              currentMonthSales: Math.max(0, s.currentMonthSales - inv.grandTotal),
+              currentMonthCollection: Math.max(0, s.currentMonthCollection - originalPaid)
+            }
             : s
         )
       );
@@ -3685,10 +3685,10 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateUser = (id: string, userData: Partial<AuthUser>): CrudResult => {
     const target = users.find(u => u.id === id);
     if (!target) return { success: false, error: 'ইউজার অ্যাকাউন্ট খুঁজে পাওয়া যায়নি।' };
-    
+
     const updated = { ...target, ...userData };
     setUsers(prev => prev.map(u => u.id === id ? updated : u));
-    
+
     if (currentUser?.id === id) {
       const updatedCurrent: AuthUser = { ...currentUser, ...userData };
       setCurrentUser(updatedCurrent);
@@ -3822,7 +3822,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           // Update lastLogin in Supabase
           supabase.from('app_users').update({
             last_login: new Date().toISOString()
-          }).eq('id', sbUser.id).then(() => {});
+          }).eq('id', sbUser.id).then(() => { });
 
           // Merge into local users state so UI lists it
           setUsers(prev => {
