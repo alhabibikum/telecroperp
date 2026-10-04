@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   Brand,
   Product,
@@ -590,12 +590,11 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
-  // Sync and hydrate all enterprise entities from Supabase Cloud on initialization
-  useEffect(() => {
-    const syncAllFromSupabase = async () => {
-      if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        return;
-      }
+  // Sync and hydrate all enterprise entities from Supabase Cloud
+  const syncAllFromSupabase = useCallback(async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return;
+    }
       const supabase = getSupabaseClient();
       if (!supabase) return;
       try {
@@ -1271,9 +1270,12 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       } catch (err) {
         console.warn('Failed to sync entities from Supabase on init:', err);
+      } finally {
+        setIsSyncing(false);
       }
-    };
+  }, []);
 
+  useEffect(() => {
     syncAllFromSupabase();
 
     // Listen to network status transitions: auto-push all offline changes when online!
@@ -1292,7 +1294,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [syncAllFromSupabase]);
 
   const syncCloudData = async (): Promise<{ success: boolean; message: string }> => {
     return triggerManualSync();
