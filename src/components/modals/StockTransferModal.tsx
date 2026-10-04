@@ -1,0 +1,275 @@
+import React, { useState } from 'react';
+import { useERP } from '../../context/ERPContext';
+import {
+  X,
+  ArrowRightLeft,
+  Warehouse,
+  CheckCircle2,
+  AlertTriangle
+} from 'lucide-react';
+import { formatDate } from '../../utils/formatters';
+
+interface StockTransferModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccessTransfer?: (transferNo: string) => void;
+}
+
+export const StockTransferModal: React.FC<StockTransferModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccessTransfer
+}) => {
+  const { warehouses, products, imeis, transferStock } = useERP();
+
+  const [sourceWarehouseId, setSourceWarehouseId] = useState<string>(warehouses[0]?.id || '');
+  const [destinationWarehouseId, setDestinationWarehouseId] = useState<string>(warehouses[1]?.id || '');
+  const [selectedProductId, setSelectedProductId] = useState<string>(products[0]?.id || '');
+  const [selectedVariantId, setSelectedVariantId] = useState<string>(products[0]?.variants[0]?.id || '');
+  const [selectedImeis, setSelectedImeis] = useState<string[]>([]);
+  const [notes, setNotes] = useState('');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  const currentProduct = products.find(p => p.id === selectedProductId);
+  const currentVariant = currentProduct?.variants.find(v => v.id === selectedVariantId);
+
+  // Available IMEIs in the source warehouse
+  const availableInSource = imeis.filter(i =>
+    i.productId === selectedProductId &&
+    i.variantId === selectedVariantId &&
+    i.warehouseId === sourceWarehouseId &&
+    i.status === 'In Stock'
+  );
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    if (sourceWarehouseId === destinationWarehouseId) {
+      setErrorMsg('Source warehouse and Destination warehouse cannot be the same!');
+      return;
+    }
+
+    if (selectedImeis.length === 0) {
+      setErrorMsg('Please select at least one IMEI to transfer.');
+      return;
+    }
+
+    const result = transferStock({
+      sourceWarehouseId,
+      destinationWarehouseId,
+      items: [
+        {
+          productId: selectedProductId,
+          variantId: selectedVariantId,
+          imeis: selectedImeis
+        }
+      ],
+      notes
+    });
+
+    if (result.success && result.transferNo) {
+      if (onSuccessTransfer) onSuccessTransfer(result.transferNo);
+      onClose();
+    } else {
+      setErrorMsg(result.error || 'Failed to dispatch stock transfer');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+      <div className="relative bg-white/90 backdrop-blur-3xl rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] w-full max-w-2xl my-auto overflow-hidden border border-white/60 animate-in zoom-in-95 duration-200">
+        {/* Top Glossy Highlight Sheen */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500/40 via-indigo-500/50 to-teal-500/40 pointer-events-none z-10" />
+
+        <div className="px-6 py-4.5 border-b border-slate-200/80 bg-white/60 backdrop-blur-xl flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-700 text-white flex items-center justify-center font-bold shadow-xs">
+              <ArrowRightLeft className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <div>
+              <h2 className="text-base font-black text-slate-900 tracking-tight">
+                Inter-Warehouse Stock Transfer
+              </h2>
+              <p className="text-xs text-slate-500 font-medium">
+                Move serialized devices between Central Warehouse, Regional Hubs & Retail Outlets
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-800 rounded-2xl hover:bg-slate-100/80 transition-all cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 bg-white/40 backdrop-blur-md">
+          {errorMsg && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {/* Warehouses */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Source Dispatch Facility *
+              </label>
+              <select
+                value={sourceWarehouseId}
+                onChange={(e) => {
+                  setSourceWarehouseId(e.target.value);
+                  setSelectedImeis([]);
+                }}
+                className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600"
+                required
+              >
+                {warehouses.map(w => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Destination Receiving Facility *
+              </label>
+              <select
+                value={destinationWarehouseId}
+                onChange={(e) => setDestinationWarehouseId(e.target.value)}
+                className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600"
+                required
+              >
+                {warehouses.map(w => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Product & Variant */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Product Model *
+              </label>
+              <select
+                value={selectedProductId}
+                onChange={(e) => {
+                  setSelectedProductId(e.target.value);
+                  const p = products.find(pr => pr.id === e.target.value);
+                  if (p?.variants[0]) setSelectedVariantId(p.variants[0].id);
+                  setSelectedImeis([]);
+                }}
+                className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
+              >
+                {products.map(p => (
+                  <option key={p.id} value={p.id}>{p.brandName} - {p.model}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Variant / Specs *
+              </label>
+              <select
+                value={selectedVariantId}
+                onChange={(e) => {
+                  setSelectedVariantId(e.target.value);
+                  setSelectedImeis([]);
+                }}
+                className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
+              >
+                {currentProduct?.variants.map(v => (
+                  <option key={v.id} value={v.id}>
+                    {v.ram}/{v.storage} - {v.color}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* IMEI Selector */}
+          <div className="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-700">
+                Select Available IMEIs to Transfer ({availableInSource.length} In Stock in Source)
+              </span>
+              <span className="font-bold text-blue-700">
+                {selectedImeis.length} Units Selected
+              </span>
+            </div>
+
+            {availableInSource.length === 0 ? (
+              <div className="py-4 text-center text-xs text-rose-600">
+                No units of this variant currently in stock at the chosen source warehouse.
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto pt-1">
+                {availableInSource.map(im => {
+                  const isSelected = selectedImeis.includes(im.imei1);
+                  return (
+                    <button
+                      key={im.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedImeis(prev =>
+                          isSelected ? prev.filter(n => n !== im.imei1) : [...prev, im.imei1]
+                        );
+                      }}
+                      className={`text-[11px] font-mono px-2.5 py-1 rounded-md border font-medium transition ${
+                        isSelected
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                          : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      {im.imei1}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Transfer Notes / Driver Chalan #
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Courier security pouch #99281, van driver Md. Rafiq"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
+            />
+          </div>
+
+          <div className="flex items-center justify-between pt-4 border-t border-slate-200/80 bg-white/60 backdrop-blur-xl -mx-6 -mb-6 p-6">
+            <span className="text-xs text-slate-500 font-medium">
+              * Immediately moves physical custody of IMEIs to destination warehouse.
+            </span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-white/80 rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={selectedImeis.length === 0}
+                className="px-5 py-2.5 text-xs font-black bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 active:scale-95 text-white rounded-xl shadow-md disabled:opacity-50 transition-all cursor-pointer"
+              >
+                Confirm Transfer ({selectedImeis.length} Units)
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};

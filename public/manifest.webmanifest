@@ -1,0 +1,25 @@
+{
+  "name": "TeleCorp ERP - Multi-Brand Mobile Dealer & Distribution",
+  "short_name": "TeleCorp ERP",
+  "description": "Comprehensive Multi-Brand Mobile Dealer ERP & Wholesale Distribution Management with Offline/Online Sync, IMEI Tracking, and Financial Accounting.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#0f766e",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

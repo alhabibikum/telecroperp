@@ -1,0 +1,6 @@
+{
+  "name": "TeleCorp ERP - Multi-Brand Mobile Dealer & Distribution",
+  "description": "Comprehensive Multi-Brand Mobile Dealer ERP & Wholesale Distribution Management with IMEI Tracking, Customer Credit, Double-Entry Accounting, and Salesman Management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
