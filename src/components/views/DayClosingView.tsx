@@ -26,26 +26,37 @@ export const DayClosingView: React.FC = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [warehouseId, setWarehouseId] = useState(warehouses[0]?.id || '');
   const [cashierName, setCashierName] = useState('Farhana Akhter (Cashier)');
+  const [openingCash, setOpeningCash] = useState<number>(dayClosings[0]?.actualPhysicalCash || 50000);
   const [actualPhysicalCash, setActualPhysicalCash] = useState<number>(0);
   const [closingNotes, setClosingNotes] = useState('');
   const [message, setMessage] = useState<string | null>(null);
 
-  // Compute daily totals for the chosen date
-  const openingCash = 50000;
-  const cashSalesTotal = cashTransactions
-    .filter(c => c.type === 'Cash In' && c.category === 'Customer Sale')
+  // Compute daily totals strictly for the chosen date
+  const isMatchingDate = (txDate: string) => !txDate || txDate.startsWith(date);
+
+  const cashSalesFromTx = cashTransactions
+    .filter(c => c.type === 'Cash In' && c.category === 'Customer Sale' && isMatchingDate(c.date))
     .reduce((acc, c) => acc + c.amount, 0);
 
+  const cashSalesFromInvoices = salesInvoices
+    .filter(inv => isMatchingDate(inv.invoiceDate))
+    .reduce((acc, inv) => {
+      const cashPayments = (inv.payments || []).filter(p => p.method === 'Cash');
+      return acc + cashPayments.reduce((sum, p) => sum + p.amount, 0);
+    }, 0);
+
+  const cashSalesTotal = Math.max(cashSalesFromTx, cashSalesFromInvoices);
+
   const dueCollectionsTotal = cashTransactions
-    .filter(c => c.type === 'Cash In' && c.category === 'Due Collection')
+    .filter(c => c.type === 'Cash In' && c.category === 'Due Collection' && isMatchingDate(c.date))
     .reduce((acc, c) => acc + c.amount, 0);
 
   const cashExpensesTotal = cashTransactions
-    .filter(c => c.type === 'Cash Out' && c.category === 'Expense')
+    .filter(c => c.type === 'Cash Out' && c.category === 'Expense' && isMatchingDate(c.date))
     .reduce((acc, c) => acc + c.amount, 0);
 
   const bankDepositsTotal = cashTransactions
-    .filter(c => c.type === 'Cash Out' && c.category === 'Cash To Bank')
+    .filter(c => c.type === 'Cash Out' && c.category === 'Cash To Bank' && isMatchingDate(c.date))
     .reduce((acc, c) => acc + c.amount, 0);
 
   const expectedClosingCash = openingCash + cashSalesTotal + dueCollectionsTotal - cashExpensesTotal - bankDepositsTotal;
@@ -144,6 +155,17 @@ export const DayClosingView: React.FC = () => {
                 value={cashierName}
                 onChange={(e) => setCashierName(e.target.value)}
                 className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">Opening Cash Till Float (৳)</label>
+              <input
+                type="number"
+                value={openingCash}
+                onChange={(e) => setOpeningCash(parseFloat(e.target.value) || 0)}
+                className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg font-bold"
                 required
               />
             </div>

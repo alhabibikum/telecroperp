@@ -22,6 +22,8 @@ export const BrandIncentivesView: React.FC = () => {
   const {
     brandIncentives,
     brands,
+    salesInvoices,
+    products,
     addBrandIncentiveScheme,
     updateBrandIncentiveStatus
   } = useERP();
@@ -38,9 +40,47 @@ export const BrandIncentivesView: React.FC = () => {
   const [slab3Units, setSlab3Units] = useState<number>(100);
   const [slab3Rate, setSlab3Rate] = useState<number>(1000);
 
-  const totalEarnedAcrossSchemes = brandIncentives.reduce((sum, s) => sum + s.totalIncentiveEarned, 0);
+  const getSchemeProgress = (scheme: (typeof brandIncentives)[0]) => {
+    const brandSalesUnits = salesInvoices.reduce((acc, inv) => {
+      if (scheme.startDate && scheme.endDate) {
+        if (inv.invoiceDate < scheme.startDate || inv.invoiceDate > scheme.endDate) {
+          return acc;
+        }
+      }
+      const bItems = inv.items.filter(it => {
+        const prod = products.find(p => p.id === it.productId);
+        return (
+          (prod && prod.brandName.toLowerCase() === scheme.brandName.toLowerCase()) ||
+          it.productName.toLowerCase().includes(scheme.brandName.toLowerCase())
+        );
+      });
+      return acc + bItems.reduce((sum, item) => sum + item.quantity, 0);
+    }, 0);
+
+    const units = Math.max(scheme.achievedUnits, brandSalesUnits);
+    let earnedRate = 0;
+    if (scheme.slabs && scheme.slabs.length > 0) {
+      const sortedSlabs = [...scheme.slabs].sort((a, b) => b.minUnits - a.minUnits);
+      const qualifyingSlab = sortedSlabs.find(s => units >= s.minUnits);
+      if (qualifyingSlab) {
+        earnedRate = qualifyingSlab.incentivePerUnit;
+      }
+    }
+    const totalEarned = units * earnedRate;
+    return {
+      achievedUnits: units,
+      totalIncentiveEarned: totalEarned > 0 ? totalEarned : scheme.totalIncentiveEarned
+    };
+  };
+
+  const schemeProgressList = brandIncentives.map(s => ({
+    scheme: s,
+    ...getSchemeProgress(s)
+  }));
+
+  const totalEarnedAcrossSchemes = schemeProgressList.reduce((sum, s) => sum + s.totalIncentiveEarned, 0);
   const totalTargetUnits = brandIncentives.reduce((sum, s) => sum + s.targetUnits, 0);
-  const totalAchievedUnits = brandIncentives.reduce((sum, s) => sum + s.achievedUnits, 0);
+  const totalAchievedUnits = schemeProgressList.reduce((sum, s) => sum + s.achievedUnits, 0);
 
   const handleCreateScheme = (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,8 +184,8 @@ export const BrandIncentivesView: React.FC = () => {
 
       {/* Schemes Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {brandIncentives.map(scheme => {
-          const progressPercent = Math.min(100, Math.round((scheme.achievedUnits / scheme.targetUnits) * 100));
+        {schemeProgressList.map(({ scheme, achievedUnits, totalIncentiveEarned }) => {
+          const progressPercent = Math.min(100, Math.round((achievedUnits / scheme.targetUnits) * 100));
 
           return (
             <div
@@ -181,7 +221,7 @@ export const BrandIncentivesView: React.FC = () => {
                 <div className="text-right">
                   <div className="text-[10px] uppercase font-bold text-slate-400">Earned Bonus</div>
                   <div className="text-base font-black text-amber-700">
-                    {formatBDT(scheme.totalIncentiveEarned)}
+                    {formatBDT(totalIncentiveEarned)}
                   </div>
                 </div>
               </div>
@@ -191,7 +231,7 @@ export const BrandIncentivesView: React.FC = () => {
                 <div className="flex justify-between text-xs font-semibold">
                   <span className="text-slate-600">Volume Progress</span>
                   <span className="text-slate-900">
-                    {scheme.achievedUnits} / {scheme.targetUnits} Units ({progressPercent}%)
+                    {achievedUnits} / {scheme.targetUnits} Units ({progressPercent}%)
                   </span>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200">

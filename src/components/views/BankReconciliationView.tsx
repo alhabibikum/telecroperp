@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
   RefreshCw,
@@ -7,7 +7,8 @@ import {
   Building,
   CreditCard,
   PlusCircle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  X
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
 
@@ -16,15 +17,49 @@ export const BankReconciliationView: React.FC = () => {
     bankAccounts,
     bankStatements,
     reconcileStatementEntry,
-    cashTransactions
+    addBankStatementEntry
   } = useERP();
 
   const [selectedBankId, setSelectedBankId] = useState(bankAccounts[0]?.id || '');
-  const [statementBalance, setStatementBalance] = useState<number>(7420000);
-
   const selectedBank = bankAccounts.find(b => b.id === selectedBankId);
   const ledgerBalance = selectedBank?.currentBalance || 0;
+  const [statementBalance, setStatementBalance] = useState<number>(ledgerBalance);
+
+  // Sync statement balance whenever bank changes
+  useEffect(() => {
+    if (selectedBank) {
+      setStatementBalance(selectedBank.currentBalance);
+    }
+  }, [selectedBankId]);
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newDesc, setNewDesc] = useState('');
+  const [newRef, setNewRef] = useState('');
+  const [newType, setNewType] = useState<'credit' | 'debit'>('credit');
+  const [newAmount, setNewAmount] = useState<number>(0);
+
   const difference = statementBalance - ledgerBalance;
+
+  const handleAddEntry = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDesc.trim() || newAmount <= 0) return;
+
+    addBankStatementEntry({
+      bankAccountId: selectedBankId,
+      date: newDate,
+      description: newDesc,
+      referenceNo: newRef || `ST-${Date.now().toString().slice(-6)}`,
+      debit: newType === 'debit' ? newAmount : 0,
+      credit: newType === 'credit' ? newAmount : 0,
+      status: 'Unmatched'
+    });
+
+    setShowAddModal(false);
+    setNewDesc('');
+    setNewRef('');
+    setNewAmount(0);
+  };
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -53,6 +88,13 @@ export const BankReconciliationView: React.FC = () => {
               <option key={b.id} value={b.id}>{b.bankName} ({b.accountNumber})</option>
             ))}
           </select>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-xs transition"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>+ Add Statement Entry</span>
+          </button>
         </div>
       </div>
 
@@ -163,6 +205,104 @@ export const BankReconciliationView: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Add Statement Entry Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden animate-scale-up">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-2">
+                <PlusCircle className="w-5 h-5 text-blue-600" />
+                <h3 className="font-bold text-sm text-slate-900">Add Electronic Statement Entry</h3>
+              </div>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddEntry} className="p-5 space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Transaction Date</label>
+                <input
+                  type="date"
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
+                  className="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Narration / Description</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Bank SMS Charge / Cheque Clearing"
+                  value={newDesc}
+                  onChange={(e) => setNewDesc(e.target.value)}
+                  className="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Reference Number / Cheque No</label>
+                <input
+                  type="text"
+                  placeholder="e.g. CHQ-890214 / TXN-4421"
+                  value={newRef}
+                  onChange={(e) => setNewRef(e.target.value)}
+                  className="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Type</label>
+                  <select
+                    value={newType}
+                    onChange={(e) => setNewType(e.target.value as any)}
+                    className="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+                  >
+                    <option value="credit">Credit (Deposit In)</option>
+                    <option value="debit">Debit (Payment Out / Charge)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Amount (৳)</label>
+                  <input
+                    type="number"
+                    value={newAmount || ''}
+                    onChange={(e) => setNewAmount(parseFloat(e.target.value) || 0)}
+                    placeholder="0"
+                    className="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-blue-900"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl font-semibold hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-xs"
+                >
+                  Save Statement Entry
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

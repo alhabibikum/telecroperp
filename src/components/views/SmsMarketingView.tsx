@@ -34,7 +34,9 @@ export const SmsMarketingView: React.FC = () => {
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   // Gateway status
-  const smsBalance = 4850; // remaining credits
+  const totalUnitsDispatched = smsLogs.reduce((sum, s) => sum + (s.smsUnits || 1), 0);
+  const totalAllocatedCredits = 5000;
+  const smsBalance = Math.max(0, totalAllocatedCredits - totalUnitsDispatched);
   const totalDelivered = smsLogs.filter(s => s.status === 'Delivered').length;
 
   // Auto-trigger toggles

@@ -91,11 +91,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const totalBankBalance = bankAccounts.reduce((acc, b) => acc + b.currentBalance, 0);
   const cashInTotal = cashTransactions.filter(c => c.type === 'Cash In').reduce((acc, c) => acc + c.amount, 0);
   const cashOutTotal = cashTransactions.filter(c => c.type === 'Cash Out').reduce((acc, c) => acc + c.amount, 0);
-  const estimatedCashInHand = Math.max(0, 685000 + cashInTotal - cashOutTotal);
+  const estimatedCashInHand = Math.max(0, 150000 + cashInTotal - cashOutTotal);
 
   // Profit estimation: Total Revenue minus total cost of goods sold
   const totalCOGS = salesInvoices.reduce((acc, inv) => {
-    const cost = inv.items.reduce((s, it) => s + (it.unitCost * it.quantity), 0);
+    const cost = inv.items.reduce((s, it) => s + ((it.unitCost || 0) * (it.quantity || 1)), 0);
     return acc + cost;
   }, 0);
   const estimatedGrossProfit = Math.max(0, totalSalesRevenue - totalCOGS);
@@ -106,31 +106,67 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const criticalAlerts = unreadAlerts.filter(a => a.type === 'critical');
 
   // ==============================================================
-  // CHART DATA 1: REAL-TIME SALES & COLLECTION TRENDS
+  // CHART DATA 1: REAL-TIME SALES & COLLECTION TRENDS (DYNAMIC)
   // ==============================================================
-  const salesTrend7Days = [
-    { period: '28 Sep', sales: 420000, collections: 380000, units: 14 },
-    { period: '29 Sep', sales: 680000, collections: 510000, units: 22 },
-    { period: '30 Sep', sales: 850000, collections: 720000, units: 28 },
-    { period: '01 Oct', sales: 1250000, collections: 980000, units: 36 },
-    { period: '02 Oct', sales: 920000, collections: 890000, units: 29 },
-    { period: '03 Oct', sales: 1450000, collections: 1100000, units: 44 },
-    { period: '04 Oct', sales: 1180000, collections: 950000, units: 35 }
-  ];
+  const daysList: string[] = [];
+  const today = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    daysList.push(d.toISOString().split('T')[0]);
+  }
 
-  const salesTrendMonthly = [
-    { period: 'May', sales: 14500000, collections: 13200000, units: 480 },
-    { period: 'Jun', sales: 16800000, collections: 15400000, units: 540 },
-    { period: 'Jul', sales: 18200000, collections: 17100000, units: 590 },
-    { period: 'Aug', sales: 17400000, collections: 16800000, units: 560 },
-    { period: 'Sep', sales: 21500000, collections: 19800000, units: 710 },
-    { period: 'Oct (M-T-D)', sales: 6750000, collections: 5530000, units: 218 }
-  ];
+  const salesTrend7Days = daysList.map(dateStr => {
+    const dayInvoices = salesInvoices.filter(inv => inv.invoiceDate === dateStr);
+    const daySales = dayInvoices.reduce((sum, inv) => sum + inv.grandTotal, 0);
+    const dayUnits = dayInvoices.reduce((sum, inv) => sum + inv.items.reduce((s, it) => s + it.quantity, 0), 0);
+
+    const invoiceCollections = dayInvoices.reduce((sum, inv) => sum + (inv.paidAmount || 0), 0);
+    const cashCollections = cashTransactions
+      .filter(tx => tx.type === 'Cash In' && tx.date.startsWith(dateStr))
+      .reduce((sum, tx) => sum + tx.amount, 0);
+    const totalCollections = Math.max(invoiceCollections, cashCollections);
+
+    const dObj = new Date(dateStr);
+    const periodLabel = dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+
+    return {
+      period: periodLabel,
+      sales: daySales,
+      collections: totalCollections,
+      units: dayUnits
+    };
+  });
+
+  // Dynamic Monthly Sales Trend
+  const monthsMap = new Map<string, { sales: number; collections: number; units: number }>();
+  salesInvoices.forEach(inv => {
+    const monthKey = inv.invoiceDate ? inv.invoiceDate.substring(0, 7) : '2026-10';
+    const cur = monthsMap.get(monthKey) || { sales: 0, collections: 0, units: 0 };
+    cur.sales += inv.grandTotal;
+    cur.collections += inv.paidAmount;
+    cur.units += inv.items.reduce((s, it) => s + it.quantity, 0);
+    monthsMap.set(monthKey, cur);
+  });
+
+  const sortedMonthKeys = Array.from(monthsMap.keys()).sort();
+  const salesTrendMonthly = sortedMonthKeys.length > 0 ? sortedMonthKeys.map(k => {
+    const val = monthsMap.get(k)!;
+    const [y, m] = k.split('-');
+    const mDate = new Date(parseInt(y, 10), parseInt(m, 10) - 1, 1);
+    const mLabel = mDate.toLocaleDateString('en-US', { month: 'short' });
+    return {
+      period: mLabel,
+      sales: val.sales,
+      collections: val.collections,
+      units: val.units
+    };
+  }) : salesTrend7Days;
 
   const activeSalesTrendData = salesTrendTimeframe === '7days' ? salesTrend7Days : salesTrendMonthly;
 
   // ==============================================================
-  // CHART DATA 2: TOP-SELLING PRODUCT BRANDS
+  // CHART DATA 2: TOP-SELLING PRODUCT BRANDS (DYNAMIC LIVE AGGREGATION)
   // ==============================================================
   const brandColors: Record<string, string> = {
     Samsung: '#2563eb', // blue
@@ -146,51 +182,58 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const topBrandData = brands.map(b => {
     const bImeis = imeis.filter(i => i.brandName.toLowerCase() === b.name.toLowerCase());
     const inStock = bImeis.filter(i => i.status === 'In Stock').length;
-    const sold = bImeis.filter(i => i.status === 'Sold').length;
+    const soldImeisCount = bImeis.filter(i => i.status === 'Sold').length;
 
-    const actualRevenue = salesInvoices.reduce((acc, inv) => {
-      const bItems = inv.items.filter(it => it.productName.toLowerCase().includes(b.name.toLowerCase()));
-      return acc + bItems.reduce((s, it) => s + it.totalAmount, 0);
-    }, 0);
+    let actualRevenue = 0;
+    let actualUnitsSold = 0;
+    salesInvoices.forEach(inv => {
+      inv.items.forEach(it => {
+        const prod = products.find(p => p.id === it.productId);
+        if ((prod && prod.brandName.toLowerCase() === b.name.toLowerCase()) || it.productName.toLowerCase().includes(b.name.toLowerCase())) {
+          actualRevenue += it.totalAmount;
+          actualUnitsSold += it.quantity;
+        }
+      });
+    });
 
-    const baseSold = sold > 0 ? sold : (
-      b.name === 'Samsung' ? 52 :
-      b.name === 'Xiaomi' ? 44 :
-      b.name === 'Vivo' ? 32 :
-      b.name === 'Apple' ? 24 :
-      b.name === 'Realme' ? 28 :
-      b.name === 'Oppo' ? 20 : 12
-    );
-
-    const baseRevenue = actualRevenue > 0 ? actualRevenue : (
-      b.name === 'Samsung' ? 4450000 :
-      b.name === 'Xiaomi' ? 1950000 :
-      b.name === 'Apple' ? 3850000 :
-      b.name === 'Vivo' ? 1420000 :
-      b.name === 'Realme' ? 980000 : 750000
-    );
+    const totalSold = Math.max(soldImeisCount, actualUnitsSold);
 
     return {
       name: b.name,
-      unitsSold: baseSold,
-      inStockUnits: Math.max(inStock, 4),
-      revenue: baseRevenue,
+      unitsSold: totalSold,
+      inStockUnits: inStock,
+      revenue: actualRevenue,
       color: brandColors[b.name] || '#3b82f6'
     };
   }).sort((a, b) => brandMetric === 'units' ? b.unitsSold - a.unitsSold : b.revenue - a.revenue);
 
   // ==============================================================
-  // CHART DATA 3: DAILY PROFIT / LOSS & EXPENSES BREAKDOWN
+  // CHART DATA 3: DAILY PROFIT / LOSS & EXPENSES BREAKDOWN (DYNAMIC)
   // ==============================================================
-  const dailyProfitLossData = [
-    { day: '28 Sep', revenue: 420000, cogs: 365000, expenses: 18000, grossProfit: 55000, netProfit: 37000, margin: 8.8 },
-    { day: '29 Sep', revenue: 680000, cogs: 590000, expenses: 24000, grossProfit: 90000, netProfit: 66000, margin: 9.7 },
-    { day: '30 Sep', revenue: 850000, cogs: 735000, expenses: 31000, grossProfit: 115000, netProfit: 84000, margin: 9.8 },
-    { day: '01 Oct', revenue: 1250000, cogs: 1080000, expenses: 42000, grossProfit: 170000, netProfit: 128000, margin: 10.2 },
-    { day: '02 Oct', revenue: 920000, cogs: 795000, expenses: 28000, grossProfit: 125000, netProfit: 97000, margin: 10.5 },
-    { day: '03 Oct', revenue: 1450000, cogs: 1250000, expenses: 48000, grossProfit: 200000, netProfit: 152000, margin: 10.4 },
-    { day: '04 Oct', revenue: 1180000, cogs: 1020000, expenses: 35000, grossProfit: 160000, netProfit: 125000, margin: 10.6 }
-  ];
+  const dailyProfitLossData = daysList.map(dateStr => {
+    const dayInvoices = salesInvoices.filter(inv => inv.invoiceDate === dateStr);
+    const revenue = dayInvoices.reduce((sum, inv) => sum + inv.grandTotal, 0);
+    const cogs = dayInvoices.reduce((sum, inv) => sum + inv.items.reduce((s, it) => s + ((it.unitCost || 0) * (it.quantity || 1)), 0), 0);
+    const dayExpenses = expenses
+      .filter(e => e.date.startsWith(dateStr))
+      .reduce((sum, e) => sum + e.amount, 0);
+    const grossProfit = revenue - cogs;
+    const netProfit = grossProfit - dayExpenses;
+    const margin = revenue > 0 ? Number(((netProfit / revenue) * 100).toFixed(1)) : 0;
+
+    const dObj = new Date(dateStr);
+    const dayLabel = dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+
+    return {
+      day: dayLabel,
+      revenue,
+      cogs,
+      expenses: dayExpenses,
+      grossProfit,
+      netProfit,
+      margin
+    };
+  });
 
   // Custom Recharts Tooltip Formatter
   const CustomCurrencyTooltip = ({ active, payload, label }: any) => {

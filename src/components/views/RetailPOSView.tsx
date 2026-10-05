@@ -20,7 +20,7 @@ interface RetailPOSViewProps {
 }
 
 export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) => {
-  const { products, imeis, warehouses, createSale } = useERP();
+  const { products, imeis, warehouses, customers, createSale } = useERP();
 
   const retailOutlet = warehouses.find(w => w.type === 'Retail Outlet') || warehouses[0];
 
@@ -91,9 +91,11 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
       imeiList: [c.imeiRecord.imei1]
     }));
 
+    const walkInCust = customers.find(c => c.customerType === 'Walk-in' || c.shopName.toLowerCase().includes('walk-in')) || customers[0];
+
     const result = createSale({
       invoiceType: 'Retail POS',
-      customerId: 'cust-5',
+      customerId: walkInCust?.id || 'cust-walkin',
       customerName,
       customerPhone,
       warehouseId: retailOutlet.id,

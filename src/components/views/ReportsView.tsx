@@ -51,7 +51,10 @@ export const ReportsView: React.FC = () => {
   const totalDiscounts = salesInvoices.reduce((s, i) => s + i.discountTotal, 0);
   const totalReturns = customerReturns.reduce((s, r) => s + r.refundOrCreditAmount, 0);
   const netSalesRevenue = totalGrossSales - totalDiscounts - totalReturns;
-  const estimatedCOGS = Math.round(netSalesRevenue * 0.88);
+  const actualCOGS = salesInvoices.reduce((acc, inv) => {
+    return acc + inv.items.reduce((sum, item) => sum + ((item.unitCost || 0) * (item.quantity || 1)), 0);
+  }, 0);
+  const estimatedCOGS = actualCOGS > 0 ? actualCOGS : Math.round(netSalesRevenue * 0.88);
   const grossProfit = netSalesRevenue - estimatedCOGS;
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
   const netOperatingProfit = grossProfit - totalExpenses;

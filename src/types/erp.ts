@@ -418,6 +418,7 @@ export interface CashTransaction {
   category: 'Customer Sale' | 'Due Collection' | 'Supplier Payment' | 'Expense' | 'Cash To Bank' | 'Other';
   amount: number;
   referenceNo: string;
+  voucherNo?: string;
   description: string;
   performedBy: string;
 }
@@ -570,6 +571,7 @@ export interface PhoneExchangeTransaction {
 
 export interface BankStatementEntry {
   id: string;
+  bankAccountId?: string;
   date: string;
   description: string;
   referenceNo: string;
@@ -593,6 +595,29 @@ export interface SystemSettings {
   creditLimitHardBlock: boolean;
   maxDiscountWithoutApproval: number;
   language: 'en' | 'bn';
+  apiIntegrations?: {
+    smsProvider?: 'Greenweb' | 'Onnorokom' | 'Twilio' | 'SSL Wireless';
+    smsApiKey?: string;
+    smsSenderId?: string;
+    autoSmsOnSale?: boolean;
+    autoSmsOnDue?: boolean;
+    bkashMerchant?: string;
+    bkashAppKey?: string;
+    bkashAppSecret?: string;
+    bkashEnvironment?: 'Sandbox' | 'Live';
+    nagadMerchant?: string;
+    nagadPublicKey?: string;
+    sslStoreId?: string;
+    sslStorePass?: string;
+    steadfastApiKey?: string;
+    steadfastSecret?: string;
+    pathaoClientId?: string;
+    pathaoSecret?: string;
+    autoSyncTracking?: boolean;
+    btrcEirToken?: string;
+    btrcWebhookUrl?: string;
+    btrcAutoReport?: boolean;
+  };
 }
 
 export type WarrantyStatus =
@@ -738,5 +763,12 @@ export interface BackupSnapshot {
   };
   dataJson: string;
 }
+
+export interface CrudResult {
+  success: boolean;
+  error?: string;
+  id?: string;
+}
+
 
 
