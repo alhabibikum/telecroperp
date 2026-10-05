@@ -93,6 +93,8 @@ export const SettingsView: React.FC = () => {
   const [showPurgeModal, setShowPurgeModal] = useState(false);
   const [showWipeModal, setShowWipeModal] = useState(false);
   const [wipeConfirmText, setWipeConfirmText] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetStatusText, setResetStatusText] = useState('');
 
   // Restore verification modal state
   const [pendingRestoreJson, setPendingRestoreJson] = useState<string | null>(null);
@@ -376,23 +378,57 @@ export const SettingsView: React.FC = () => {
     setTimeout(() => setMessage(null), 3500);
   };
 
-  const handleExecutePurge = () => {
-    purgeTransactionalData();
-    setShowPurgeModal(false);
-    setMessage('All sales and purchases purged! Master product catalog and party accounts preserved.');
-    setTimeout(() => setMessage(null), 4000);
+  const handleExecutePurge = async () => {
+    try {
+      setIsResetting(true);
+      setResetStatusText('ট্রানজ্যাকশন মোছা হচ্ছে... লোকাল ও সুপাবেস ক্লাউড আপডেট হচ্ছে...');
+      const res = await purgeTransactionalData();
+      setShowPurgeModal(false);
+      setMessage(res.message);
+      setTimeout(() => setMessage(null), 5000);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Purge failed');
+    } finally {
+      setIsResetting(false);
+      setResetStatusText('');
+    }
   };
 
-  const handleExecuteWipe = () => {
+  const handleResetToDemo = async () => {
+    if (!window.confirm('সব ডাটাবেস রিসেট করে আদর্শ বাংলাদেশি ডিস্ট্রিবিউশন ডেমো ডাটা রিস্টোর করতে চান?')) return;
+    try {
+      setIsResetting(true);
+      setResetStatusText('ডেমো ডাটাবেস রিস্টোর করা হচ্ছে... লোকাল ও ক্লাউড ডাটাবেস সিঙ্ক হচ্ছে...');
+      const res = await resetToDemoData();
+      setMessage(res.message);
+      setTimeout(() => setMessage(null), 5000);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Demo reset failed');
+    } finally {
+      setIsResetting(false);
+      setResetStatusText('');
+    }
+  };
+
+  const handleExecuteWipe = async () => {
     if (wipeConfirmText !== 'CONFIRM WIPE') {
       setErrorMsg('Please type "CONFIRM WIPE" exactly to authorize full reset.');
       return;
     }
-    factoryResetFullWipe();
-    setShowWipeModal(false);
-    setWipeConfirmText('');
-    setMessage('Complete factory reset executed. Restored to clean standard seed state.');
-    setTimeout(() => setMessage(null), 4000);
+    try {
+      setIsResetting(true);
+      setResetStatusText('সম্পূর্ণ ফ্যাক্টরি রিসেট সম্পন্ন হচ্ছে... লোকাল ক্যাশ ও ক্লাউড ডাটাবেস শূন্য করা হচ্ছে...');
+      const res = await factoryResetFullWipe();
+      setShowWipeModal(false);
+      setWipeConfirmText('');
+      setMessage(res.message);
+      setTimeout(() => setMessage(null), 5000);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Factory reset failed');
+    } finally {
+      setIsResetting(false);
+      setResetStatusText('');
+    }
   };
 
   return (
@@ -1255,9 +1291,16 @@ export const SettingsView: React.FC = () => {
               <span>সিস্টেম রিসেট নির্দেশিকা (Data Reset Policies)</span>
             </div>
             <p className="leading-relaxed">
-              সিস্টেম রিসেট করার পূর্বে একটি অটোমেটিক সেফটি ব্যাকআপ স্ন্যাপশট সংরক্ষিত হয়। আপনার ব্যবসার প্রয়োজন অনুযায়ী নিচের উপযুক্ত রিসেট অপশনটি সিলেক্ট করুন।
+              সিস্টেম রিসেট করার পূর্বে একটি অটোমেটিক সেফটি ব্যাকআপ স্ন্যাপশট সংরক্ষিত হয়। আপনার ব্যবসার প্রয়োজন অনুযায়ী নিচের উপযুক্ত রিসেট অপশনটি সিলেক্ট করুন। রিসেট অপারেশন লোকাল ক্যাশ এবং সুপাবেস ক্লাউড উভয় স্থানেই কার্যকর হবে।
             </p>
           </div>
+
+          {isResetting && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-center gap-3 text-blue-900 animate-pulse">
+              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
+              <div className="font-semibold text-xs">{resetStatusText}</div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             {/* Mode 1: Purge Transactions Only */}
@@ -1269,13 +1312,14 @@ export const SettingsView: React.FC = () => {
                 </div>
                 <div className="text-[10px] text-blue-700 font-bold uppercase">নতুন অর্থবছর সাইকেল রিসেট</div>
                 <p className="text-slate-500 text-[11px] leading-relaxed">
-                  সব সেলস ইনভয়েস, পারচেজ বিল, রিটার্ন, ক্যাশ ট্রানজ্যাকশন ও বকেয়া মুছে ফেলবে। <strong>কিন্তু মাস্টার ক্যাটালগ (ফোন মডেল, ব্র্যান্ড, কাস্টমার শপ ও সাপ্লায়ার) সুরক্ষিত থাকবে।</strong>
+                  সব সেলস ইনভয়েস, পারচেজ বিল, রিটার্ন, ক্যাশ ট্রানজ্যাকশন ও বকেয়া মুছে ফেলবে (লোকাল ও ক্লাউড উভয় স্থান থেকে)। <strong>কিন্তু মাস্টার ক্যাটালগ (ফোন মডেল, ব্র্যান্ড, কাস্টমার শপ ও সাপ্লায়ার) সুরক্ষিত থাকবে।</strong>
                 </p>
               </div>
 
               <button
                 onClick={() => setShowPurgeModal(true)}
-                className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition shadow-2xs"
+                disabled={isResetting}
+                className="w-full py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition shadow-2xs"
               >
                 Purge Transactions Only
               </button>
@@ -1290,18 +1334,14 @@ export const SettingsView: React.FC = () => {
                 </div>
                 <div className="text-[10px] text-amber-700 font-bold uppercase">আদর্শ ডেমো ডাটা রিসেট</div>
                 <p className="text-slate-500 text-[11px] leading-relaxed">
-                  বর্তমান ডাটাবেস পরিবর্তন মুছে ফেলে ৮টি ব্র্যান্ড, ফ্ল্যাগশিপ স্যামসাং/শাওমি ফোন ও আদর্শ বাংলাদেশি ডিস্ট্রিবিউশন ডেমো ডাটাবেসে ফিরিয়ে নিবে।
+                  বর্তমান ডাটাবেস পরিবর্তন মুছে ফেলে ৮টি ব্র্যান্ড, ফ্ল্যাগশিপ স্যামসাং/শাওমি ফোন ও আদর্শ বাংলাদেশি ডিস্ট্রিবিউশন ডেমো ডাটাবেসে রিস্টোর করবে (লোকাল ও ক্লাউড সিঙ্কসহ)।
                 </p>
               </div>
 
               <button
-                onClick={() => {
-                  if (window.confirm('Reset all databases back to default Bangladesh mobile distribution demo state?')) {
-                    resetToDemoData();
-                    setMessage('System restored to standard demo dataset.');
-                  }
-                }}
-                className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition shadow-2xs"
+                onClick={handleResetToDemo}
+                disabled={isResetting}
+                className="w-full py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition shadow-2xs"
               >
                 Reset to Demo Seed Data
               </button>
@@ -1314,15 +1354,16 @@ export const SettingsView: React.FC = () => {
                   <div className="w-2.5 h-2.5 rounded-full bg-rose-600" />
                   <span>Full Factory Wipe</span>
                 </div>
-                <div className="text-[10px] text-rose-700 font-bold uppercase">সম্পূর্ণ ফ্যাক্টরি রিসেট</div>
+                <div className="text-[10px] text-rose-700 font-bold uppercase">সম্পূর্ণ ফ্যাক্টরি রিসেট (Clean Slate)</div>
                 <p className="text-slate-500 text-[11px] leading-relaxed">
-                  সম্পূর্ণ সিস্টেম পরিষ্কার করে ফ্যাক্টরি স্টেট এ নিয়ে যাবে। নিরাপত্তা নিশ্চিত করতে টাইপিং অথরাইজেশন প্রয়োজন।
+                  সম্পূর্ণ সিস্টেম পরিষ্কার করে ক্লিন ফ্রেশ স্টেট (Zero Data) এ নিয়ে যাবে। ক্লাউড ও লোকাল থেকে সমস্ত ডেমো ডাটা মুছে বাস্তব ব্যবসার জন্য শূন্য থেকে প্রস্তুত করবে।
                 </p>
               </div>
 
               <button
                 onClick={() => setShowWipeModal(true)}
-                className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition shadow-2xs"
+                disabled={isResetting}
+                className="w-full py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition shadow-2xs"
               >
                 Execute Factory Wipe...
               </button>
@@ -1534,11 +1575,20 @@ export const SettingsView: React.FC = () => {
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowPurgeModal(false)} className="px-4 py-2 border rounded-xl font-semibold text-xs">
+              <button
+                onClick={() => setShowPurgeModal(false)}
+                disabled={isResetting}
+                className="px-4 py-2 border rounded-xl font-semibold text-xs disabled:opacity-50"
+              >
                 Cancel
               </button>
-              <button onClick={handleExecutePurge} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-xs">
-                Yes, Purge Transactions
+              <button
+                onClick={handleExecutePurge}
+                disabled={isResetting}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs shadow-xs flex items-center gap-1.5"
+              >
+                {isResetting && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                <span>{isResetting ? 'Purging...' : 'Yes, Purge Transactions'}</span>
               </button>
             </div>
           </div>
@@ -1556,7 +1606,7 @@ export const SettingsView: React.FC = () => {
 
             <div className="space-y-3 text-xs text-slate-600">
               <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-900 leading-relaxed text-[11px]">
-                🚨 Danger: This operation will perform a complete wipe and restore the system to factory seed state.
+                🚨 Danger: This operation will perform a complete wipe to clean production slate (Zero Data) both locally and on Supabase cloud.
               </div>
 
               <div>
@@ -1567,22 +1617,35 @@ export const SettingsView: React.FC = () => {
                   type="text"
                   placeholder="CONFIRM WIPE"
                   value={wipeConfirmText}
+                  disabled={isResetting}
                   onChange={(e) => setWipeConfirmText(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-rose-300 rounded-xl font-mono text-center font-bold text-rose-700"
+                  className="w-full p-2.5 bg-slate-50 border border-rose-300 rounded-xl font-mono text-center font-bold text-rose-700 disabled:opacity-60"
                 />
               </div>
+
+              {isResetting && (
+                <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 flex items-center gap-2 text-[11px]">
+                  <div className="w-3.5 h-3.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                  <span>{resetStatusText || 'রিসেট প্রক্রিয়াধীন...'}</span>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowWipeModal(false)} className="px-4 py-2 border rounded-xl font-semibold text-xs">
+              <button
+                onClick={() => setShowWipeModal(false)}
+                disabled={isResetting}
+                className="px-4 py-2 border rounded-xl font-semibold text-xs disabled:opacity-50"
+              >
                 Cancel
               </button>
               <button
                 onClick={handleExecuteWipe}
-                disabled={wipeConfirmText !== 'CONFIRM WIPE'}
-                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs shadow-xs"
+                disabled={wipeConfirmText !== 'CONFIRM WIPE' || isResetting}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs shadow-xs flex items-center gap-1.5"
               >
-                Authorize Full Wipe
+                {isResetting && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                <span>{isResetting ? 'Wiping...' : 'Authorize Full Wipe'}</span>
               </button>
             </div>
           </div>

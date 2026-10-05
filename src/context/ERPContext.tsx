@@ -78,8 +78,10 @@ import {
   processSyncQueue,
   getPendingSyncCount,
   getSyncQueue,
+  clearSyncQueue,
   SyncQueueItem
 } from '../lib/syncEngine';
+import { seedCloudDemoData } from '../lib/resetEngine';
 
 // Modular Action Slices
 import {
@@ -519,15 +521,15 @@ interface ERPContextType {
   triggerManualSync: () => Promise<{ success: boolean; message: string; syncedCount: number }>;
 
   // Data Management, Backup & Reset
-  resetToDemoData: () => void;
+  resetToDemoData: () => Promise<{ success: boolean; message: string }>;
   exportJSON: () => void;
   importJSON: (jsonData: string) => boolean;
   backupSnapshots: BackupSnapshot[];
   createBackupSnapshot: (name?: string) => BackupSnapshot;
   restoreFromSnapshot: (snapshotId: string) => boolean;
   deleteSnapshot: (snapshotId: string) => void;
-  purgeTransactionalData: () => void;
-  factoryResetFullWipe: () => void;
+  purgeTransactionalData: () => Promise<{ success: boolean; message: string }>;
+  factoryResetFullWipe: (adminUser?: AuthUser) => Promise<{ success: boolean; message: string }>;
 }
 
 const ERPContext = createContext<ERPContextType | null>(null);
@@ -1506,8 +1508,21 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAlerts(prev => prev.map(a => ({ ...a, read: true })));
   };
 
-  const resetToDemoData = () => {
-    localStorage.removeItem(STORAGE_KEY);
+  const resetToDemoData = async (): Promise<{ success: boolean; message: string }> => {
+    // 1. Clear offline sync queue
+    clearSyncQueue();
+    setSyncQueue([]);
+    setPendingSyncCount(0);
+
+    // 2. Clear and set local state
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.setItem('TELECORP_USERS_LIST', JSON.stringify(demoUsers));
+    } catch (e) {
+      console.error(e);
+    }
+    setUsers(demoUsers);
+
     setBrands(initialBrands);
     setProducts(initialProducts);
     setImeis(initialIMEIs);
@@ -1522,6 +1537,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setBankAccounts(initialBankAccounts);
     setCashTransactions(initialCashTransactions);
     setExpenses(initialExpenses);
+    setExpenseCategories(initialExpenseCategories);
     setChartOfAccounts(initialCOA);
     setJournalEntries(initialJournalEntries);
     setAlerts(initialAlerts);
@@ -1538,6 +1554,22 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setDeliveryChallans(initialDeliveryChallans);
     setPriceDropClaims(initialPriceDropClaims);
     setSmsLogs(initialSmsLogs);
+
+    // 3. Supabase Cloud Seeding if connected
+    let cloudDetail = '';
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const cloudRes = await seedCloudDemoData();
+      cloudDetail = cloudRes.success
+        ? ' (সুপাবেস ক্লাউডে ডেমো ডাটাবেস সফলভাবে রিস্টোর হয়েছে)'
+        : ` (ক্লাউড ডেমো ডাটা সিডিং সতর্কতা: ${cloudRes.message})`;
+    }
+
+    addAudit('Reset Database to Standard Demo Seed Data', 'System Maintenance', 'SYSTEM');
+    return {
+      success: true,
+      message: `স্ট্যান্ডার্ড ডেমো ডাটাবেস সফলভাবে রিস্টোর হয়েছে${cloudDetail}`
+    };
   };
 
   // Auth Operations
@@ -1845,9 +1877,11 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     bankAccounts, setBankAccounts,
     cashTransactions, setCashTransactions,
     expenses, setExpenses,
+    expenseCategories, setExpenseCategories,
     chartOfAccounts, setChartOfAccounts,
     journalEntries, setJournalEntries,
     auditLogs, setAuditLogs,
+    alerts, setAlerts,
     settings, setSettings,
     salesmanVisits, setSalesmanVisits,
     customerFollowUps, setCustomerFollowUps,
@@ -2057,7 +2091,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const restoreFromSnapshot = (snapshotId: string) => executeRestoreFromSnapshot(snapshotId, systemBundle);
   const deleteSnapshot = (snapshotId: string) => executeDeleteSnapshot(snapshotId, systemBundle);
   const purgeTransactionalData = () => executePurgeTransactionalData(systemBundle);
-  const factoryResetFullWipe = () => executeFactoryResetFullWipe(systemBundle);
+  const factoryResetFullWipe = (adminUser?: AuthUser) => executeFactoryResetFullWipe(systemBundle, adminUser);
 
   return (
     <ERPContext.Provider

@@ -32,9 +32,22 @@ import type {
   PriceDropClaim,
   SmsLog,
   CrudResult,
-  UserRole
+  UserRole,
+  ExpenseCategory,
+  SystemAlert
 } from '../../types/erp';
 import { EnqueueChangeFn, AddAuditFn } from './types';
+import { clearSyncQueue } from '../../lib/syncEngine';
+import { getSupabaseClient } from '../../lib/supabase';
+import { purgeCloudTransactions, seedCloudCleanSlate } from '../../lib/resetEngine';
+import {
+  initialWarehouses,
+  initialBankAccounts,
+  initialExpenseCategories,
+  initialCOA,
+  initialSettings
+} from '../../data/initialData';
+import { demoUsers } from '../ERPContext';
 
 export interface SystemContextBundle {
   users: AuthUser[];
@@ -76,12 +89,16 @@ export interface SystemContextBundle {
   setCashTransactions: React.Dispatch<React.SetStateAction<CashTransaction[]>>;
   expenses: Expense[];
   setExpenses: React.Dispatch<React.SetStateAction<Expense[]>>;
+  expenseCategories: ExpenseCategory[];
+  setExpenseCategories: React.Dispatch<React.SetStateAction<ExpenseCategory[]>>;
   chartOfAccounts: AccountCOA[];
   setChartOfAccounts: React.Dispatch<React.SetStateAction<AccountCOA[]>>;
   journalEntries: JournalEntry[];
   setJournalEntries: React.Dispatch<React.SetStateAction<JournalEntry[]>>;
   auditLogs: AuditLog[];
   setAuditLogs: React.Dispatch<React.SetStateAction<AuditLog[]>>;
+  alerts: SystemAlert[];
+  setAlerts: React.Dispatch<React.SetStateAction<SystemAlert[]>>;
   settings: SystemSettings;
   setSettings: React.Dispatch<React.SetStateAction<SystemSettings>>;
   salesmanVisits: SalesmanVisit[];
@@ -106,7 +123,7 @@ export interface SystemContextBundle {
   setPriceDropClaims: React.Dispatch<React.SetStateAction<PriceDropClaim[]>>;
   smsLogs: SmsLog[];
   setSmsLogs: React.Dispatch<React.SetStateAction<SmsLog[]>>;
-  resetToDemoData: () => void;
+  resetToDemoData: () => Promise<{ success: boolean; message: string }> | void;
 }
 
 // User Management & RBAC CRUD
@@ -373,7 +390,9 @@ export const executeDeleteSnapshot = (
   addAudit(`Deleted Snapshot ${snapshotId}`, 'Backup & Restore', snapshotId);
 };
 
-export const executePurgeTransactionalData = (ctx: SystemContextBundle) => {
+export const executePurgeTransactionalData = async (
+  ctx: SystemContextBundle
+): Promise<{ success: boolean; message: string }> => {
   const {
     setSalesInvoices, setPurchaseInvoices, setStockTransfers, setCustomerReturns,
     setSupplierReturns, setCashTransactions, setExpenses, setDayClosings,
@@ -381,8 +400,13 @@ export const executePurgeTransactionalData = (ctx: SystemContextBundle) => {
     setImeis, setCustomers, setSuppliers, addAudit
   } = ctx;
 
+  // 1. Safety snapshot
   executeCreateBackupSnapshot('Auto Safety Snapshot (Pre-Transaction Purge)', ctx);
 
+  // 2. Clear offline sync queue
+  clearSyncQueue();
+
+  // 3. Clear all transaction states
   setSalesInvoices([]);
   setPurchaseInvoices([]);
   setStockTransfers([]);
@@ -397,17 +421,123 @@ export const executePurgeTransactionalData = (ctx: SystemContextBundle) => {
   setSmsLogs([]);
 
   // Reset all IMEIs back to 'In Stock'
-  setImeis(prev => prev.map(i => ({ ...i, status: 'In Stock' as const })));
+  setImeis(prev => prev.map(i => ({ ...i, status: 'In Stock' as const, customerId: undefined, soldDate: undefined })));
 
   // Reset Customer and Supplier Dues to 0
   setCustomers(prev => prev.map(c => ({ ...c, currentDue: 0 })));
   setSuppliers(prev => prev.map(s => ({ ...s, currentDue: 0 })));
 
+  // 4. Cloud Purge (Supabase)
+  let cloudDetail = '';
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    const cloudRes = await purgeCloudTransactions();
+    cloudDetail = cloudRes.success
+      ? ' (সুপাবেস ক্লাউড থেকেও সমস্ত ট্রানজ্যাকশন মোছা হয়েছে)'
+      : ` (ক্লাউড ট্রানজ্যাকশন আপডেটে সতর্কতা: ${cloudRes.message})`;
+  }
+
   addAudit('Purged All Transaction Records (Fresh Year Cycle Reset)', 'System Maintenance', 'SYSTEM');
+  return {
+    success: true,
+    message: `সকল সেলস ও ট্রানজ্যাকশন সফলভাবে মুছে ফেলা হয়েছে${cloudDetail}`
+  };
 };
 
-export const executeFactoryResetFullWipe = (ctx: SystemContextBundle) => {
+export const executeFactoryResetFullWipe = async (
+  ctx: SystemContextBundle,
+  adminUser?: AuthUser
+): Promise<{ success: boolean; message: string }> => {
+  const {
+    setBrands, setProducts, setImeis, setWarehouses, setSuppliers,
+    setCustomers, setSalesInvoices, setPurchaseInvoices, setStockTransfers,
+    setCustomerReturns, setSupplierReturns, setSalesmen, setBankAccounts,
+    setCashTransactions, setExpenses, setExpenseCategories, setChartOfAccounts,
+    setJournalEntries, setAlerts, setAuditLogs, setSettings, setSalesmanVisits,
+    setCustomerFollowUps, setDayClosings, setPhoneExchanges, setBankStatements,
+    setWarrantyClaims, setBrandIncentives, setDeliveryChallans, setPriceDropClaims,
+    setSmsLogs, setUsers, currentUser, setCurrentUser, addAudit
+  } = ctx;
+
+  // 1. Safety snapshot
   executeCreateBackupSnapshot('Auto Safety Snapshot (Pre-Factory Wipe)', ctx);
-  ctx.resetToDemoData();
-  ctx.addAudit('Executed Complete Factory Reset', 'System Maintenance', 'SYSTEM');
+
+  // 2. Clear offline sync queue
+  clearSyncQueue();
+
+  // 3. Keep or setup Admin user
+  const activeAdmin: AuthUser = adminUser || (currentUser?.role === 'Super Admin' ? currentUser : demoUsers[0]);
+
+  // 4. Reset React states to Clean Business Slate (Zero products, zero transactions)
+  setBrands([]);
+  setProducts([]);
+  setImeis([]);
+  setWarehouses([initialWarehouses[0]]);
+  setSuppliers([]);
+  setCustomers([]);
+  setSalesInvoices([]);
+  setPurchaseInvoices([]);
+  setStockTransfers([]);
+  setCustomerReturns([]);
+  setSupplierReturns([]);
+  setSalesmen([]);
+  setBankAccounts([{
+    ...initialBankAccounts[0],
+    openingBalance: 0,
+    currentBalance: 0
+  }]);
+  setCashTransactions([]);
+  setExpenses([]);
+  setExpenseCategories(initialExpenseCategories);
+  setChartOfAccounts(initialCOA);
+  setJournalEntries([]);
+  setAlerts([]);
+  setAuditLogs([{
+    id: `audit-${Date.now()}`,
+    timestamp: new Date().toISOString().replace('T', ' ').substr(0, 19),
+    user: activeAdmin.name,
+    role: 'Super Admin',
+    action: 'Executed Complete Factory Reset (Clean Slate)',
+    module: 'System Maintenance',
+    referenceNo: 'SYSTEM',
+    ipAddress: '127.0.0.1'
+  }]);
+  setSettings(initialSettings);
+  setSalesmanVisits([]);
+  setCustomerFollowUps([]);
+  setDayClosings([]);
+  setPhoneExchanges([]);
+  setBankStatements([]);
+  setWarrantyClaims([]);
+  setBrandIncentives([]);
+  setDeliveryChallans([]);
+  setPriceDropClaims([]);
+  setSmsLogs([]);
+
+  // 5. Update Users
+  setUsers([activeAdmin]);
+  try {
+    localStorage.setItem('TELECORP_USERS_LIST', JSON.stringify([activeAdmin]));
+    setCurrentUser(activeAdmin);
+    localStorage.setItem('TELECORP_AUTH_USER', JSON.stringify(activeAdmin));
+    localStorage.setItem('TELECORP_AUTH_STATE', 'logged_in');
+  } catch (err) {
+    console.error('Failed to update local storage users during factory reset:', err);
+  }
+
+  // 6. Cloud Clean Slate (Supabase)
+  let cloudDetail = '';
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    const cloudRes = await seedCloudCleanSlate(activeAdmin);
+    cloudDetail = cloudRes.success
+      ? ' (সুপাবেস ক্লাউড সম্পূর্ণ শূন্য ও ফ্রেশ করা হয়েছে)'
+      : ` (ক্লাউড রিসেটে সতর্কতা: ${cloudRes.message})`;
+  }
+
+  addAudit('Executed Complete Factory Reset', 'System Maintenance', 'SYSTEM');
+  return {
+    success: true,
+    message: `সম্পূর্ণ সিস্টেম ফ্যাক্টরি রিসেট সফল হয়েছে। নতুন ব্যবসার জন্য ফ্রেশ ডাটাবেস প্রস্তুত${cloudDetail}`
+  };
 };

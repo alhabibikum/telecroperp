@@ -879,3 +879,22 @@ export const processSyncQueue = async (): Promise<{
 export const getPendingSyncCount = (): number => {
   return getSyncQueue().filter(q => q.status === 'pending' || q.status === 'failed').length;
 };
+
+/**
+ * Clear the offline sync queue from LocalStorage and dispatch event
+ */
+export const clearSyncQueue = () => {
+  try {
+    localStorage.removeItem(SYNC_QUEUE_KEY);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('telecorp-sync-queue-updated', {
+        detail: {
+          pendingCount: 0,
+          queue: []
+        }
+      }));
+    }
+  } catch (err) {
+    console.error('Failed to clear sync queue from localStorage:', err);
+  }
+};
