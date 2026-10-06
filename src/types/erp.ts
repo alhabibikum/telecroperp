@@ -805,5 +805,68 @@ export interface CrudResult {
   id?: string;
 }
 
+// ---- EMI & HIRE-PURCHASE TYPES ----
+export interface EMIInstallment {
+  installmentNo: number;
+  dueDate: string;
+  amount: number;
+  paidAmount: number;
+  paidDate?: string;
+  lateFee: number;
+  status: 'Pending' | 'Paid' | 'Overdue';
+  paymentMethod?: PaymentMethodType;
+  transactionRef?: string;
+  receiptNo?: string;
+}
+
+export interface EMIGuarantor {
+  name: string;
+  mobile: string;
+  relation: string;
+  nidNo: string;
+  address: string;
+  occupation?: string;
+}
+
+export interface EMIDocuments {
+  customerNidUrl?: string;
+  customerPhotoUrl?: string;
+  guarantorNidUrl?: string;
+  securityChequeNo?: string;
+  bankName?: string;
+}
+
+export interface EMIPlan {
+  id: string;
+  planNo: string;
+  customerId: string;
+  customerName: string;
+  customerMobile: string;
+  customerAddress?: string;
+  productId: string;
+  productName: string;
+  variantDesc: string;
+  imei: string;
+  invoiceNo?: string;
+  warehouseId: string;
+  warehouseName: string;
+  totalPrice: number;
+  downPayment: number;
+  financedAmount: number; // (totalPrice - downPayment) + total interest
+  interestRate: number; // percentage, e.g. 0 for 0% zero EMI, or 5-10% flat
+  tenureMonths: number; // 3, 6, 9, 12, 18, 24
+  monthlyInstallment: number;
+  startDate: string;
+  status: 'Active' | 'Completed' | 'Defaulted' | 'Cancelled';
+  guarantor: EMIGuarantor;
+  documents: EMIDocuments;
+  installments: EMIInstallment[];
+  totalPaid: number;
+  totalRemaining: number;
+  overdueCount: number;
+  notes?: string;
+  createdAt: string;
+}
+
 
 

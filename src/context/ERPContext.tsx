@@ -39,7 +39,8 @@ import {
   AuthUser,
   BackupSnapshot,
   CrudResult,
-  CommissionDisbursement
+  CommissionDisbursement,
+  EMIPlan
 } from '../types/erp';
 import {
   initialBrands,
@@ -72,7 +73,8 @@ import {
   initialAlerts,
   initialAuditLogs,
   initialSettings,
-  initialCommissionDisbursements
+  initialCommissionDisbursements,
+  initialEMIPlans
 } from '../data/initialData';
 import { getSupabaseClient } from '../lib/supabase';
 import {
@@ -177,6 +179,13 @@ import {
   executePurgeTransactionalData,
   executeFactoryResetFullWipe
 } from './actions/systemActions';
+import {
+  EMIContextBundle,
+  executeCreateEMIPlan,
+  executeCollectInstallmentPayment,
+  executeSendEMIReminderSMS,
+  executeDeleteEMIPlan
+} from './actions/emiActions';
 
 export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   'Super Admin': ['*'],
@@ -516,6 +525,13 @@ interface ERPContextType {
   commissionDisbursements: CommissionDisbursement[];
   disburseSalesmanCommission: (data: Omit<CommissionDisbursement, 'id' | 'disbursementNo' | 'status' | 'paidAt'>) => { success: boolean; disbursementNo: string };
 
+  // EMI & Hire-Purchase Management
+  emiPlans: EMIPlan[];
+  createEMIPlan: (plan: Omit<EMIPlan, 'id' | 'planNo' | 'status' | 'installments' | 'totalPaid' | 'totalRemaining' | 'overdueCount' | 'createdAt' | 'financedAmount' | 'monthlyInstallment'>) => { success: boolean; planNo?: string; error?: string };
+  collectInstallmentPayment: (planId: string, installmentNo: number, payment: { paidAmount: number; lateFee?: number; paymentMethod: PaymentMethodType; transactionRef?: string }) => { success: boolean; error?: string };
+  sendEMIReminderSMS: (planId: string, installmentNo: number) => { success: boolean; error?: string };
+  deleteEMIPlan: (planId: string) => { success: boolean; error?: string };
+
   // Network & Cloud Sync
   isOnline: boolean;
   pendingSyncCount: number;
@@ -608,6 +624,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [priceDropClaims, setPriceDropClaims] = useState<PriceDropClaim[]>(savedState?.priceDropClaims || initialPriceDropClaims);
   const [smsLogs, setSmsLogs] = useState<SmsLog[]>(savedState?.smsLogs || initialSmsLogs);
   const [commissionDisbursements, setCommissionDisbursements] = useState<CommissionDisbursement[]>(savedState?.commissionDisbursements || initialCommissionDisbursements);
+  const [emiPlans, setEmiPlans] = useState<EMIPlan[]>(savedState?.emiPlans || initialEMIPlans);
 
   // Users Management State (Real-Time RBAC)
   const [users, setUsers] = useState<AuthUser[]>(() => {
@@ -1482,7 +1499,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deliveryChallans,
         priceDropClaims,
         smsLogs,
-        commissionDisbursements
+        commissionDisbursements,
+        emiPlans
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (e) {
@@ -1495,7 +1513,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     chartOfAccounts, journalEntries, alerts, auditLogs, settings,
     salesmanVisits, customerFollowUps, dayClosings, phoneExchanges,
     bankStatements, supplierReturns, warrantyClaims, brandIncentives,
-    deliveryChallans, priceDropClaims, smsLogs, commissionDisbursements
+    deliveryChallans, priceDropClaims, smsLogs, commissionDisbursements,
+    emiPlans
   ]);
 
   const addAudit = (action: string, module: string, referenceNo?: string, oldValue?: string, newValue?: string) => {
@@ -1578,6 +1597,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setPriceDropClaims(initialPriceDropClaims);
     setSmsLogs(initialSmsLogs);
     setCommissionDisbursements(initialCommissionDisbursements);
+    setEmiPlans(initialEMIPlans);
 
     // 3. Supabase Cloud Seeding if connected
     let cloudDetail = '';
@@ -2157,6 +2177,38 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const sendSmsNotification = (sms: Omit<SmsLog, 'id' | 'sentAt' | 'status'>) => executeSendSmsNotification(sms, masterDataBundle);
 
+  // EMI & Hire-Purchase Operations
+  const emiContextBundle: EMIContextBundle = {
+    emiPlans,
+    setEmiPlans,
+    customers,
+    setCustomers,
+    imeis,
+    setImeis,
+    cashTransactions,
+    setCashTransactions,
+    bankAccounts,
+    setBankAccounts,
+    smsLogs,
+    setSmsLogs,
+    enqueueChange,
+    addAudit,
+    currentUserRole,
+    currentUser
+  };
+
+  const createEMIPlan = (plan: Omit<EMIPlan, 'id' | 'planNo' | 'status' | 'installments' | 'totalPaid' | 'totalRemaining' | 'overdueCount' | 'createdAt' | 'financedAmount' | 'monthlyInstallment'>) =>
+    executeCreateEMIPlan(plan, emiContextBundle);
+
+  const collectInstallmentPayment = (planId: string, installmentNo: number, payment: { paidAmount: number; lateFee?: number; paymentMethod: PaymentMethodType; transactionRef?: string }) =>
+    executeCollectInstallmentPayment(planId, installmentNo, payment, emiContextBundle);
+
+  const sendEMIReminderSMS = (planId: string, installmentNo: number) =>
+    executeSendEMIReminderSMS(planId, installmentNo, emiContextBundle);
+
+  const deleteEMIPlan = (planId: string) =>
+    executeDeleteEMIPlan(planId, emiContextBundle);
+
   // System & RBAC Operations
   const createUser = (userData: Omit<AuthUser, 'id'>) => executeCreateUser(userData, systemBundle);
   const updateUser = (id: string, userData: Partial<AuthUser>) => executeUpdateUser(id, userData, systemBundle);
@@ -2392,6 +2444,11 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addBankStatementEntry,
         commissionDisbursements,
         disburseSalesmanCommission,
+        emiPlans,
+        createEMIPlan,
+        collectInstallmentPayment,
+        sendEMIReminderSMS,
+        deleteEMIPlan,
         isOnline,
         pendingSyncCount,
         syncQueue,

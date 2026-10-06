@@ -40,6 +40,7 @@ import { DeliveryDispatchView } from './components/views/DeliveryDispatchView';
 import { PriceDropClaimView } from './components/views/PriceDropClaimView';
 import { SmsMarketingView } from './components/views/SmsMarketingView';
 import { DueCollectionView } from './components/views/DueCollectionView';
+import { EMIInstallmentView } from './components/views/EMIInstallmentView';
 import { ApiIntegrationsView } from './components/views/ApiIntegrationsView';
 import { LoginView } from './components/auth/LoginView';
 import { OfflineStatusBanner } from './components/common/OfflineStatusBanner';
@@ -203,6 +204,10 @@ const ERPAppContent: React.FC = () => {
 
               {currentView === 'phone-exchange' && (
                 <PhoneExchangeView />
+              )}
+
+              {currentView === 'emi-installment' && (
+                <EMIInstallmentView />
               )}
 
               {currentView === 'delivery-dispatch' && (

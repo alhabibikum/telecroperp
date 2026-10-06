@@ -64,6 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     imeis,
     customers,
     warrantyClaims,
+    emiPlans,
     currentUser,
     currentUserRole,
     hasPermission,
@@ -146,6 +147,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           label: isBn ? 'ফোন এক্সচেঞ্জ ও ট্রেড-ইন' : 'Phone Exchange & Trade-In',
           icon: RotateCcw,
           accent: 'from-amber-500 via-orange-600 to-red-500'
+        },
+        {
+          id: 'emi-installment',
+          label: isBn ? 'কিস্তি ও ইএমআই হায়ার-পারচেজ' : 'EMI & Hire-Purchase Hub',
+          icon: CreditCard,
+          accent: 'from-violet-500 via-purple-600 to-indigo-600',
+          badge: emiPlans.filter(p => p.status === 'Active').length > 0 ? `${emiPlans.filter(p => p.status === 'Active').length}` : null,
+          badgeColor: 'bg-indigo-100 text-indigo-900 border border-indigo-300'
         },
         {
           id: 'due-ageing',

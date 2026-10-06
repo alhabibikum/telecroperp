@@ -24,7 +24,8 @@ import {
   DeliveryChallan,
   PriceDropClaim,
   SmsLog,
-  CommissionDisbursement
+  CommissionDisbursement,
+  EMIPlan
 } from '../types/erp';
 
 export const initialSettings: SystemSettings = {
@@ -1820,5 +1821,184 @@ export const initialSmsLogs: SmsLog[] = [
     smsUnits: 1
   }
 ];
+
+export const initialEMIPlans: EMIPlan[] = [
+  {
+    id: 'emi-plan-101',
+    planNo: 'EMI-2026-0089',
+    customerId: 'cust-1',
+    customerName: 'Popular Telecom',
+    customerMobile: '01712-334455',
+    customerAddress: 'Shop 4, Rajuk Market, Uttara, Dhaka',
+    productId: 'prod-3',
+    productName: 'iPhone 15 Pro Max',
+    variantDesc: '8GB/256GB - Natural Titanium',
+    imei: '354890123456789',
+    invoiceNo: 'INV-2026-000101',
+    warehouseId: 'wh-2',
+    warehouseName: 'Uttara Retail Outlet',
+    totalPrice: 165000,
+    downPayment: 45000,
+    financedAmount: 120000,
+    interestRate: 0,
+    tenureMonths: 6,
+    monthlyInstallment: 20000,
+    startDate: '2026-07-15',
+    status: 'Active',
+    guarantor: {
+      name: 'Mohammad Rafiqul Islam',
+      mobile: '01715-998877',
+      relation: 'Brother / Business Partner',
+      nidNo: '19852693847561',
+      address: 'House 12, Road 4, Sector 7, Uttara, Dhaka',
+      occupation: 'Importer & Trade Merchant'
+    },
+    documents: {
+      securityChequeNo: 'CQ-DBBL-9921004',
+      bankName: 'Dutch-Bangla Bank Ltd, Uttara Branch'
+    },
+    installments: [
+      {
+        installmentNo: 1,
+        dueDate: '2026-08-15',
+        amount: 20000,
+        paidAmount: 20000,
+        paidDate: '2026-08-14',
+        lateFee: 0,
+        status: 'Paid',
+        paymentMethod: 'bKash',
+        transactionRef: 'TRX-BKASH-77112',
+        receiptNo: 'RCP-EMI-001'
+      },
+      {
+        installmentNo: 2,
+        dueDate: '2026-09-15',
+        amount: 20000,
+        paidAmount: 20000,
+        paidDate: '2026-09-15',
+        lateFee: 0,
+        status: 'Paid',
+        paymentMethod: 'Bank Transfer',
+        transactionRef: 'EFTN-882910',
+        receiptNo: 'RCP-EMI-002'
+      },
+      {
+        installmentNo: 3,
+        dueDate: '2026-10-15',
+        amount: 20000,
+        paidAmount: 0,
+        lateFee: 0,
+        status: 'Pending'
+      },
+      {
+        installmentNo: 4,
+        dueDate: '2026-11-15',
+        amount: 20000,
+        paidAmount: 0,
+        lateFee: 0,
+        status: 'Pending'
+      },
+      {
+        installmentNo: 5,
+        dueDate: '2026-12-15',
+        amount: 20000,
+        paidAmount: 0,
+        lateFee: 0,
+        status: 'Pending'
+      },
+      {
+        installmentNo: 6,
+        dueDate: '2027-01-15',
+        amount: 20000,
+        paidAmount: 0,
+        lateFee: 0,
+        status: 'Pending'
+      }
+    ],
+    totalPaid: 85000, // 45000 down payment + 40000 installments
+    totalRemaining: 80000,
+    overdueCount: 0,
+    notes: 'Approved under Zero-Interest 6-Month Promo with 27% down payment.',
+    createdAt: '2026-07-15 14:30'
+  },
+  {
+    id: 'emi-plan-102',
+    planNo: 'EMI-2026-0092',
+    customerId: 'cust-3',
+    customerName: 'Smart Point',
+    customerMobile: '01912-778899',
+    customerAddress: 'Alkaram Market, Sadar, Sylhet',
+    productId: 'prod-1',
+    productName: 'Galaxy S24 Ultra',
+    variantDesc: '12GB/512GB - Titanium Gray',
+    imei: '864201048291001',
+    invoiceNo: 'INV-2026-000103',
+    warehouseId: 'wh-1',
+    warehouseName: 'Central Logistics Hub',
+    totalPrice: 155000,
+    downPayment: 35000,
+    financedAmount: 120000,
+    interestRate: 0,
+    tenureMonths: 4,
+    monthlyInstallment: 30000,
+    startDate: '2026-08-01',
+    status: 'Active',
+    guarantor: {
+      name: 'Advocate Shamsul Haque',
+      mobile: '01817-665544',
+      relation: 'Uncle / Guardian',
+      nidNo: '19782619485732',
+      address: 'Zindabazar, Sadar, Sylhet',
+      occupation: 'Senior Advocate, District Bar'
+    },
+    documents: {
+      securityChequeNo: 'CQ-CITY-448102',
+      bankName: 'City Bank Ltd, Sylhet Main Branch'
+    },
+    installments: [
+      {
+        installmentNo: 1,
+        dueDate: '2026-09-01',
+        amount: 30000,
+        paidAmount: 30000,
+        paidDate: '2026-08-30',
+        lateFee: 0,
+        status: 'Paid',
+        paymentMethod: 'Cash',
+        receiptNo: 'RCP-EMI-003'
+      },
+      {
+        installmentNo: 2,
+        dueDate: '2026-10-01',
+        amount: 30000,
+        paidAmount: 0,
+        lateFee: 500,
+        status: 'Overdue'
+      },
+      {
+        installmentNo: 3,
+        dueDate: '2026-11-01',
+        amount: 30000,
+        paidAmount: 0,
+        lateFee: 0,
+        status: 'Pending'
+      },
+      {
+        installmentNo: 4,
+        dueDate: '2026-12-01',
+        amount: 30000,
+        paidAmount: 0,
+        lateFee: 0,
+        status: 'Pending'
+      }
+    ],
+    totalPaid: 65000, // 35000 down payment + 30000 inst 1
+    totalRemaining: 90000,
+    overdueCount: 1,
+    notes: 'Late fee applied for October installment after 5 days grace period.',
+    createdAt: '2026-08-01 11:15'
+  }
+];
+
 
 

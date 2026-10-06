@@ -1,0 +1,346 @@
+import type React from 'react';
+import type {
+  EMIPlan,
+  EMIInstallment,
+  Customer,
+  IMEIRecord,
+  CashTransaction,
+  BankAccount,
+  SalesInvoice,
+  SmsLog,
+  UserRole,
+  AuthUser,
+  PaymentMethodType
+} from '../../types/erp';
+import type { EnqueueChangeFn, AddAuditFn } from './types';
+
+export interface EMIContextBundle {
+  emiPlans: EMIPlan[];
+  setEmiPlans: React.Dispatch<React.SetStateAction<EMIPlan[]>>;
+  customers: Customer[];
+  setCustomers: React.Dispatch<React.SetStateAction<Customer[]>>;
+  imeis: IMEIRecord[];
+  setImeis: React.Dispatch<React.SetStateAction<IMEIRecord[]>>;
+  cashTransactions: CashTransaction[];
+  setCashTransactions: React.Dispatch<React.SetStateAction<CashTransaction[]>>;
+  bankAccounts: BankAccount[];
+  setBankAccounts: React.Dispatch<React.SetStateAction<BankAccount[]>>;
+  smsLogs: SmsLog[];
+  setSmsLogs: React.Dispatch<React.SetStateAction<SmsLog[]>>;
+  enqueueChange: EnqueueChangeFn;
+  addAudit: AddAuditFn;
+  currentUserRole: UserRole;
+  currentUser: AuthUser | null;
+}
+
+const todayStr = () => new Date().toISOString().split('T')[0];
+
+/**
+ * Add months to a date string (YYYY-MM-DD)
+ */
+const addMonthsToDate = (dateStr: string, monthsToAdd: number): string => {
+  const d = new Date(dateStr);
+  d.setMonth(d.getMonth() + monthsToAdd);
+  return d.toISOString().split('T')[0];
+};
+
+/**
+ * Create a new Hire-Purchase / EMI Plan
+ */
+export const executeCreateEMIPlan = (
+  planInput: Omit<EMIPlan, 'id' | 'planNo' | 'status' | 'installments' | 'totalPaid' | 'totalRemaining' | 'overdueCount' | 'createdAt' | 'financedAmount' | 'monthlyInstallment'>,
+  ctx: EMIContextBundle
+): { success: boolean; planNo?: string; error?: string } => {
+  const {
+    emiPlans,
+    setEmiPlans,
+    imeis,
+    setImeis,
+    setCashTransactions,
+    enqueueChange,
+    addAudit,
+    currentUser,
+    currentUserRole
+  } = ctx;
+
+  // Validate IMEI
+  const targetImei = imeis.find(i => i.imei1 === planInput.imei);
+  if (!targetImei) {
+    return { success: false, error: `আইএমইআই (${planInput.imei}) ডাটাবেজে পাওয়া যায়নি!` };
+  }
+  if (targetImei.status !== 'In Stock') {
+    return { success: false, error: `আইএমইআই (${planInput.imei}) বর্তমানে '${targetImei.status}' অবস্থায় রয়েছে, এটি স্টকে নেই!` };
+  }
+
+  const planCount = emiPlans.length;
+  const planNo = `EMI-2026-${String(planCount + 101).padStart(4, '0')}`;
+  const planId = `emi-plan-${Date.now()}`;
+
+  // Financed calculation
+  const principalAmount = Math.max(0, planInput.totalPrice - planInput.downPayment);
+  const totalInterest = Math.round(principalAmount * ((planInput.interestRate || 0) / 100));
+  const financedAmount = principalAmount + totalInterest;
+  const tenure = Math.max(1, planInput.tenureMonths || 6);
+  const monthlyInstallment = Math.round(financedAmount / tenure);
+
+  // Generate Installment Schedule
+  const installments: EMIInstallment[] = [];
+  const startD = planInput.startDate || todayStr();
+
+  for (let i = 1; i <= tenure; i++) {
+    const dueDate = addMonthsToDate(startD, i);
+    // Adjust last installment for any rounding difference
+    const isLast = i === tenure;
+    const amount = isLast ? (financedAmount - monthlyInstallment * (tenure - 1)) : monthlyInstallment;
+
+    installments.push({
+      installmentNo: i,
+      dueDate,
+      amount,
+      paidAmount: 0,
+      lateFee: 0,
+      status: 'Pending'
+    });
+  }
+
+  const newPlan: EMIPlan = {
+    ...planInput,
+    id: planId,
+    planNo,
+    financedAmount,
+    monthlyInstallment,
+    status: 'Active',
+    installments,
+    totalPaid: planInput.downPayment,
+    totalRemaining: financedAmount,
+    overdueCount: 0,
+    createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+  };
+
+  // 1. Save Plan
+  setEmiPlans(prev => [newPlan, ...prev]);
+  enqueueChange('emi_plans', 'INSERT', planId, newPlan, `নতুন ইএমআই প্ল্যান (#${planNo})`);
+
+  // 2. Mark IMEI as Sold via EMI
+  setImeis(prev => prev.map(i => {
+    if (i.imei1 === planInput.imei) {
+      return {
+        ...i,
+        status: 'Sold' as const,
+        history: [
+          ...(i.history || []),
+          {
+            date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+            action: 'Sold via EMI Hire-Purchase',
+            description: `Sold to ${planInput.customerName} on EMI Plan #${planNo}. Down payment: ৳${planInput.downPayment.toLocaleString()}`,
+            user: currentUser?.name || currentUserRole
+          }
+        ]
+      };
+    }
+    return i;
+  }));
+  enqueueChange('imeis', 'UPDATE', targetImei.id, { status: 'Sold' }, `আইএমইআই ইএমআই-তে বিক্রয় (${planInput.imei})`);
+
+  // 3. Record Down Payment in Cash Transaction
+  if (planInput.downPayment > 0) {
+    const cashTx: CashTransaction = {
+      id: `cash-emi-dp-${Date.now()}`,
+      date: startD,
+      type: 'Cash In',
+      category: 'Customer Sale',
+      amount: planInput.downPayment,
+      description: `ইএমআই ডাউন পেমেন্ট গ্রহণ - প্ল্যান #${planNo} (${planInput.customerName})`,
+      referenceNo: planNo,
+      performedBy: currentUser?.name || currentUserRole
+    };
+    setCashTransactions(prev => [cashTx, ...prev]);
+    enqueueChange('cash_transactions', 'INSERT', cashTx.id, cashTx, `ইএমআই ডাউন পেমেন্ট (${planNo})`);
+  }
+
+  addAudit(
+    `Created EMI Plan #${planNo} for ${planInput.customerName}`,
+    'EMI & Hire Purchase',
+    planNo,
+    undefined,
+    `Total: ৳${planInput.totalPrice}, DP: ৳${planInput.downPayment}, Financed: ৳${financedAmount}`
+  );
+
+  return { success: true, planNo };
+};
+
+/**
+ * Collect Installment Payment
+ */
+export const executeCollectInstallmentPayment = (
+  planId: string,
+  installmentNo: number,
+  payment: {
+    paidAmount: number;
+    lateFee?: number;
+    paymentMethod: PaymentMethodType;
+    transactionRef?: string;
+  },
+  ctx: EMIContextBundle
+): { success: boolean; error?: string } => {
+  const {
+    emiPlans,
+    setEmiPlans,
+    setCashTransactions,
+    setBankAccounts,
+    enqueueChange,
+    addAudit,
+    currentUser,
+    currentUserRole
+  } = ctx;
+
+  const plan = emiPlans.find(p => p.id === planId);
+  if (!plan) return { success: false, error: 'ইএমআই চুক্তিটি পাওয়া যায়নি!' };
+
+  const instIndex = plan.installments.findIndex(i => i.installmentNo === installmentNo);
+  if (instIndex === -1) return { success: false, error: 'কিস্তির নম্বরটি সঠিক নয়!' };
+
+  const targetInst = plan.installments[instIndex];
+  if (targetInst.status === 'Paid') {
+    return { success: false, error: 'এই কিস্তিটি ইতিমধ্যে পরিশোধ করা হয়েছে!' };
+  }
+
+  const receiptNo = `RCP-EMI-${Date.now().toString().substring(7)}`;
+  const paidD = todayStr();
+  const lateFee = payment.lateFee || 0;
+  const netPaidForPrincipal = payment.paidAmount;
+
+  const updatedInstallments = plan.installments.map((inst, idx) => {
+    if (idx === instIndex) {
+      return {
+        ...inst,
+        paidAmount: netPaidForPrincipal,
+        paidDate: paidD,
+        lateFee,
+        status: 'Paid' as const,
+        paymentMethod: payment.paymentMethod,
+        transactionRef: payment.transactionRef || undefined,
+        receiptNo
+      };
+    }
+    return inst;
+  });
+
+  const remainingInstallments = updatedInstallments.filter(i => i.status !== 'Paid');
+  const isCompleted = remainingInstallments.length === 0;
+  const newOverdueCount = updatedInstallments.filter(i => i.status === 'Overdue').length;
+
+  const newTotalPaid = plan.totalPaid + netPaidForPrincipal + lateFee;
+  const newTotalRemaining = Math.max(0, plan.totalRemaining - netPaidForPrincipal);
+
+  const updatedPlan: EMIPlan = {
+    ...plan,
+    installments: updatedInstallments,
+    totalPaid: newTotalPaid,
+    totalRemaining: newTotalRemaining,
+    overdueCount: newOverdueCount,
+    status: isCompleted ? 'Completed' : 'Active'
+  };
+
+  setEmiPlans(prev => prev.map(p => p.id === planId ? updatedPlan : p));
+  enqueueChange('emi_plans', 'UPDATE', planId, updatedPlan, `কিস্তি #${installmentNo} আদায় (${plan.planNo})`);
+
+  // Record Payment in Financials
+  const totalAmountReceived = netPaidForPrincipal + lateFee;
+  if (payment.paymentMethod === 'Cash') {
+    const cashTx: CashTransaction = {
+      id: `cash-emi-inst-${Date.now()}`,
+      date: paidD,
+      type: 'Cash In',
+      category: 'Due Collection',
+      amount: totalAmountReceived,
+      description: `ইএমআই কিস্তি #${installmentNo} আদায় - প্ল্যান #${plan.planNo} (${plan.customerName})`,
+      referenceNo: receiptNo,
+      performedBy: currentUser?.name || currentUserRole
+    };
+    setCashTransactions(prev => [cashTx, ...prev]);
+    enqueueChange('cash_transactions', 'INSERT', cashTx.id, cashTx, `ইএমআই কিস্তি আদায় (${receiptNo})`);
+  } else {
+    // Deposit to first bank
+    setBankAccounts(prev => {
+      if (prev.length === 0) return prev;
+      const updated = [...prev];
+      updated[0] = { ...updated[0], currentBalance: updated[0].currentBalance + totalAmountReceived };
+      return updated;
+    });
+  }
+
+  addAudit(
+    `Collected Installment #${installmentNo} for EMI #${plan.planNo}`,
+    'EMI & Hire Purchase',
+    receiptNo,
+    undefined,
+    `Received: ৳${totalAmountReceived} via ${payment.paymentMethod} from ${plan.customerName}`
+  );
+
+  return { success: true };
+};
+
+/**
+ * Send automated SMS reminder for upcoming or overdue EMI installment
+ */
+export const executeSendEMIReminderSMS = (
+  planId: string,
+  installmentNo: number,
+  ctx: EMIContextBundle
+): { success: boolean; error?: string } => {
+  const { emiPlans, setSmsLogs, enqueueChange, addAudit } = ctx;
+
+  const plan = emiPlans.find(p => p.id === planId);
+  if (!plan) return { success: false, error: 'প্ল্যান পাওয়া যায়নি' };
+
+  const inst = plan.installments.find(i => i.installmentNo === installmentNo);
+  if (!inst) return { success: false, error: 'কিস্তি পাওয়া যায়নি' };
+
+  const msgBody = `প্রিয় ${plan.customerName}, আপনার স্মার্টফোন কিস্তি #${plan.planNo}-এর কিস্তি নং ${installmentNo} (টাকা: ${inst.amount.toLocaleString()}) আগামী ${inst.dueDate} তারিখের মধ্যে পরিশোধের জন্য অনুরোধ করা হচ্ছে। হটলাইন: 01711-002233। টেলিকর্প।`;
+
+  const newSms: SmsLog = {
+    id: `sms-emi-${Date.now()}`,
+    recipientPhone: plan.customerMobile,
+    recipientName: plan.customerName,
+    messageType: 'Due Reminder',
+    messageBody: msgBody,
+    sentAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+    status: 'Delivered',
+    masking: 'TeleCorp',
+    smsUnits: 1
+  };
+
+  setSmsLogs(prev => [newSms, ...prev]);
+  enqueueChange('sms_logs', 'INSERT', newSms.id, newSms, `ইএমআই তাগাদা এসএমএস (${plan.customerMobile})`);
+  addAudit(`Dispatched EMI Reminder SMS to ${plan.customerMobile}`, 'EMI & Hire Purchase', plan.planNo);
+
+  return { success: true };
+};
+
+/**
+ * Delete / Cancel an EMI Plan
+ */
+export const executeDeleteEMIPlan = (
+  planId: string,
+  ctx: EMIContextBundle
+): { success: boolean; error?: string } => {
+  const { emiPlans, setEmiPlans, imeis, setImeis, enqueueChange, addAudit } = ctx;
+
+  const plan = emiPlans.find(p => p.id === planId);
+  if (!plan) return { success: false, error: 'প্ল্যান পাওয়া যায়নি' };
+
+  // Revert IMEI back to In Stock
+  setImeis(prev => prev.map(i => {
+    if (i.imei1 === plan.imei) {
+      return { ...i, status: 'In Stock' as const };
+    }
+    return i;
+  }));
+
+  setEmiPlans(prev => prev.filter(p => p.id !== planId));
+  enqueueChange('emi_plans', 'DELETE', planId, undefined, `ইএমআই প্ল্যান বাতিল (#${plan.planNo})`);
+  addAudit(`Cancelled & Deleted EMI Plan #${plan.planNo}`, 'EMI & Hire Purchase', plan.planNo);
+
+  return { success: true };
+};
