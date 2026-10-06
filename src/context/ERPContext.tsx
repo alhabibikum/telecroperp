@@ -534,6 +534,9 @@ interface ERPContextType {
   deleteSnapshot: (snapshotId: string) => void;
   purgeTransactionalData: () => Promise<{ success: boolean; message: string }>;
   factoryResetFullWipe: (adminUser?: AuthUser) => Promise<{ success: boolean; message: string }>;
+  clearOfflineSyncQueue: () => void;
+  resetCashAndBankBalances: () => void;
+  setVaultOpeningCash: (amount: number) => void;
 }
 
 const ERPContext = createContext<ERPContextType | null>(null);
@@ -1901,6 +1904,9 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     deliveryChallans, setDeliveryChallans,
     priceDropClaims, setPriceDropClaims,
     smsLogs, setSmsLogs,
+    commissionDisbursements, setCommissionDisbursements,
+    setSyncQueue,
+    setPendingSyncCount,
     resetToDemoData
   };
 
@@ -2152,6 +2158,37 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const purgeTransactionalData = () => executePurgeTransactionalData(systemBundle);
   const factoryResetFullWipe = (adminUser?: AuthUser) => executeFactoryResetFullWipe(systemBundle, adminUser);
 
+  const clearOfflineSyncQueue = () => {
+    clearSyncQueue();
+    setSyncQueue([]);
+    setPendingSyncCount(0);
+    addAudit('SETTINGS', 'অফলাইন সিঙ্ক কিউ মুছে ফেলা হয়েছে', 'Sync Queue Discarded');
+  };
+
+  const resetCashAndBankBalances = () => {
+    setBankAccounts(prev => prev.map(b => ({ ...b, balance: 0, openingBalance: 0 })));
+    setCashTransactions([]);
+    setBankStatements([]);
+    setChartOfAccounts(prev => prev.map(acc => {
+      if (acc.code === '1000' || acc.code === '1010') {
+        return { ...acc, balance: 0 };
+      }
+      return acc;
+    }));
+    addAudit('SETTINGS', 'ক্যাশ ইন হ্যান্ড ও সকল ব্যাংক অ্যাকাউন্ট ব্যালেন্স শূন্য (০) রিসেট করা হয়েছে', 'Cash & Bank Balances Reset');
+  };
+
+  const setVaultOpeningCash = (amount: number) => {
+    const val = Number(amount) || 0;
+    setChartOfAccounts(prev => prev.map(acc => {
+      if (acc.code === '1000') {
+        return { ...acc, balance: val };
+      }
+      return acc;
+    }));
+    addAudit('SETTINGS', `ভল্ট প্রারম্ভিক নগদ (Vault Opening Cash) ৳${val.toLocaleString('en-IN')} এ সেট করা হয়েছে`, 'Vault Opening Cash Updated');
+  };
+
   return (
     <ERPContext.Provider
       value={{
@@ -2284,7 +2321,10 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         restoreFromSnapshot,
         deleteSnapshot,
         purgeTransactionalData,
-        factoryResetFullWipe
+        factoryResetFullWipe,
+        clearOfflineSyncQueue,
+        resetCashAndBankBalances,
+        setVaultOpeningCash
       }}
     >
       {children}

@@ -18,7 +18,8 @@ import {
   Wifi,
   WifiOff,
   RefreshCw,
-  Database
+  Database,
+  Trash2
 } from 'lucide-react';
 import { formatBDT } from '../../utils/formatters';
 import { Notifications } from './Notifications';
@@ -62,7 +63,8 @@ export const Header: React.FC<HeaderProps> = ({
     syncQueue,
     isSyncing,
     syncCloudData,
-    triggerManualSync
+    triggerManualSync,
+    clearOfflineSyncQueue
   } = useERP();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -585,16 +587,34 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
                 )}
 
-                {/* Manual Sync Trigger Button */}
-                <div className="pt-1 flex items-center justify-between">
-                  <button
-                    onClick={handleTriggerSync}
-                    disabled={isSyncing || (!isOnline && pendingSyncCount > 0)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 disabled:opacity-50 text-white rounded-xl font-extrabold text-xs shadow-xs transition cursor-pointer"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                    <span>{isSyncing ? 'ক্লাউডে সিঙ্ক হচ্ছে...' : 'এখনই ক্লাউডে সিঙ্ক করুন'}</span>
-                  </button>
+                {/* Manual Sync Trigger Button & Clear Queue */}
+                <div className="pt-1 flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleTriggerSync}
+                      disabled={isSyncing || (!isOnline && pendingSyncCount > 0)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 disabled:opacity-50 text-white rounded-xl font-extrabold text-xs shadow-xs transition cursor-pointer"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                      <span>{isSyncing ? 'ক্লাউডে সিঙ্ক হচ্ছে...' : 'এখনই ক্লাউডে সিঙ্ক করুন'}</span>
+                    </button>
+
+                    {pendingSyncCount > 0 && (
+                      <button
+                        onClick={() => {
+                          if (confirm('আপনি কি নিশ্চিত যে অফলাইন সিঙ্ক কিউ-এর সমস্ত পেন্ডিং রেকর্ড মুছে ফেলতে চান?')) {
+                            clearOfflineSyncQueue();
+                            setManualSyncMsg('অফলাইন সিঙ্ক কিউ সফলভাবে খালি করা হয়েছে।');
+                          }
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-bold text-xs transition cursor-pointer"
+                        title="পেন্ডিং কিউ মুছে ফেলুন"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>কিউ মুছুন</span>
+                      </button>
+                    )}
+                  </div>
 
                   <span className="text-[10px] text-slate-400 font-medium">
                     অটো-সিঙ্ক: সক্রিয়

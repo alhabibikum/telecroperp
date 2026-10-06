@@ -8,7 +8,12 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  RotateCcw,
+  Edit3,
+  Coins,
+  Check,
+  X
 } from 'lucide-react';
 import { formatBDT, formatDateTime } from '../../utils/formatters';
 import { RowActions, EditModal, FieldDef } from '../common/CrudKit';
@@ -34,17 +39,52 @@ const newBankFields: FieldDef[] = [
 ];
 
 export const CashBankView: React.FC = () => {
-  const { bankAccounts, cashTransactions, chartOfAccounts, reconcileBankTransaction, addBankAccount, updateBankAccount, deleteBankAccount } = useERP();
+  const {
+    bankAccounts,
+    cashTransactions,
+    chartOfAccounts,
+    reconcileBankTransaction,
+    addBankAccount,
+    updateBankAccount,
+    deleteBankAccount,
+    resetCashAndBankBalances,
+    setVaultOpeningCash
+  } = useERP();
 
   const [activeTab, setActiveTab] = useState<'bank' | 'cash'>('bank');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editing, setEditing] = useState<BankAccount | null>(null);
+  const [showSetVaultModal, setShowSetVaultModal] = useState(false);
+  const [vaultCashInput, setVaultCashInput] = useState<string>('');
+  const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
   const totalBankFunds = bankAccounts.reduce((acc, b) => acc + b.currentBalance, 0);
   const totalCashIn = cashTransactions.filter(c => c.type === 'Cash In').reduce((acc, c) => acc + c.amount, 0);
   const totalCashOut = cashTransactions.filter(c => c.type === 'Cash Out').reduce((acc, c) => acc + c.amount, 0);
-  const openingVault = chartOfAccounts.find(a => a.code === '1000')?.balance ?? 685000;
+  const openingVault = chartOfAccounts.find(a => a.code === '1000')?.balance ?? 0;
   const currentCashInHand = openingVault + totalCashIn - totalCashOut;
+
+  const handleOpenSetVault = () => {
+    setVaultCashInput(openingVault.toString());
+    setShowSetVaultModal(true);
+  };
+
+  const handleSaveVaultCash = (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(vaultCashInput) || 0;
+    setVaultOpeningCash(val);
+    setShowSetVaultModal(false);
+    setStatusMsg(`ভল্ট ক্যাশ প্রারম্ভিক ব্যালেন্স ৳${val.toLocaleString('en-IN')} এ সফলভাবে আপডেট করা হয়েছে।`);
+    setTimeout(() => setStatusMsg(null), 4000);
+  };
+
+  const handleResetAllBalances = () => {
+    if (confirm('আপনি কি নিশ্চিত যে ক্যাশ ইন হ্যান্ড (ভল্ট ক্যাশ) এবং সকল ব্যাংক অ্যাকাউন্টের বর্তমান ও প্রারম্ভিক ব্যালেন্স শূন্য (৳ ০) করতে চান?')) {
+      resetCashAndBankBalances();
+      setStatusMsg('সকল ক্যাশ ও ব্যাংক অ্যাকাউন্ট ব্যালেন্স সফলভাবে রিসেট (৳ ০) করা হয়েছে!');
+      setTimeout(() => setStatusMsg(null), 4000);
+    }
+  };
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -62,11 +102,29 @@ export const CashBankView: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={handleOpenSetVault}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition cursor-pointer"
+            title="ভল্ট বা ক্যাশ ড্রয়ারের প্রারম্ভিক ক্যাশ সেট করুন"
+          >
+            <Coins className="w-3.5 h-3.5 text-amber-600" />
+            <span>ভল্ট ক্যাশ সেট</span>
+          </button>
+
+          <button
+            onClick={handleResetAllBalances}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer"
+            title="সকল ক্যাশ ও ব্যাংক ব্যালেন্স শূন্য (৳ ০) রিসেট করুন"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
+            <span>ব্যালেন্স রিসেট (০)</span>
+          </button>
+
           {activeTab === 'bank' && (
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
             >
               <PlusCircle className="w-3.5 h-3.5" />
               <span>+ Add Account</span>
@@ -75,13 +133,13 @@ export const CashBankView: React.FC = () => {
           <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
             <button
               onClick={() => setActiveTab('bank')}
-              className={`px-3 py-1.5 rounded-lg transition ${activeTab === 'bank' ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-600'}`}
+              className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${activeTab === 'bank' ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-600'}`}
             >
               Bank Accounts ({bankAccounts.length})
             </button>
             <button
               onClick={() => setActiveTab('cash')}
-              className={`px-3 py-1.5 rounded-lg transition ${activeTab === 'cash' ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-600'}`}
+              className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${activeTab === 'cash' ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-600'}`}
             >
               Daily Cash Book
             </button>
@@ -89,19 +147,41 @@ export const CashBankView: React.FC = () => {
         </div>
       </div>
 
+      {/* Action Notification */}
+      {statusMsg && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{statusMsg}</span>
+        </div>
+      )}
+
       {/* Financial KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-        <div className="p-4 rounded-xl border border-slate-200 bg-white">
+        <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs">
           <div className="text-slate-500 uppercase font-semibold text-[10px]">Total Liquid Bank Balances</div>
           <div className="text-xl font-black text-slate-900 mt-1">{formatBDT(totalBankFunds)}</div>
+          <div className="text-[10px] text-slate-400 mt-1">মোট সক্রিয় ব্যাংক অ্যাকাউন্ট: {bankAccounts.filter(b => b.status === 'Active').length}টি</div>
         </div>
-        <div className="p-4 rounded-xl border border-slate-200 bg-white">
-          <div className="text-slate-500 uppercase font-semibold text-[10px]">Cash in Hand (Main Vault & Till)</div>
+        <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="text-slate-500 uppercase font-semibold text-[10px]">Cash in Hand (Main Vault & Till)</div>
+            <button
+              onClick={handleOpenSetVault}
+              className="text-[10px] text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+            >
+              <Edit3 className="w-3 h-3" />
+              <span>ওপেনিং ক্যাশ</span>
+            </button>
+          </div>
           <div className="text-xl font-black text-emerald-700 mt-1">{formatBDT(currentCashInHand)}</div>
+          <div className="text-[10px] text-slate-400 mt-1">
+            ওপেনিং: {formatBDT(openingVault)} | ইন: +{formatBDT(totalCashIn)} | আউট: -{formatBDT(totalCashOut)}
+          </div>
         </div>
-        <div className="p-4 rounded-xl border border-slate-200 bg-white">
+        <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs">
           <div className="text-slate-500 uppercase font-semibold text-[10px]">Total Liquid Solvency</div>
           <div className="text-xl font-black text-blue-700 mt-1">{formatBDT(totalBankFunds + currentCashInHand)}</div>
+          <div className="text-[10px] text-slate-400 mt-1">ক্যাশ ও ব্যাংক মোট তাৎক্ষণিক নগদ তারল্য</div>
         </div>
       </div>
 
@@ -189,7 +269,14 @@ export const CashBankView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {cashTransactions.map(tx => (
+                {cashTransactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-slate-400 font-medium">
+                      কোনো ক্যাশ লেনদেন রেকর্ড পাওয়া যায়নি।
+                    </td>
+                  </tr>
+                ) : (
+                  cashTransactions.map(tx => (
                   <tr key={tx.id} className="hover:bg-slate-50/70 transition">
                     <td className="p-3 text-slate-600 font-mono text-[11px]">
                       {tx.date}
@@ -218,7 +305,7 @@ export const CashBankView: React.FC = () => {
                       {tx.type === 'Cash Out' ? formatBDT(tx.amount) : '-'}
                     </td>
                   </tr>
-                ))}
+                )))}
               </tbody>
             </table>
           </div>
@@ -252,6 +339,72 @@ export const CashBankView: React.FC = () => {
           onSave={v => updateBankAccount(editing.id, v as Partial<BankAccount>)}
           onClose={() => setEditing(null)}
         />
+      )}
+
+      {/* Set Opening Vault Cash Modal */}
+      {showSetVaultModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
+                  <Coins className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900">ভল্ট প্রারম্ভিক ক্যাশ নির্ধারণ</h3>
+                  <p className="text-[11px] text-slate-500">Vault & Cash in Hand Opening Balance</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSetVaultModal(false)}
+                className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveVaultCash} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  প্রারম্ভিক নগদ টাকার পরিমাণ (টাকা)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-slate-400 font-bold text-xs">৳</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={vaultCashInput}
+                    onChange={e => setVaultCashInput(e.target.value)}
+                    placeholder="0"
+                    className="w-full pl-8 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                    autoFocus
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+                  এটি হিসাব নম্বর ১০০০ (Cash in Hand / Main Vault)-এর ব্যালেন্স হিসেবে সেট হবে। রিসেট করার পর বা ড্রয়ারের প্রারম্ভিক ক্যাশ পরিবর্তনের জন্য এটি ব্যবহার করুন।
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSetVaultModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>সংরক্ষণ করুন</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

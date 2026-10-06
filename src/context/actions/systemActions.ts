@@ -34,7 +34,8 @@ import type {
   CrudResult,
   UserRole,
   ExpenseCategory,
-  SystemAlert
+  SystemAlert,
+  CommissionDisbursement
 } from '../../types/erp';
 import { EnqueueChangeFn, AddAuditFn } from './types';
 import { clearSyncQueue } from '../../lib/syncEngine';
@@ -123,6 +124,10 @@ export interface SystemContextBundle {
   setPriceDropClaims: React.Dispatch<React.SetStateAction<PriceDropClaim[]>>;
   smsLogs: SmsLog[];
   setSmsLogs: React.Dispatch<React.SetStateAction<SmsLog[]>>;
+  commissionDisbursements?: CommissionDisbursement[];
+  setCommissionDisbursements?: React.Dispatch<React.SetStateAction<CommissionDisbursement[]>>;
+  setSyncQueue?: React.Dispatch<React.SetStateAction<any[]>>;
+  setPendingSyncCount?: React.Dispatch<React.SetStateAction<number>>;
   resetToDemoData: () => Promise<{ success: boolean; message: string }> | void;
 }
 
@@ -405,8 +410,10 @@ export const executePurgeTransactionalData = async (
   // 1. Safety snapshot
   executeCreateBackupSnapshot('Auto Safety Snapshot (Pre-Transaction Purge)', ctx);
 
-  // 2. Clear offline sync queue
+  // 2. Clear offline sync queue completely
   clearSyncQueue();
+  if (ctx.setSyncQueue) ctx.setSyncQueue([]);
+  if (ctx.setPendingSyncCount) ctx.setPendingSyncCount(0);
 
   // 3. Clear all transaction states
   setSalesInvoices([]);
@@ -428,6 +435,7 @@ export const executePurgeTransactionalData = async (
   setBankStatements([]);
   setJournalEntries([]);
   setAlerts([]);
+  if (ctx.setCommissionDisbursements) ctx.setCommissionDisbursements([]);
 
   // Reset all IMEIs back to 'In Stock'
   setImeis(prev => prev.map(i => ({ ...i, status: 'In Stock' as const, customerId: undefined, soldDate: undefined })));
@@ -436,8 +444,14 @@ export const executePurgeTransactionalData = async (
   setCustomers(prev => prev.map(c => ({ ...c, currentDue: 0 })));
   setSuppliers(prev => prev.map(s => ({ ...s, currentDue: 0 })));
 
-  // Reset Bank Account balances to opening balances
-  setBankAccounts(prev => prev.map(b => ({ ...b, currentBalance: b.openingBalance })));
+  // Reset Cash Book & Multi-Bank balances to 0 for a complete, clean reset
+  setBankAccounts(prev => prev.map(b => ({ ...b, openingBalance: 0, currentBalance: 0 })));
+  ctx.setChartOfAccounts(prev => prev.map(a => {
+    if (a.code === '1000' || a.code === '1010' || a.code === '1020' || a.code === '2000' || a.code === '2050' || a.code === '4000' || a.code === '4010' || a.code === '4090' || a.code === '5000' || a.code === '6000' || a.code === '6050') {
+      return { ...a, balance: 0 };
+    }
+    return a;
+  }));
 
   // Reset Salesmen achieved monthly targets, collections and units to 0
   setSalesmen(prev => prev.map(s => ({ ...s, currentMonthSales: 0, currentMonthCollection: 0, currentMonthUnits: 0, paidCommissionTotal: 0 })));
@@ -479,6 +493,8 @@ export const executeFactoryResetFullWipe = async (
 
   // 2. Clear offline sync queue
   clearSyncQueue();
+  if (ctx.setSyncQueue) ctx.setSyncQueue([]);
+  if (ctx.setPendingSyncCount) ctx.setPendingSyncCount(0);
 
   // 3. Keep or setup Admin user
   const activeAdmin: AuthUser = adminUser || (currentUser?.role === 'Super Admin' ? currentUser : demoUsers[0]);
@@ -504,9 +520,10 @@ export const executeFactoryResetFullWipe = async (
   setCashTransactions([]);
   setExpenses([]);
   setExpenseCategories(initialExpenseCategories);
-  setChartOfAccounts(initialCOA);
+  setChartOfAccounts(initialCOA.map(a => ({ ...a, balance: 0 })));
   setJournalEntries([]);
   setAlerts([]);
+  if (ctx.setCommissionDisbursements) ctx.setCommissionDisbursements([]);
   setAuditLogs([{
     id: `audit-${Date.now()}`,
     timestamp: new Date().toISOString().replace('T', ' ').substr(0, 19),
