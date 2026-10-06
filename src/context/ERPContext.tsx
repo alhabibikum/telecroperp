@@ -40,7 +40,8 @@ import {
   BackupSnapshot,
   CrudResult,
   CommissionDisbursement,
-  EMIPlan
+  EMIPlan,
+  MoneyReceipt
 } from '../types/erp';
 import {
   initialBrands,
@@ -74,7 +75,8 @@ import {
   initialAuditLogs,
   initialSettings,
   initialCommissionDisbursements,
-  initialEMIPlans
+  initialEMIPlans,
+  initialMoneyReceipts
 } from '../data/initialData';
 import { getSupabaseClient } from '../lib/supabase';
 import {
@@ -532,6 +534,27 @@ interface ERPContextType {
   sendEMIReminderSMS: (planId: string, installmentNo: number) => { success: boolean; error?: string };
   deleteEMIPlan: (planId: string) => { success: boolean; error?: string };
 
+  // Due Collections & Money Receipts Hub (Full CRUD & Zero Reset)
+  moneyReceipts: MoneyReceipt[];
+  createMoneyReceipt: (data: {
+    customerId: string;
+    amount: number;
+    discountWaiver?: number;
+    paymentMethod: PaymentMethodType;
+    bankAccountId?: string;
+    transactionRef?: string;
+    collectorSalesmanId?: string;
+    referenceInvoice?: string;
+    notes?: string;
+  }) => { success: boolean; receiptNo?: string; error?: string };
+  updateMoneyReceipt: (
+    id: string,
+    data: Partial<Pick<MoneyReceipt, 'notes' | 'transactionRef' | 'collectorSalesmanId' | 'collectorSalesmanName' | 'referenceInvoice'>>
+  ) => { success: boolean; error?: string };
+  voidMoneyReceipt: (id: string, reason?: string) => { success: boolean; error?: string };
+  deleteMoneyReceipt: (id: string) => { success: boolean; error?: string };
+  resetDueCollectionsAndDues: () => void;
+
   // Network & Cloud Sync
   isOnline: boolean;
   pendingSyncCount: number;
@@ -625,6 +648,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [smsLogs, setSmsLogs] = useState<SmsLog[]>(savedState?.smsLogs || initialSmsLogs);
   const [commissionDisbursements, setCommissionDisbursements] = useState<CommissionDisbursement[]>(savedState?.commissionDisbursements || initialCommissionDisbursements);
   const [emiPlans, setEmiPlans] = useState<EMIPlan[]>(savedState?.emiPlans || initialEMIPlans);
+  const [moneyReceipts, setMoneyReceipts] = useState<MoneyReceipt[]>(savedState?.moneyReceipts || initialMoneyReceipts);
 
   // Users Management State (Real-Time RBAC)
   const [users, setUsers] = useState<AuthUser[]>(() => {
@@ -1500,7 +1524,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         priceDropClaims,
         smsLogs,
         commissionDisbursements,
-        emiPlans
+        emiPlans,
+        moneyReceipts
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (e) {
@@ -1514,7 +1539,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     salesmanVisits, customerFollowUps, dayClosings, phoneExchanges,
     bankStatements, supplierReturns, warrantyClaims, brandIncentives,
     deliveryChallans, priceDropClaims, smsLogs, commissionDisbursements,
-    emiPlans
+    emiPlans, moneyReceipts
   ]);
 
   const addAudit = (action: string, module: string, referenceNo?: string, oldValue?: string, newValue?: string) => {
@@ -1598,6 +1623,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSmsLogs(initialSmsLogs);
     setCommissionDisbursements(initialCommissionDisbursements);
     setEmiPlans(initialEMIPlans);
+    setMoneyReceipts(initialMoneyReceipts);
 
     // 3. Supabase Cloud Seeding if connected
     let cloudDetail = '';
@@ -1833,6 +1859,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     settings,
     alerts,
     setAlerts,
+    moneyReceipts,
+    setMoneyReceipts,
     currentUserRole,
     enqueueChange,
     addAudit
@@ -1939,6 +1967,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     priceDropClaims, setPriceDropClaims,
     smsLogs, setSmsLogs,
     commissionDisbursements, setCommissionDisbursements,
+    moneyReceipts, setMoneyReceipts,
     setSyncQueue,
     setPendingSyncCount,
     resetToDemoData
@@ -2231,6 +2260,331 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addAudit('SETTINGS', 'অফলাইন সিঙ্ক কিউ মুছে ফেলা হয়েছে', 'Sync Queue Discarded');
   };
 
+  // Due Collections & Money Receipts Hub (Full CRUD & Zero Reset)
+  const createMoneyReceipt = (data: {
+    customerId: string;
+    amount: number;
+    discountWaiver?: number;
+    paymentMethod: PaymentMethodType;
+    bankAccountId?: string;
+    transactionRef?: string;
+    collectorSalesmanId?: string;
+    referenceInvoice?: string;
+    notes?: string;
+  }): { success: boolean; receiptNo?: string; error?: string } => {
+    const customer = customers.find(c => c.id === data.customerId);
+    if (!customer) {
+      return { success: false, error: 'গ্রাহক / ডিলার খুঁজে পাওয়া যায়নি।' };
+    }
+    if (!data.amount || data.amount <= 0) {
+      return { success: false, error: 'বৈধ কালেকশনের পরিমাণ প্রদান করুন।' };
+    }
+
+    const waiver = Number(data.discountWaiver) || 0;
+    const totalDeduction = data.amount + waiver;
+    const today = new Date().toISOString().split('T')[0];
+    const nowTime = new Date().toISOString().replace('T', ' ').substring(0, 16);
+
+    // Generate unique MR No: e.g. MR-2026-0004
+    const count = moneyReceipts.length + 1;
+    const receiptNo = `MR-2026-${String(count).padStart(4, '0')}`;
+
+    // 1. Deduct customer due
+    setCustomers(prev =>
+      prev.map(c =>
+        c.id === data.customerId
+          ? { ...c, currentDue: Math.max(0, c.currentDue - totalDeduction) }
+          : c
+      )
+    );
+
+    // 2. Allocate payment to oldest unpaid invoices (FIFO)
+    let remainingToAllocate = data.amount;
+    setSalesInvoices(prev =>
+      prev.map(inv => {
+        if (inv.customerId === data.customerId && inv.dueAmount > 0 && remainingToAllocate > 0) {
+          const alloc = Math.min(inv.dueAmount, remainingToAllocate);
+          remainingToAllocate -= alloc;
+          const newPaid = inv.paidAmount + alloc;
+          const newDue = inv.dueAmount - alloc;
+          return {
+            ...inv,
+            paidAmount: newPaid,
+            dueAmount: newDue,
+            status: newDue === 0 ? 'Paid' : 'Partial',
+            payments: [
+              ...inv.payments,
+              {
+                method: data.paymentMethod,
+                amount: alloc,
+                date: today,
+                reference: data.transactionRef || receiptNo,
+                bankAccountId: data.bankAccountId
+              }
+            ]
+          };
+        }
+        return inv;
+      })
+    );
+
+    // 3. Update Cash or Bank
+    const bank = bankAccounts.find(b => b.id === data.bankAccountId);
+    if (data.paymentMethod === 'Cash') {
+      const newCashTx: CashTransaction = {
+        id: `cash-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        date: `${today} 15:00`,
+        type: 'Cash In',
+        category: 'Due Collection',
+        amount: data.amount,
+        referenceNo: receiptNo,
+        description: `Due collection from ${customer.shopName} (MR: ${receiptNo})`,
+        performedBy: currentUserRole
+      };
+      setCashTransactions(prev => [newCashTx, ...prev]);
+    } else if (data.bankAccountId) {
+      setBankAccounts(prev =>
+        prev.map(b =>
+          b.id === data.bankAccountId
+            ? { ...b, currentBalance: b.currentBalance + data.amount }
+            : b
+        )
+      );
+    }
+
+    // 4. Update Salesman collection achievement
+    const salesman = salesmen.find(s => s.id === data.collectorSalesmanId);
+    if (data.collectorSalesmanId) {
+      setSalesmen(prev =>
+        prev.map(s =>
+          s.id === data.collectorSalesmanId
+            ? { ...s, currentMonthCollection: (s.currentMonthCollection || 0) + data.amount }
+            : s
+        )
+      );
+    }
+
+    // 5. Accounting Journal Entry (JV)
+    const jvNo = `JV-2026-${String(journalEntries.length + 1).padStart(6, '0')}`;
+    const newJv: JournalEntry = {
+      id: `jv-${Date.now()}`,
+      voucherNo: jvNo,
+      date: today,
+      voucherType: 'Receipt Voucher',
+      referenceNo: receiptNo,
+      description: `Money Receipt from ${customer.shopName} (Ref: ${receiptNo})`,
+      lines: [
+        {
+          accountCode: data.paymentMethod === 'Cash' ? '1000' : '1010',
+          accountName: data.paymentMethod === 'Cash' ? 'Cash in Hand (Main Vault)' : `Bank Account (${bank?.bankName || data.paymentMethod})`,
+          debit: data.amount,
+          credit: 0,
+          memo: `Received via ${data.paymentMethod}`
+        },
+        ...(waiver > 0 ? [{
+          accountCode: '4090',
+          accountName: 'Sales Returns & Allowances (Discount Waiver)',
+          debit: waiver,
+          credit: 0,
+          memo: `Waiver given on due settlement`
+        }] : []),
+        {
+          accountCode: '1020',
+          accountName: 'Accounts Receivable (Customer Due)',
+          debit: 0,
+          credit: totalDeduction,
+          memo: `Settled due from ${customer.shopName}`
+        }
+      ],
+      totalDebit: totalDeduction,
+      totalCredit: totalDeduction,
+      createdBy: currentUserRole,
+      createdAt: nowTime
+    };
+    setJournalEntries(prev => [newJv, ...prev]);
+
+    // 6. Create Money Receipt entity
+    const newReceipt: MoneyReceipt = {
+      id: `mr-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      receiptNo,
+      date: today,
+      customerId: customer.id,
+      customerName: customer.ownerName || customer.shopName,
+      customerPhone: customer.mobile,
+      shopName: customer.shopName,
+      area: customer.area,
+      amount: data.amount,
+      discountWaiver: waiver > 0 ? waiver : undefined,
+      paymentMethod: data.paymentMethod,
+      bankAccountId: data.bankAccountId,
+      bankName: bank?.bankName,
+      transactionRef: data.transactionRef || receiptNo,
+      collectorSalesmanId: data.collectorSalesmanId,
+      collectorSalesmanName: salesman?.name,
+      referenceInvoice: data.referenceInvoice || 'Direct Collection',
+      notes: data.notes,
+      status: 'Confirmed',
+      createdAt: nowTime
+    };
+
+    setMoneyReceipts(prev => [newReceipt, ...prev]);
+
+    // Sync & Audit
+    enqueueChange('money_receipts', 'INSERT', newReceipt.id, newReceipt, `মানি রসিদ ইস্যু #${receiptNo}`);
+    addAudit(
+      `মানি রসিদ তৈরি #${receiptNo} (${customer.shopName} - ৳${data.amount.toLocaleString('en-IN')})`,
+      'Due Collection',
+      receiptNo
+    );
+
+    return { success: true, receiptNo };
+  };
+
+  const updateMoneyReceipt = (
+    id: string,
+    data: Partial<Pick<MoneyReceipt, 'notes' | 'transactionRef' | 'collectorSalesmanId' | 'collectorSalesmanName' | 'referenceInvoice'>>
+  ): { success: boolean; error?: string } => {
+    const existing = moneyReceipts.find(r => r.id === id);
+    if (!existing) {
+      return { success: false, error: 'মানি রসিদ খুঁজে পাওয়া যায়নি।' };
+    }
+    if (existing.status === 'Voided') {
+      return { success: false, error: 'বাতিলকৃত (Voided) মানি রসিদের তথ্য সংশোধন করা যাবে না।' };
+    }
+
+    const updated: MoneyReceipt = {
+      ...existing,
+      ...data
+    };
+
+    setMoneyReceipts(prev => prev.map(r => r.id === id ? updated : r));
+    enqueueChange('money_receipts', 'UPDATE', id, updated, `মানি রসিদ আপডেট #${existing.receiptNo}`);
+    addAudit(
+      `মানি রসিদ সংশোধন #${existing.receiptNo}`,
+      'Due Collection',
+      existing.receiptNo
+    );
+    return { success: true };
+  };
+
+  const voidMoneyReceipt = (id: string, reason?: string): { success: boolean; error?: string } => {
+    const target = moneyReceipts.find(r => r.id === id);
+    if (!target) {
+      return { success: false, error: 'মানি রসিদ খুঁজে পাওয়া যায়নি।' };
+    }
+    if (target.status === 'Voided') {
+      return { success: false, error: 'এই মানি রসিদটি ইতোমধ্যে বাতিল করা হয়েছে।' };
+    }
+
+    const restoreAmount = target.amount + (target.discountWaiver || 0);
+
+    // 1. Rollback customer due: customer owes this amount again
+    setCustomers(prev =>
+      prev.map(c =>
+        c.id === target.customerId
+          ? { ...c, currentDue: c.currentDue + restoreAmount }
+          : c
+      )
+    );
+
+    // 2. Rollback Cash or Bank
+    if (target.paymentMethod === 'Cash') {
+      const today = new Date().toISOString().split('T')[0];
+      const voidCashTx: CashTransaction = {
+        id: `cash-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        date: `${today} 15:30`,
+        type: 'Cash Out',
+        category: 'Other',
+        amount: target.amount,
+        referenceNo: target.receiptNo,
+        description: `Rollback of voided Money Receipt #${target.receiptNo} (${target.shopName}) - ${reason || 'Voided'}`,
+        performedBy: currentUserRole
+      };
+      setCashTransactions(prev => [voidCashTx, ...prev]);
+    } else if (target.bankAccountId) {
+      setBankAccounts(prev =>
+        prev.map(b =>
+          b.id === target.bankAccountId
+            ? { ...b, currentBalance: Math.max(0, b.currentBalance - target.amount) }
+            : b
+        )
+      );
+    }
+
+    // 3. Mark receipt as Voided
+    const updated: MoneyReceipt = {
+      ...target,
+      status: 'Voided',
+      notes: `${target.notes ? target.notes + ' | ' : ''}বাতিল কারণ: ${reason || 'ব্যবস্থাপনা সিদ্ধান্ত'}`
+    };
+
+    setMoneyReceipts(prev => prev.map(r => r.id === id ? updated : r));
+    enqueueChange('money_receipts', 'UPDATE', id, updated, `মানি রসিদ বাতিল #${target.receiptNo}`);
+    addAudit(
+      `মানি রসিদ বাতিল ও বকেয়া ফেরত #${target.receiptNo} (৳${target.amount.toLocaleString('en-IN')})`,
+      'Due Collection',
+      target.receiptNo
+    );
+
+    return { success: true };
+  };
+
+  const deleteMoneyReceipt = (id: string): { success: boolean; error?: string } => {
+    const target = moneyReceipts.find(r => r.id === id);
+    if (!target) {
+      return { success: false, error: 'মানি রসিদ খুঁজে পাওয়া যায়নি।' };
+    }
+
+    // If it was confirmed, roll back customer due before deleting
+    if (target.status === 'Confirmed') {
+      const restoreAmount = target.amount + (target.discountWaiver || 0);
+      setCustomers(prev =>
+        prev.map(c =>
+          c.id === target.customerId
+            ? { ...c, currentDue: c.currentDue + restoreAmount }
+            : c
+        )
+      );
+      if (target.bankAccountId) {
+        setBankAccounts(prev =>
+          prev.map(b =>
+            b.id === target.bankAccountId
+              ? { ...b, currentBalance: Math.max(0, b.currentBalance - target.amount) }
+              : b
+          )
+        );
+      }
+    }
+
+    setMoneyReceipts(prev => prev.filter(r => r.id !== id));
+    enqueueChange('money_receipts', 'DELETE', id, null, `মানি রসিদ স্থায়ীভাবে ডিলিট #${target.receiptNo}`);
+    addAudit(
+      `মানি রসিদ ডিলিট #${target.receiptNo}`,
+      'Due Collection',
+      target.receiptNo
+    );
+
+    return { success: true };
+  };
+
+  const resetDueCollectionsAndDues = () => {
+    // 1. Wipe all money receipts
+    setMoneyReceipts([]);
+
+    // 2. Reset all customer dues to 0 (clean slate)
+    setCustomers(prev => prev.map(c => ({ ...c, currentDue: 0 })));
+
+    // 3. Clear due collection entries from cash book
+    setCashTransactions(prev => prev.filter(tx => tx.category !== 'Due Collection'));
+
+    enqueueChange('money_receipts', 'DELETE', 'all', null, 'সকল মানি রসিদ শূন্য রিসেট');
+    addAudit(
+      'বকেয়া কালেকশন ও সকল গ্রাহক বাকি শূন্য (০) রিসেট করা হয়েছে',
+      'Due Collection',
+      'RESET-ALL'
+    );
+  };
+
   const resetCashAndBankBalances = () => {
     setBankAccounts(prev => prev.map(b => ({ ...b, balance: 0, openingBalance: 0 })));
     setCashTransactions([]);
@@ -2449,6 +2803,12 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         collectInstallmentPayment,
         sendEMIReminderSMS,
         deleteEMIPlan,
+        moneyReceipts,
+        createMoneyReceipt,
+        updateMoneyReceipt,
+        voidMoneyReceipt,
+        deleteMoneyReceipt,
+        resetDueCollectionsAndDues,
         isOnline,
         pendingSyncCount,
         syncQueue,

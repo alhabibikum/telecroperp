@@ -35,7 +35,8 @@ import type {
   UserRole,
   ExpenseCategory,
   SystemAlert,
-  CommissionDisbursement
+  CommissionDisbursement,
+  MoneyReceipt
 } from '../../types/erp';
 import { EnqueueChangeFn, AddAuditFn } from './types';
 import { clearSyncQueue } from '../../lib/syncEngine';
@@ -126,6 +127,8 @@ export interface SystemContextBundle {
   setSmsLogs: React.Dispatch<React.SetStateAction<SmsLog[]>>;
   commissionDisbursements?: CommissionDisbursement[];
   setCommissionDisbursements?: React.Dispatch<React.SetStateAction<CommissionDisbursement[]>>;
+  moneyReceipts?: MoneyReceipt[];
+  setMoneyReceipts?: React.Dispatch<React.SetStateAction<MoneyReceipt[]>>;
   setSyncQueue?: React.Dispatch<React.SetStateAction<any[]>>;
   setPendingSyncCount?: React.Dispatch<React.SetStateAction<number>>;
   resetToDemoData: () => Promise<{ success: boolean; message: string }> | void;
@@ -273,7 +276,8 @@ export const executeExportJSON = (ctx: SystemContextBundle) => {
     brandIncentives: ctx.brandIncentives,
     deliveryChallans: ctx.deliveryChallans,
     priceDropClaims: ctx.priceDropClaims,
-    smsLogs: ctx.smsLogs
+    smsLogs: ctx.smsLogs,
+    moneyReceipts: ctx.moneyReceipts || []
   };
   const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -316,6 +320,7 @@ export const executeImportJSON = (jsonData: string, ctx: SystemContextBundle): b
       if (parsed.deliveryChallans) ctx.setDeliveryChallans(parsed.deliveryChallans);
       if (parsed.priceDropClaims) ctx.setPriceDropClaims(parsed.priceDropClaims);
       if (parsed.smsLogs) ctx.setSmsLogs(parsed.smsLogs);
+      if (parsed.moneyReceipts && ctx.setMoneyReceipts) ctx.setMoneyReceipts(parsed.moneyReceipts);
       ctx.addAudit('Restored System Backup from JSON', 'Backup & Restore', 'SYSTEM', undefined, 'Full State Overwritten');
       return true;
     }
@@ -436,6 +441,7 @@ export const executePurgeTransactionalData = async (
   setJournalEntries([]);
   setAlerts([]);
   if (ctx.setCommissionDisbursements) ctx.setCommissionDisbursements([]);
+  if (ctx.setMoneyReceipts) ctx.setMoneyReceipts([]);
 
   // Reset all IMEIs back to 'In Stock'
   setImeis(prev => prev.map(i => ({ ...i, status: 'In Stock' as const, customerId: undefined, soldDate: undefined })));

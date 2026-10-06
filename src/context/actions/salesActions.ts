@@ -17,6 +17,8 @@ import type {
   PaymentMethodType,
   SystemSettings,
   SystemAlert,
+  CommissionDisbursement,
+  MoneyReceipt,
   CrudResult,
   UserRole
 } from '../../types/erp';
@@ -49,6 +51,8 @@ export interface SalesContextBundle {
   settings: SystemSettings;
   alerts: SystemAlert[];
   setAlerts: React.Dispatch<React.SetStateAction<SystemAlert[]>>;
+  moneyReceipts?: MoneyReceipt[];
+  setMoneyReceipts?: React.Dispatch<React.SetStateAction<MoneyReceipt[]>>;
   currentUserRole: UserRole;
   enqueueChange: EnqueueChangeFn;
   addAudit: AddAuditFn;
@@ -499,9 +503,9 @@ export const executeCollectCustomerPayment = (
     allocations: PaymentAllocationItem[];
     notes?: string;
   },
-  ctx: Pick<SalesContextBundle, 'customers' | 'setCustomers' | 'salesInvoices' | 'setSalesInvoices' | 'salesmen' | 'setSalesmen' | 'bankAccounts' | 'setBankAccounts' | 'setCashTransactions' | 'journalEntries' | 'setJournalEntries' | 'currentUserRole' | 'enqueueChange' | 'addAudit'>
+  ctx: Pick<SalesContextBundle, 'customers' | 'setCustomers' | 'salesInvoices' | 'setSalesInvoices' | 'salesmen' | 'setSalesmen' | 'bankAccounts' | 'setBankAccounts' | 'setCashTransactions' | 'journalEntries' | 'setJournalEntries' | 'setMoneyReceipts' | 'currentUserRole' | 'enqueueChange' | 'addAudit'>
 ) => {
-  const { customers, setCustomers, salesInvoices, setSalesInvoices, salesmen, setSalesmen, bankAccounts, setBankAccounts, setCashTransactions, journalEntries, setJournalEntries, currentUserRole, enqueueChange, addAudit } = ctx;
+  const { customers, setCustomers, salesInvoices, setSalesInvoices, salesmen, setSalesmen, bankAccounts, setBankAccounts, setCashTransactions, journalEntries, setJournalEntries, setMoneyReceipts, currentUserRole, enqueueChange, addAudit } = ctx;
   const customer = customers.find(c => c.id === data.customerId);
   if (!customer) return { success: false, error: 'Customer not found' };
 
@@ -611,26 +615,42 @@ export const executeCollectCustomerPayment = (
 
   setJournalEntries(prev => [newJv, ...prev]);
 
-  const receiptRecord = {
-    id: `rec-${Date.now()}`,
-    receipt_no: collectionNo,
+  const receiptNo = `MR-${collectionNo.replace('REC-', '')}`;
+  const newReceipt: MoneyReceipt = {
+    id: `mr-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+    receiptNo,
     date: today,
-    customer_id: data.customerId,
-    customer_name: customer.shopName,
+    customerId: customer.id,
+    customerName: customer.ownerName || customer.shopName,
+    customerPhone: customer.mobile,
+    shopName: customer.shopName,
+    area: customer.area,
     amount: data.amount,
-    payment_method: data.paymentMethod,
-    collector_salesman_id: data.collectorSalesmanId || null,
-    notes: data.notes || ''
+    paymentMethod: data.paymentMethod,
+    bankAccountId: data.bankAccountId,
+    bankName: bankAccounts.find(b => b.id === data.bankAccountId)?.bankName,
+    transactionRef: data.transactionRef || collectionNo,
+    collectorSalesmanId: data.collectorSalesmanId,
+    collectorSalesmanName: salesmen.find(s => s.id === data.collectorSalesmanId)?.name,
+    referenceInvoice: data.allocations?.[0]?.invoiceNo || collectionNo,
+    notes: data.notes,
+    status: 'Confirmed',
+    createdAt: new Date().toISOString()
   };
-  enqueueChange('money_receipts', 'INSERT', receiptRecord.id, receiptRecord, `বকেয়া কালেকশন রসিদ #${collectionNo}`);
+
+  if (setMoneyReceipts) {
+    setMoneyReceipts(prev => [newReceipt, ...prev]);
+  }
+
+  enqueueChange('money_receipts', 'INSERT', newReceipt.id, newReceipt, `বকেয়া কালেকশন রসিদ #${receiptNo}`);
   enqueueChange('customers', 'UPDATE', customer.id, {
     ...customer,
     currentDue: Math.max(0, customer.currentDue - data.amount)
   }, `কাস্টমার বকেয়া হ্রাস (${customer.shopName})`);
 
-  addAudit('Collected Customer Due Payment', 'Payment', collectionNo, `Previous Due: ৳ ${customer.currentDue}`, `Collected: ৳ ${data.amount} via ${data.paymentMethod}`);
+  addAudit('Collected Customer Due Payment', 'Payment', receiptNo, `Previous Due: ৳ ${customer.currentDue}`, `Collected: ৳ ${data.amount} via ${data.paymentMethod}`);
 
-  return { success: true, collectionNo };
+  return { success: true, collectionNo: receiptNo };
 };
 
 export const executeProcessCustomerReturn = (

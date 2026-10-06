@@ -25,7 +25,8 @@ import {
   PriceDropClaim,
   SmsLog,
   CommissionDisbursement,
-  EMIPlan
+  EMIPlan,
+  MoneyReceipt
 } from '../types/erp';
 
 export const initialSettings: SystemSettings = {
@@ -1997,6 +1998,70 @@ export const initialEMIPlans: EMIPlan[] = [
     overdueCount: 1,
     notes: 'Late fee applied for October installment after 5 days grace period.',
     createdAt: '2026-08-01 11:15'
+  }
+];
+
+export const initialMoneyReceipts: MoneyReceipt[] = [
+  {
+    id: 'mr-2026-001',
+    receiptNo: 'MR-2026-0001',
+    date: '2026-09-20',
+    customerId: 'cust-1',
+    customerName: 'Al-Haj Nurul Islam',
+    customerPhone: '+880 1711-234567',
+    shopName: 'Rongdhanu Telecom & Gadget',
+    area: 'Mirpur-10, Dhaka',
+    amount: 100000,
+    paymentMethod: 'Bank Transfer',
+    bankAccountId: 'bank-1',
+    bankName: 'Dutch-Bangla Bank Limited (DBBL)',
+    transactionRef: 'FT-998811',
+    collectorSalesmanId: 'sm-1',
+    collectorSalesmanName: 'Tanvir Ahmed',
+    referenceInvoice: 'SAL-2026-000210',
+    notes: 'Advance installment payment against wholesale invoice SAL-2026-000210',
+    status: 'Confirmed',
+    createdAt: '2026-09-20 16:30'
+  },
+  {
+    id: 'mr-2026-002',
+    receiptNo: 'MR-2026-0002',
+    date: '2026-09-25',
+    customerId: 'cust-2',
+    customerName: 'Hazi Mohammad Yunus',
+    customerPhone: '+880 1819-765432',
+    shopName: 'Bismillah Mobile Care & Wholesale',
+    area: 'Chawkbazar, Chittagong',
+    amount: 200000,
+    paymentMethod: 'Cheque',
+    transactionRef: 'CQ-667788',
+    collectorSalesmanId: 'sm-3',
+    collectorSalesmanName: 'Ariful Islam',
+    referenceInvoice: 'SAL-2026-000201',
+    notes: 'Account payee cheque cleared via BRAC Bank branch',
+    status: 'Confirmed',
+    createdAt: '2026-09-25 12:15'
+  },
+  {
+    id: 'mr-2026-003',
+    receiptNo: 'MR-2026-0003',
+    date: '2026-10-02',
+    customerId: 'cust-3',
+    customerName: 'Engr. Shamim Reza',
+    customerPhone: '+880 1678-112233',
+    shopName: 'Prime Gadgets BD',
+    area: 'Bashundhara City, Dhaka',
+    amount: 75000,
+    paymentMethod: 'bKash',
+    bankAccountId: 'bank-3',
+    bankName: 'bKash Merchant Account',
+    transactionRef: 'BK-TRX-882910',
+    collectorSalesmanId: 'sm-1',
+    collectorSalesmanName: 'Tanvir Ahmed',
+    referenceInvoice: 'Direct Collection',
+    notes: 'Merchant bKash due clearance installment',
+    status: 'Confirmed',
+    createdAt: '2026-10-02 14:40'
   }
 ];
 

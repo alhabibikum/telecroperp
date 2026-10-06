@@ -868,5 +868,25 @@ export interface EMIPlan {
   createdAt: string;
 }
 
-
-
+export interface MoneyReceipt {
+  id: string;
+  receiptNo: string; // e.g. MR-2026-0012
+  date: string;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  shopName: string;
+  area: string;
+  amount: number;
+  discountWaiver?: number;
+  paymentMethod: PaymentMethodType;
+  bankAccountId?: string;
+  bankName?: string;
+  transactionRef?: string;
+  collectorSalesmanId?: string;
+  collectorSalesmanName?: string;
+  referenceInvoice?: string;
+  notes?: string;
+  status: 'Confirmed' | 'Voided';
+  createdAt: string;
+}
