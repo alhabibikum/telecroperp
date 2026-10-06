@@ -876,25 +876,18 @@ export const executeProcessPhoneExchange = (
     if (data.paymentMethod === 'Cash') {
       pushCashHelper(
         setCashTransactions,
-        enqueueChange,
         'Cash In',
         'Customer Sale',
         data.amountPaidNow,
-        `Exchange differential cash received (${exchangeNo})`,
-        today,
         exchangeNo,
+        `Exchange differential cash received (${exchangeNo})`,
         currentUserRole
       );
     } else if (data.bankAccountId) {
       adjustBankHelper(
         setBankAccounts,
-        enqueueChange,
         data.bankAccountId,
-        data.amountPaidNow,
-        'inward',
-        `Exchange differential payment received (${exchangeNo})`,
-        today,
-        currentUserRole
+        data.amountPaidNow
       );
     }
   }

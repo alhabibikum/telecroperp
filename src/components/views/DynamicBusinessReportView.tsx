@@ -221,7 +221,7 @@ export const DynamicBusinessReportView: React.FC = () => {
       const paymentMatch = selectedPaymentMethod === 'all' ||
         (selectedPaymentMethod === 'due' && inv.dueAmount > 0) ||
         (selectedPaymentMethod === 'cash' && (inv.payments || []).some(p => p.method === 'Cash')) ||
-        (selectedPaymentMethod === 'bank' && (inv.payments || []).some(p => p.method === 'Bank Transfer' || p.method === 'Cheque' || p.method === 'bKash/Nagad'));
+        (selectedPaymentMethod === 'bank' && (inv.payments || []).some(p => p.method === 'Bank Transfer' || p.method === 'Cheque' || p.method === 'bKash' || p.method === 'Nagad' || p.method === 'Rocket' || p.method === 'POS Card'));
       const productMatch = selectedProduct === 'all' || (inv.items || []).some(it => it.productId === selectedProduct);
       const brandMatch = selectedBrand === 'all' || (inv.items || []).some(it => {
         const prod = products.find(p => p.id === it.productId);
@@ -244,7 +244,7 @@ export const DynamicBusinessReportView: React.FC = () => {
   // Filtered Purchases
   const currentPurchases = useMemo(() => {
     return purchaseInvoices.filter(p => {
-      const dateMatch = isDateInRange(p.invoiceDate, fromDate, toDate);
+      const dateMatch = isDateInRange(p.purchaseDate, fromDate, toDate);
       const branchMatch = selectedBranch === 'all' || p.warehouseId === selectedBranch;
       return dateMatch && branchMatch;
     });
@@ -252,7 +252,7 @@ export const DynamicBusinessReportView: React.FC = () => {
 
   const prevPurchases = useMemo(() => {
     return purchaseInvoices.filter(p => {
-      const dateMatch = isDateInRange(p.invoiceDate, previousPeriodRange.prevFrom, previousPeriodRange.prevTo);
+      const dateMatch = isDateInRange(p.purchaseDate, previousPeriodRange.prevFrom, previousPeriodRange.prevTo);
       const branchMatch = selectedBranch === 'all' || p.warehouseId === selectedBranch;
       return dateMatch && branchMatch;
     });
@@ -378,7 +378,7 @@ export const DynamicBusinessReportView: React.FC = () => {
     });
 
     currentPurchases.forEach(p => {
-      const d = p.invoiceDate;
+      const d = p.purchaseDate;
       if (!grouped[d]) grouped[d] = { date: d, sales: 0, profit: 0, cogs: 0, purchases: 0 };
       grouped[d].purchases += p.grandTotal;
     });
@@ -448,15 +448,15 @@ export const DynamicBusinessReportView: React.FC = () => {
       const smInvoices = currentSales.filter(i => i.salesmanId === sm.id);
       const soldRevenue = smInvoices.reduce((s, i) => s + i.grandTotal, 0);
       const units = smInvoices.reduce((s, i) => s + i.items.reduce((u, it) => u + (it.quantity || 1), 0), 0);
-      const target = sm.targetAmount || 1;
+      const target = sm.monthlyTarget || 1;
       const achievementRate = Math.min(200, Math.round((soldRevenue / target) * 100));
       const commissionEarned = smInvoices.reduce((s, i) => s + (i.commissionEarned || 0), 0);
 
       return {
         id: sm.id,
         name: sm.name,
-        phone: sm.phone,
-        area: sm.area,
+        phone: sm.mobile,
+        area: sm.assignedArea,
         soldRevenue,
         units,
         target,
@@ -599,7 +599,7 @@ export const DynamicBusinessReportView: React.FC = () => {
       xml += `
    <Row>
     <Cell><Data ss:Type="String">${xmlEscape(p.invoiceNo)}</Data></Cell>
-    <Cell><Data ss:Type="String">${xmlEscape(p.invoiceDate)}</Data></Cell>
+    <Cell><Data ss:Type="String">${xmlEscape(p.purchaseDate)}</Data></Cell>
     <Cell><Data ss:Type="String">${xmlEscape(p.supplierName)}</Data></Cell>
     <Cell><Data ss:Type="String">${xmlEscape(p.warehouseName)}</Data></Cell>
     <Cell ss:StyleID="Currency"><Data ss:Type="Number">${p.grandTotal}</Data></Cell>
@@ -927,7 +927,7 @@ export const DynamicBusinessReportView: React.FC = () => {
             >
               <option value="all">All Sales Officers</option>
               {salesmen.map(s => (
-                <option key={s.id} value={s.id}>{s.name} ({s.area})</option>
+                <option key={s.id} value={s.id}>{s.name} ({s.assignedArea})</option>
               ))}
             </select>
           </div>

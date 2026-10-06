@@ -64,7 +64,7 @@ export const AccountingView: React.FC = () => {
 
   // Dynamic Salesman Commission calculation from disbursed incentives or invoice accruals
   const totalSalesmanCommission =
-    commissionDisbursements.filter(d => d.status === 'Disbursed').reduce((s, d) => s + d.totalAmount, 0) ||
+    commissionDisbursements.filter(d => d.status === 'Paid').reduce((s, d) => s + d.netPayable, 0) ||
     salesInvoices.reduce((s, inv) => s + (inv.commissionEarned || 0), 0) ||
     (chartOfAccounts.find(a => a.code === '6050')?.balance ?? 175000);
 
@@ -78,7 +78,7 @@ export const AccountingView: React.FC = () => {
   const accountsReceivable = customers.reduce((acc, c) => acc + c.currentDue, 0);
   const bankBalances = bankAccounts.reduce((acc, b) => acc + b.currentBalance, 0);
 
-  const openingVaultCash = chartOfAccounts.find(a => a.code === '1000')?.balance ?? 685000;
+  const openingVaultCash = chartOfAccounts.find(a => a.code === '1000')?.balance ?? 0;
   const totalCashIn = cashTransactions.filter(c => c.type === 'Cash In').reduce((acc, c) => acc + c.amount, 0);
   const totalCashOut = cashTransactions.filter(c => c.type === 'Cash Out').reduce((acc, c) => acc + c.amount, 0);
   const cashInHand = Math.max(0, openingVaultCash + totalCashIn - totalCashOut);
@@ -86,7 +86,7 @@ export const AccountingView: React.FC = () => {
   const totalCurrentAssets = inventoryValuation + accountsReceivable + bankBalances + cashInHand;
 
   const accountsPayable = suppliers.reduce((acc, s) => acc + s.currentDue, 0);
-  const netVatPayable = salesInvoices.reduce((acc, i) => acc + (i.vatTotal || 0), 0) - purchaseInvoices.reduce((acc, p) => acc + (p.vatAmount || 0), 0);
+  const netVatPayable = salesInvoices.reduce((acc, i) => acc + (i.vatTotal || 0), 0) - purchaseInvoices.reduce((acc, p) => acc + (p.vatTotal || 0), 0);
   const accruedVat = netVatPayable > 0 ? netVatPayable : (chartOfAccounts.find(a => a.code === '2050')?.balance ?? 420000);
   const totalLiabilities = accountsPayable + accruedVat;
 
