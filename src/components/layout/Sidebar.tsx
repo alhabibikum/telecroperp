@@ -68,6 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     currentUserRole,
     hasPermission,
     logout,
+    users,
     demoUsers,
     loginAsDemoUser
   } = useERP();
@@ -326,7 +327,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         {
           id: 'reports',
-          label: isBn ? 'বিজনেস অ্যানালিটিক্স ও রিপোর্ট' : 'Business Intelligence Hub',
+          label: isBn ? 'ডাইনামিক বিজনেস রিপোর্ট ও ম্যানেজমেন্ট' : 'Dynamic Business Report & Management',
           icon: FileSpreadsheet,
           accent: 'from-indigo-600 via-purple-600 to-violet-700'
         },
@@ -582,7 +583,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className="flex-1 py-1.5 px-2 bg-white border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700 focus:outline-hidden cursor-pointer hover:border-blue-400 transition"
                   title="রোল পরিবর্তন করুন (Switch Role)"
                 >
-                  {demoUsers.map(u => (
+                  {(users.length > 0 ? users : demoUsers).map(u => (
                     <option key={u.id} value={u.id}>
                       {u.avatar} {u.name.split(' ')[0]} ({u.role})
                     </option>

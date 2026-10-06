@@ -66,6 +66,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     brands,
     bankAccounts,
     cashTransactions,
+    chartOfAccounts,
     expenses,
     alerts,
     settings
@@ -87,11 +88,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const inStockUnits = imeis.filter(i => i.status === 'In Stock');
   const totalStockValuation = inStockUnits.reduce((acc, i) => acc + i.purchaseCost, 0);
 
-  // Bank & Cash liquid total
+  // Bank & Cash liquid total (Single Source of Truth)
   const totalBankBalance = bankAccounts.reduce((acc, b) => acc + b.currentBalance, 0);
+  const openingVaultCash = chartOfAccounts.find(a => a.code === '1000')?.balance ?? 685000;
   const cashInTotal = cashTransactions.filter(c => c.type === 'Cash In').reduce((acc, c) => acc + c.amount, 0);
   const cashOutTotal = cashTransactions.filter(c => c.type === 'Cash Out').reduce((acc, c) => acc + c.amount, 0);
-  const estimatedCashInHand = Math.max(0, 150000 + cashInTotal - cashOutTotal);
+  const estimatedCashInHand = Math.max(0, openingVaultCash + cashInTotal - cashOutTotal);
 
   // Profit estimation: Total Revenue minus total cost of goods sold
   const totalCOGS = salesInvoices.reduce((acc, inv) => {

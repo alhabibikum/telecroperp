@@ -415,9 +415,9 @@ export const executeProcessSupplierReturn = (
     returnReason: string;
     amount: number;
   },
-  ctx: Pick<PurchaseContextBundle, 'imeis' | 'setImeis' | 'suppliers' | 'setSuppliers' | 'supplierReturns' | 'setSupplierReturns' | 'journalEntries' | 'setJournalEntries' | 'currentUserRole' | 'enqueueChange' | 'addAudit'>
+  ctx: Pick<PurchaseContextBundle, 'imeis' | 'setImeis' | 'products' | 'setProducts' | 'suppliers' | 'setSuppliers' | 'supplierReturns' | 'setSupplierReturns' | 'journalEntries' | 'setJournalEntries' | 'currentUserRole' | 'enqueueChange' | 'addAudit'>
 ) => {
-  const { imeis, setImeis, suppliers, setSuppliers, supplierReturns, setSupplierReturns, journalEntries, setJournalEntries, currentUserRole, enqueueChange, addAudit } = ctx;
+  const { imeis, setImeis, products, setProducts, suppliers, setSuppliers, supplierReturns, setSupplierReturns, journalEntries, setJournalEntries, currentUserRole, enqueueChange, addAudit } = ctx;
   const imeiRecord = imeis.find(i => i.imei1 === data.imei);
   const sup = suppliers.find(s => s.id === data.supplierId);
   if (!sup) return { success: false, error: 'Supplier not found' };
@@ -446,6 +446,19 @@ export const executeProcessSupplierReturn = (
       ...imeiRecord,
       status: 'Supplier Return'
     }, `IMEI সাপ্লায়ার রিটার্ন #${data.imei}`);
+  }
+
+  // Adjust product variant stock count
+  if (imeiRecord?.productId && imeiRecord?.variantId) {
+    setProducts(prev =>
+      prev.map(p => {
+        if (p.id !== imeiRecord.productId) return p;
+        return {
+          ...p,
+          variants: p.variants.map(v => v.id === imeiRecord.variantId ? { ...v, currentStock: Math.max(0, v.currentStock - 1) } : v)
+        };
+      })
+    );
   }
 
   const updatedDue = Math.max(0, sup.currentDue - data.amount);

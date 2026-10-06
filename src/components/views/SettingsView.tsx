@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
   Settings,
@@ -81,6 +81,17 @@ export const SettingsView: React.FC = () => {
   const [vatTaxNumber, setVatTaxNumber] = useState(settings.vatTaxNumber);
   const [valuationMethod, setValuationMethod] = useState(settings.valuationMethod);
   const [creditLimitHardBlock, setCreditLimitHardBlock] = useState(settings.creditLimitHardBlock);
+
+  // Sync profile fields when settings change (e.g. after reset or backup restore)
+  useEffect(() => {
+    setCompanyName(settings.companyName);
+    setCompanyAddress(settings.companyAddress);
+    setCompanyPhone(settings.companyPhone);
+    setCompanyEmail(settings.companyEmail);
+    setVatTaxNumber(settings.vatTaxNumber);
+    setValuationMethod(settings.valuationMethod);
+    setCreditLimitHardBlock(settings.creditLimitHardBlock);
+  }, [settings]);
 
   const [message, setMessage] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);

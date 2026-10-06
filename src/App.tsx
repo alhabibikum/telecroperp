@@ -33,6 +33,7 @@ import { AlertCenterView } from './components/views/AlertCenterView';
 import { AuditLogsView } from './components/views/AuditLogsView';
 import { SettingsView } from './components/views/SettingsView';
 import { ReportsView } from './components/views/ReportsView';
+import { DynamicBusinessReportView } from './components/views/DynamicBusinessReportView';
 import { CustomReportBuilderView } from './components/views/CustomReportBuilderView';
 import { DataImportView } from './components/views/DataImportView';
 import { DeliveryDispatchView } from './components/views/DeliveryDispatchView';
@@ -298,7 +299,11 @@ const ERPAppContent: React.FC = () => {
 
               {currentView === 'accounting' && <AccountingView />}
 
-              {currentView === 'reports' && <ReportsView />}
+              {(currentView === 'reports' || currentView === 'dynamic-business-report') && (
+                <DynamicBusinessReportView />
+              )}
+
+              {currentView === 'classic-reports' && <ReportsView />}
 
               {currentView === 'custom-reports' && (
                 <CustomReportBuilderView />

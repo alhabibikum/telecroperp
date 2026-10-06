@@ -23,7 +23,8 @@ import {
   BrandIncentiveScheme,
   DeliveryChallan,
   PriceDropClaim,
-  SmsLog
+  SmsLog,
+  CommissionDisbursement
 } from '../types/erp';
 
 export const initialSettings: SystemSettings = {
@@ -919,11 +920,16 @@ export const initialSalesmen: Salesman[] = [
     commissionType: 'Percentage of Sales',
     commissionRate: 1.0, // 1% of total invoice sales
     monthlyTarget: 5000000, // 50 Lakh BDT
+    monthlyUnitTarget: 180, // 180 Handsets
+    monthlyCollectionTarget: 4000000, // 40 Lakh BDT collection
+    collectionCommissionRate: 0.5, // 0.5% collection incentive
     currentMonthSales: 3850000,
     currentMonthCollection: 3100000,
+    currentMonthUnits: 142,
     assignedArea: 'Mirpur, Uttara, Gazipur Route',
     assignedCustomerCount: 14,
-    status: 'Active'
+    status: 'Active',
+    paidCommissionTotal: 0
   },
   {
     id: 'sm-2',
@@ -937,11 +943,16 @@ export const initialSalesmen: Salesman[] = [
     commissionType: 'Percentage of Gross Profit',
     commissionRate: 6.0, // 6% of gross profit
     monthlyTarget: 4000000,
+    monthlyUnitTarget: 140,
+    monthlyCollectionTarget: 3200000,
+    collectionCommissionRate: 0.5,
     currentMonthSales: 2900000,
     currentMonthCollection: 2650000,
+    currentMonthUnits: 108,
     assignedArea: 'Old Dhaka, Narayanganj, Keraniganj',
     assignedCustomerCount: 18,
-    status: 'Active'
+    status: 'Active',
+    paidCommissionTotal: 0
   },
   {
     id: 'sm-3',
@@ -955,11 +966,40 @@ export const initialSalesmen: Salesman[] = [
     commissionType: 'Fixed Per Unit',
     commissionRate: 350, // 350 BDT per phone sold
     monthlyTarget: 6000000,
+    monthlyUnitTarget: 220,
+    monthlyCollectionTarget: 4800000,
+    collectionCommissionRate: 0.5,
     currentMonthSales: 4400000,
     currentMonthCollection: 3800000,
+    currentMonthUnits: 165,
     assignedArea: 'Chittagong Metro, Cox’s Bazar',
     assignedCustomerCount: 12,
-    status: 'Active'
+    status: 'Active',
+    paidCommissionTotal: 0
+  }
+];
+
+export const initialCommissionDisbursements: CommissionDisbursement[] = [
+  {
+    id: 'com-disb-001',
+    disbursementNo: 'COM-2026-09-001',
+    salesmanId: 'sm-1',
+    salesmanName: 'Tanvir Ahmed',
+    month: '2026-09',
+    date: '2026-09-30',
+    salesAmount: 4800000,
+    collectionAmount: 3900000,
+    salesCommission: 48000,
+    collectionCommission: 19500,
+    bonusAmount: 5000,
+    deductionAmount: 0,
+    netPayable: 72500,
+    paymentMethod: 'Bank Transfer',
+    bankAccountId: 'bank-1',
+    referenceNo: 'FT-DBBL-99281',
+    status: 'Paid',
+    paidAt: '2026-09-30 17:30',
+    notes: 'September 2026 Monthly Target & Collection Commission settled successfully.'
   }
 ];
 

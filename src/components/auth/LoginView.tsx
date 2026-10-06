@@ -257,7 +257,7 @@ export const LoginView: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-44 overflow-y-auto pr-1">
-              {demoUsers.map(u => (
+              {(users && users.length > 0 ? users : demoUsers).map(u => (
                 <button
                   key={u.id}
                   type="button"

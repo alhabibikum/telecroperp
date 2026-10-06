@@ -44,6 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
     setCurrentUserRole,
     currentUser,
     logout,
+    users,
     demoUsers,
     hasPermission,
     loginAsDemoUser,
@@ -432,7 +433,7 @@ export const Header: React.FC<HeaderProps> = ({
                 className="text-[11px] text-blue-600 font-extrabold bg-transparent focus:outline-hidden cursor-pointer hover:underline"
                 title="Quick Switch Active Operator"
               >
-                {demoUsers.map(u => (
+                {(users.length > 0 ? users : demoUsers).map(u => (
                   <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
                 ))}
               </select>

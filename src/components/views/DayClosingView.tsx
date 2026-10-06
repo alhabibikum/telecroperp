@@ -20,13 +20,15 @@ export const DayClosingView: React.FC = () => {
     performDayClosing,
     salesInvoices,
     cashTransactions,
+    chartOfAccounts,
     currentUserRole
   } = useERP();
 
+  const defaultOpening = dayClosings[0]?.actualPhysicalCash ?? (chartOfAccounts.find(a => a.code === '1000')?.balance ?? 685000);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [warehouseId, setWarehouseId] = useState(warehouses[0]?.id || '');
   const [cashierName, setCashierName] = useState('Farhana Akhter (Cashier)');
-  const [openingCash, setOpeningCash] = useState<number>(dayClosings[0]?.actualPhysicalCash || 50000);
+  const [openingCash, setOpeningCash] = useState<number>(defaultOpening);
   const [actualPhysicalCash, setActualPhysicalCash] = useState<number>(0);
   const [closingNotes, setClosingNotes] = useState('');
   const [message, setMessage] = useState<string | null>(null);

@@ -352,6 +352,35 @@ export interface StockTransfer {
   createdAt: string;
 }
 
+export interface SalesmanTargetSlab {
+  minPercent: number;
+  maxPercent: number;
+  commissionRate: number; // percentage or multiplier
+  bonusAmount?: number;
+}
+
+export interface CommissionDisbursement {
+  id: string;
+  disbursementNo: string;
+  salesmanId: string;
+  salesmanName: string;
+  month: string; // e.g. "2026-10"
+  date: string;
+  salesAmount: number;
+  collectionAmount: number;
+  salesCommission: number;
+  collectionCommission: number;
+  bonusAmount: number;
+  deductionAmount: number;
+  netPayable: number;
+  paymentMethod: 'Cash' | 'Bank Transfer' | 'bKash';
+  bankAccountId?: string;
+  referenceNo?: string;
+  status: 'Approved' | 'Paid';
+  paidAt?: string;
+  notes?: string;
+}
+
 export interface Salesman {
   id: string;
   employeeCode: string;
@@ -363,12 +392,18 @@ export interface Salesman {
   basicSalary: number;
   commissionType: 'Percentage of Sales' | 'Percentage of Gross Profit' | 'Fixed Per Unit' | 'Target Based';
   commissionRate: number; // e.g. 1% of sales or 5% of profit or 200 BDT/unit
-  monthlyTarget: number;
+  monthlyTarget: number; // Sales revenue target in BDT
+  monthlyUnitTarget?: number; // Target handset units (e.g. 200 pcs)
+  monthlyCollectionTarget?: number; // Target collections in BDT
+  collectionCommissionRate?: number; // % on collection (e.g. 0.5%)
+  targetSlabs?: SalesmanTargetSlab[];
   currentMonthSales: number;
   currentMonthCollection: number;
+  currentMonthUnits?: number;
   assignedArea: string;
   assignedCustomerCount: number;
   status: 'Active' | 'On Leave' | 'Inactive';
+  paidCommissionTotal?: number;
 }
 
 export interface SalesmanVisit {

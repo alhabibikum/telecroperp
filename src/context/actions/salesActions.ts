@@ -66,6 +66,7 @@ export const executeCreateSale = (
     imeis,
     salesInvoices,
     salesmen,
+    setSalesmen,
     setImeis,
     setProducts,
     setCustomers,
@@ -127,15 +128,27 @@ export const executeCreateSale = (
   if (saleData.salesmanId) {
     const sm = salesmen.find(s => s.id === saleData.salesmanId);
     if (sm) {
+      const totalUnits = saleData.items.reduce((acc, item) => acc + item.quantity, 0);
+      const totalCost = saleData.items.reduce((acc, item) => acc + (item.unitCost * item.quantity), 0);
+      const grossProfit = Math.max(0, saleData.grandTotal - totalCost);
+
       if (sm.commissionType === 'Percentage of Sales') {
         commissionEarned = (saleData.grandTotal * sm.commissionRate) / 100;
       } else if (sm.commissionType === 'Percentage of Gross Profit') {
-        const totalCost = saleData.items.reduce((acc, item) => acc + (item.unitCost * item.quantity), 0);
-        const grossProfit = Math.max(0, saleData.grandTotal - totalCost);
         commissionEarned = (grossProfit * sm.commissionRate) / 100;
       } else if (sm.commissionType === 'Fixed Per Unit') {
-        const totalUnits = saleData.items.reduce((acc, item) => acc + item.quantity, 0);
         commissionEarned = totalUnits * sm.commissionRate;
+      } else if (sm.commissionType === 'Target Based') {
+        // Multiplier based on monthly target progress
+        const projectedSales = (sm.currentMonthSales || 0) + saleData.grandTotal;
+        const target = sm.monthlyTarget || 1;
+        const achievementPct = (projectedSales / target) * 100;
+        let rateMultiplier = 1;
+        if (achievementPct < 75) rateMultiplier = 0.6;
+        else if (achievementPct < 100) rateMultiplier = 0.9;
+        else if (achievementPct < 120) rateMultiplier = 1.2;
+        else rateMultiplier = 1.5;
+        commissionEarned = (saleData.grandTotal * (sm.commissionRate * rateMultiplier)) / 100;
       }
     }
   }
@@ -283,6 +296,21 @@ export const executeCreateSale = (
 
   setSalesInvoices(prev => [newSaleInvoice, ...prev]);
   setJournalEntries(prev => [newJv, ...prev]);
+
+  if (saleData.salesmanId) {
+    const totalSoldUnits = saleData.items.reduce((acc, item) => acc + item.quantity, 0);
+    setSalesmen(prev =>
+      prev.map(s =>
+        s.id === saleData.salesmanId
+          ? {
+              ...s,
+              currentMonthSales: (s.currentMonthSales || 0) + saleData.grandTotal,
+              currentMonthUnits: (s.currentMonthUnits || 0) + totalSoldUnits
+            }
+          : s
+      )
+    );
+  }
 
   enqueueChange('sales_invoices', 'INSERT', newSaleInvoice.id, newSaleInvoice, `নতুন সেলস ইনভয়েস #${invoiceNo}`);
   requestedImeis.forEach(imeiNum => {
@@ -471,9 +499,9 @@ export const executeCollectCustomerPayment = (
     allocations: PaymentAllocationItem[];
     notes?: string;
   },
-  ctx: Pick<SalesContextBundle, 'customers' | 'setCustomers' | 'salesInvoices' | 'setSalesInvoices' | 'bankAccounts' | 'setBankAccounts' | 'setCashTransactions' | 'journalEntries' | 'setJournalEntries' | 'currentUserRole' | 'enqueueChange' | 'addAudit'>
+  ctx: Pick<SalesContextBundle, 'customers' | 'setCustomers' | 'salesInvoices' | 'setSalesInvoices' | 'salesmen' | 'setSalesmen' | 'bankAccounts' | 'setBankAccounts' | 'setCashTransactions' | 'journalEntries' | 'setJournalEntries' | 'currentUserRole' | 'enqueueChange' | 'addAudit'>
 ) => {
-  const { customers, setCustomers, salesInvoices, setSalesInvoices, bankAccounts, setBankAccounts, setCashTransactions, journalEntries, setJournalEntries, currentUserRole, enqueueChange, addAudit } = ctx;
+  const { customers, setCustomers, salesInvoices, setSalesInvoices, salesmen, setSalesmen, bankAccounts, setBankAccounts, setCashTransactions, journalEntries, setJournalEntries, currentUserRole, enqueueChange, addAudit } = ctx;
   const customer = customers.find(c => c.id === data.customerId);
   if (!customer) return { success: false, error: 'Customer not found' };
 
@@ -516,6 +544,16 @@ export const executeCollectCustomerPayment = (
     return inv;
   });
   setSalesInvoices(updatedInvoices);
+
+  if (data.collectorSalesmanId) {
+    setSalesmen(prev =>
+      prev.map(s =>
+        s.id === data.collectorSalesmanId
+          ? { ...s, currentMonthCollection: (s.currentMonthCollection || 0) + data.amount }
+          : s
+      )
+    );
+  }
 
   if (data.paymentMethod === 'Cash') {
     setCashTransactions(prev => [
@@ -605,9 +643,9 @@ export const executeProcessCustomerReturn = (
     refundOrCreditAmount: number;
     restockWarehouseId: string;
   },
-  ctx: Pick<SalesContextBundle, 'imeis' | 'setImeis' | 'customers' | 'setCustomers' | 'customerReturns' | 'setCustomerReturns' | 'journalEntries' | 'setJournalEntries' | 'currentUserRole' | 'enqueueChange' | 'addAudit'>
+  ctx: Pick<SalesContextBundle, 'imeis' | 'setImeis' | 'products' | 'setProducts' | 'customers' | 'setCustomers' | 'customerReturns' | 'setCustomerReturns' | 'journalEntries' | 'setJournalEntries' | 'currentUserRole' | 'enqueueChange' | 'addAudit'>
 ) => {
-  const { imeis, setImeis, customers, customerReturns, setCustomerReturns, journalEntries, setJournalEntries, currentUserRole, enqueueChange, addAudit } = ctx;
+  const { imeis, setImeis, products, setProducts, customers, setCustomers, customerReturns, setCustomerReturns, journalEntries, setJournalEntries, currentUserRole, enqueueChange, addAudit } = ctx;
   const imeiRecord = imeis.find(i => i.imei1 === data.imei);
   if (!imeiRecord) return { success: false, error: 'IMEI not found in database!' };
   if (imeiRecord.status !== 'Sold') {
@@ -724,11 +762,27 @@ export const executeProcessCustomerReturn = (
     returnReason: data.returnReason
   }, `IMEI রিটার্ন স্ট্যাটাস #${data.imei}`);
   if (data.customerId) {
+    setCustomers(prev =>
+      prev.map(c => c.id === data.customerId ? { ...c, currentDue: Math.max(0, c.currentDue - data.refundOrCreditAmount) } : c)
+    );
     const cust = customers.find(c => c.id === data.customerId);
     if (cust) {
       const updatedCust = { ...cust, currentDue: Math.max(0, cust.currentDue - data.refundOrCreditAmount) };
       enqueueChange('customers', 'UPDATE', cust.id, updatedCust, `কাস্টমার বকেয়া রিভার্স (${cust.shopName})`);
     }
+  }
+
+  // Restore inventory variant stock count if unit was restocked (not damaged)
+  if (!isDamaged && imeiRecord.productId && imeiRecord.variantId) {
+    setProducts(prev =>
+      prev.map(p => {
+        if (p.id !== imeiRecord.productId) return p;
+        return {
+          ...p,
+          variants: p.variants.map(v => v.id === imeiRecord.variantId ? { ...v, currentStock: v.currentStock + 1 } : v)
+        };
+      })
+    );
   }
 
   addAudit('Approved Customer Return', 'Returns', returnNo, undefined, `IMEI: ${data.imei}, Credit: ৳ ${data.refundOrCreditAmount}`);
@@ -738,9 +792,9 @@ export const executeProcessCustomerReturn = (
 
 export const executeProcessPhoneExchange = (
   data: Omit<PhoneExchangeTransaction, 'id' | 'exchangeNo' | 'createdAt'>,
-  ctx: Pick<SalesContextBundle, 'imeis' | 'setImeis' | 'customers' | 'setCustomers' | 'phoneExchanges' | 'setPhoneExchanges' | 'journalEntries' | 'setJournalEntries' | 'currentUserRole' | 'enqueueChange' | 'addAudit'>
+  ctx: Pick<SalesContextBundle, 'imeis' | 'setImeis' | 'customers' | 'setCustomers' | 'bankAccounts' | 'setBankAccounts' | 'setCashTransactions' | 'phoneExchanges' | 'setPhoneExchanges' | 'journalEntries' | 'setJournalEntries' | 'currentUserRole' | 'enqueueChange' | 'addAudit'>
 ) => {
-  const { imeis, setImeis, customers, setCustomers, phoneExchanges, setPhoneExchanges, journalEntries, setJournalEntries, currentUserRole, enqueueChange, addAudit } = ctx;
+  const { imeis, setImeis, customers, setCustomers, bankAccounts, setBankAccounts, setCashTransactions, phoneExchanges, setPhoneExchanges, journalEntries, setJournalEntries, currentUserRole, enqueueChange, addAudit } = ctx;
   const exchangeNo = generateDocNumber('EXCH' as any, phoneExchanges.length);
   const today = new Date().toISOString().split('T')[0];
 
@@ -815,6 +869,33 @@ export const executeProcessPhoneExchange = (
     const cust = customers.find(c => c.id === data.customerId);
     if (cust) {
       enqueueChange('customers', 'UPDATE', cust.id, { ...cust, currentDue: cust.currentDue + data.dueAmount }, `কাস্টমার এক্সচেঞ্জ বকেয়া বৃদ্ধি (${cust.shopName})`);
+    }
+  }
+
+  if (data.amountPaidNow > 0) {
+    if (data.paymentMethod === 'Cash') {
+      pushCashHelper(
+        setCashTransactions,
+        enqueueChange,
+        'Cash In',
+        'Customer Sale',
+        data.amountPaidNow,
+        `Exchange differential cash received (${exchangeNo})`,
+        today,
+        exchangeNo,
+        currentUserRole
+      );
+    } else if (data.bankAccountId) {
+      adjustBankHelper(
+        setBankAccounts,
+        enqueueChange,
+        data.bankAccountId,
+        data.amountPaidNow,
+        'inward',
+        `Exchange differential payment received (${exchangeNo})`,
+        today,
+        currentUserRole
+      );
     }
   }
 

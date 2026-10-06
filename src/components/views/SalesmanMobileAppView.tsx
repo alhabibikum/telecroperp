@@ -50,7 +50,25 @@ export const SalesmanMobileAppView: React.FC = () => {
   const [colSuccessMsg, setColSuccessMsg] = useState<string | null>(null);
 
   const activeSalesman = salesmen.find(s => s.id === selectedSalesmanId) || salesmen[0];
-  const assignedCustomers = customers.filter(c => c.salesmanId === activeSalesman.id || !c.salesmanId);
+  const assignedCustomers = activeSalesman ? customers.filter(c => c.salesmanId === activeSalesman.id || !c.salesmanId) : [];
+
+  if (!activeSalesman) {
+    return (
+      <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
+        <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center space-y-4 shadow-xs">
+          <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+            <Smartphone className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-slate-800">কোন সেলসম্যান প্রোফাইল পাওয়া যায়নি</h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+              সিস্টেম রিসেট করা হয়েছে অথবা কোনো ফিল্ড সেলসম্যান এন্ট্রি নেই। মোবাইল অ্যাপ সিমুলেটর দেখার জন্য অনুগ্রহ করে সেলস টিম সেকশনে সেলসম্যান যোগ করুন।
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const currentProduct = products.find(p => p.id === selectedProductId);
   const currentVariant = currentProduct?.variants.find(v => v.id === selectedVariantId);

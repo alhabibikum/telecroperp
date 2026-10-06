@@ -34,7 +34,7 @@ const newBankFields: FieldDef[] = [
 ];
 
 export const CashBankView: React.FC = () => {
-  const { bankAccounts, cashTransactions, reconcileBankTransaction, addBankAccount, updateBankAccount, deleteBankAccount } = useERP();
+  const { bankAccounts, cashTransactions, chartOfAccounts, reconcileBankTransaction, addBankAccount, updateBankAccount, deleteBankAccount } = useERP();
 
   const [activeTab, setActiveTab] = useState<'bank' | 'cash'>('bank');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -43,7 +43,7 @@ export const CashBankView: React.FC = () => {
   const totalBankFunds = bankAccounts.reduce((acc, b) => acc + b.currentBalance, 0);
   const totalCashIn = cashTransactions.filter(c => c.type === 'Cash In').reduce((acc, c) => acc + c.amount, 0);
   const totalCashOut = cashTransactions.filter(c => c.type === 'Cash Out').reduce((acc, c) => acc + c.amount, 0);
-  const openingVault = 685000;
+  const openingVault = chartOfAccounts.find(a => a.code === '1000')?.balance ?? 685000;
   const currentCashInHand = openingVault + totalCashIn - totalCashOut;
 
   return (

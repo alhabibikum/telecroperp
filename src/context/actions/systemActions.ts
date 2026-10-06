@@ -397,6 +397,8 @@ export const executePurgeTransactionalData = async (
     setSalesInvoices, setPurchaseInvoices, setStockTransfers, setCustomerReturns,
     setSupplierReturns, setCashTransactions, setExpenses, setDayClosings,
     setPhoneExchanges, setDeliveryChallans, setPriceDropClaims, setSmsLogs,
+    setWarrantyClaims, setBrandIncentives, setCustomerFollowUps, setSalesmanVisits,
+    setBankStatements, setJournalEntries, setAlerts, setBankAccounts, setSalesmen,
     setImeis, setCustomers, setSuppliers, addAudit
   } = ctx;
 
@@ -419,6 +421,13 @@ export const executePurgeTransactionalData = async (
   setDeliveryChallans([]);
   setPriceDropClaims([]);
   setSmsLogs([]);
+  setWarrantyClaims([]);
+  setBrandIncentives([]);
+  setCustomerFollowUps([]);
+  setSalesmanVisits([]);
+  setBankStatements([]);
+  setJournalEntries([]);
+  setAlerts([]);
 
   // Reset all IMEIs back to 'In Stock'
   setImeis(prev => prev.map(i => ({ ...i, status: 'In Stock' as const, customerId: undefined, soldDate: undefined })));
@@ -426,6 +435,12 @@ export const executePurgeTransactionalData = async (
   // Reset Customer and Supplier Dues to 0
   setCustomers(prev => prev.map(c => ({ ...c, currentDue: 0 })));
   setSuppliers(prev => prev.map(s => ({ ...s, currentDue: 0 })));
+
+  // Reset Bank Account balances to opening balances
+  setBankAccounts(prev => prev.map(b => ({ ...b, currentBalance: b.openingBalance })));
+
+  // Reset Salesmen achieved monthly targets, collections and units to 0
+  setSalesmen(prev => prev.map(s => ({ ...s, currentMonthSales: 0, currentMonthCollection: 0, currentMonthUnits: 0, paidCommissionTotal: 0 })));
 
   // 4. Cloud Purge (Supabase)
   let cloudDetail = '';

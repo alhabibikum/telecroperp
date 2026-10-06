@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
   Link,
@@ -32,36 +32,62 @@ export const ApiIntegrationsView: React.FC = () => {
 
   // SMS Gateway State
   const [smsProvider, setSmsProvider] = useState<'Greenweb' | 'Onnorokom' | 'Twilio' | 'SSL Wireless'>(savedApi.smsProvider || 'Greenweb');
-  const [smsApiKey, setSmsApiKey] = useState(savedApi.smsApiKey || 'gw_live_89f023ac829104bd73');
-  const [smsSenderId, setSmsSenderId] = useState(savedApi.smsSenderId || 'TELECORP');
+  const [smsApiKey, setSmsApiKey] = useState(savedApi.smsApiKey || '');
+  const [smsSenderId, setSmsSenderId] = useState(savedApi.smsSenderId || '');
+  const [autoSmsOnSale, setAutoSmsOnSale] = useState(savedApi.autoSmsOnSale ?? true);
   const [showSmsKey, setShowSmsKey] = useState(false);
   const [testSmsPhone, setTestSmsPhone] = useState('01711002233');
   const [testSmsStatus, setTestSmsStatus] = useState<string | null>(null);
 
   // Payment Gateways State
-  const [bkashMerchant, setBkashMerchant] = useState(savedApi.bkashMerchant || '01888990011');
-  const [bkashAppKey, setBkashAppKey] = useState(savedApi.bkashAppKey || 'bk_app_7721839201948');
-  const [bkashAppSecret, setBkashAppSecret] = useState(savedApi.bkashAppSecret || 'bk_sec_994827103859201');
+  const [bkashMerchant, setBkashMerchant] = useState(savedApi.bkashMerchant || '');
+  const [bkashAppKey, setBkashAppKey] = useState(savedApi.bkashAppKey || '');
+  const [bkashAppSecret, setBkashAppSecret] = useState(savedApi.bkashAppSecret || '');
   const [bkashEnvironment, setBkashEnvironment] = useState<'Sandbox' | 'Live'>(savedApi.bkashEnvironment || 'Live');
   const [showBkashSecret, setShowBkashSecret] = useState(false);
 
-  const [nagadMerchant, setNagadMerchant] = useState(savedApi.nagadMerchant || '68291048');
-  const [nagadPublicKey, setNagadPublicKey] = useState(savedApi.nagadPublicKey || 'nagad_pub_key_9928174');
+  const [nagadMerchant, setNagadMerchant] = useState(savedApi.nagadMerchant || '');
+  const [nagadPublicKey, setNagadPublicKey] = useState(savedApi.nagadPublicKey || '');
 
-  const [sslStoreId, setSslStoreId] = useState(savedApi.sslStoreId || 'telecorp_live');
-  const [sslStorePass, setSslStorePass] = useState(savedApi.sslStorePass || 'ssl_live_secret_44321');
+  const [sslStoreId, setSslStoreId] = useState(savedApi.sslStoreId || '');
+  const [sslStorePass, setSslStorePass] = useState(savedApi.sslStorePass || '');
 
   // Courier Logistics State
-  const [steadfastApiKey, setSteadfastApiKey] = useState(savedApi.steadfastApiKey || 'stdf_api_993810283');
-  const [steadfastSecret, setSteadfastSecret] = useState(savedApi.steadfastSecret || 'stdf_sec_448201928');
-  const [pathaoClientId, setPathaoClientId] = useState(savedApi.pathaoClientId || 'pathao_client_88291');
-  const [pathaoSecret, setPathaoSecret] = useState(savedApi.pathaoSecret || 'pathao_sec_99182746');
+  const [steadfastApiKey, setSteadfastApiKey] = useState(savedApi.steadfastApiKey || '');
+  const [steadfastSecret, setSteadfastSecret] = useState(savedApi.steadfastSecret || '');
+  const [pathaoClientId, setPathaoClientId] = useState(savedApi.pathaoClientId || '');
+  const [pathaoSecret, setPathaoSecret] = useState(savedApi.pathaoSecret || '');
   const [autoSyncTracking, setAutoSyncTracking] = useState(savedApi.autoSyncTracking ?? true);
 
   // BTRC EIR API State
-  const [btrcEirToken, setBtrcEirToken] = useState(savedApi.btrcEirToken || 'BTRC_EIR_TAC_LIVE_2026_99482');
-  const [btrcWebhookUrl, setBtrcWebhookUrl] = useState(savedApi.btrcWebhookUrl || 'https://api.telecorp.com.bd/v1/btrc/tac-verify');
+  const [btrcEirToken, setBtrcEirToken] = useState(savedApi.btrcEirToken || '');
+  const [btrcWebhookUrl, setBtrcWebhookUrl] = useState(savedApi.btrcWebhookUrl || '');
   const [btrcAutoReport, setBtrcAutoReport] = useState(savedApi.btrcAutoReport ?? true);
+
+  // Sync state when settings change (e.g. after reset)
+  useEffect(() => {
+    const api = settings.apiIntegrations || {};
+    setSmsProvider(api.smsProvider || 'Greenweb');
+    setSmsApiKey(api.smsApiKey || '');
+    setSmsSenderId(api.smsSenderId || '');
+    setAutoSmsOnSale(api.autoSmsOnSale ?? true);
+    setBkashMerchant(api.bkashMerchant || '');
+    setBkashAppKey(api.bkashAppKey || '');
+    setBkashAppSecret(api.bkashAppSecret || '');
+    setBkashEnvironment(api.bkashEnvironment || 'Live');
+    setNagadMerchant(api.nagadMerchant || '');
+    setNagadPublicKey(api.nagadPublicKey || '');
+    setSslStoreId(api.sslStoreId || '');
+    setSslStorePass(api.sslStorePass || '');
+    setSteadfastApiKey(api.steadfastApiKey || '');
+    setSteadfastSecret(api.steadfastSecret || '');
+    setPathaoClientId(api.pathaoClientId || '');
+    setPathaoSecret(api.pathaoSecret || '');
+    setAutoSyncTracking(api.autoSyncTracking ?? true);
+    setBtrcEirToken(api.btrcEirToken || '');
+    setBtrcWebhookUrl(api.btrcWebhookUrl || '');
+    setBtrcAutoReport(api.btrcAutoReport ?? true);
+  }, [settings.apiIntegrations]);
 
   // Status feedback
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
@@ -154,9 +180,6 @@ export const ApiIntegrationsView: React.FC = () => {
       }
     }, 500);
   };
-
-  // Notification toggle
-  const [autoSmsOnSale, setAutoSmsOnSale] = useState(true);
 
   const handleSendTestSms = () => {
     if (!testSmsPhone) return;

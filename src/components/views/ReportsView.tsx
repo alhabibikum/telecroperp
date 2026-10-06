@@ -34,6 +34,7 @@ export const ReportsView: React.FC = () => {
     imeis,
     bankAccounts,
     cashTransactions,
+    chartOfAccounts,
     expenses,
     settings,
     currentUserRole
@@ -60,6 +61,11 @@ export const ReportsView: React.FC = () => {
   const netOperatingProfit = grossProfit - totalExpenses;
   const totalReceivables = customers.reduce((s, c) => s + c.currentDue, 0);
   const totalBankBalance = bankAccounts.reduce((s, b) => s + b.currentBalance, 0);
+  const openingVaultCash = chartOfAccounts.find(a => a.code === '1000')?.balance ?? 685000;
+  const cashInTotal = cashTransactions.filter(c => c.type === 'Cash In').reduce((acc, c) => acc + c.amount, 0);
+  const cashOutTotal = cashTransactions.filter(c => c.type === 'Cash Out').reduce((acc, c) => acc + c.amount, 0);
+  const totalCashInHand = Math.max(0, openingVaultCash + cashInTotal - cashOutTotal);
+  const totalLiquidFunds = totalBankBalance + totalCashInHand;
 
   // ==========================================
   // 1. GENERIC CSV EXPORT UTILITY
@@ -82,7 +88,7 @@ export const ReportsView: React.FC = () => {
         ['Operating & Administrative Expenses', 'Opex', totalExpenses, 'Office, salaries, fuel, bank charges'],
         ['Net Operating Profit', 'Net Income', netOperatingProfit, `${((netOperatingProfit / netSalesRevenue) * 100).toFixed(1)}% Net Margin`],
         ['Current Dealer Receivables (Due)', 'Asset', totalReceivables, 'Outstanding customer market credit'],
-        ['Liquid Cash & Multi-Bank Balances', 'Asset', totalBankBalance, 'Available operating capital']
+        ['Liquid Cash & Multi-Bank Balances', 'Asset', totalLiquidFunds, 'Available operating capital (Vault + Multi-Bank)']
       ];
     } else if (activeReport === 'inventory') {
       reportTitle = 'Warehouse_Inventory_Valuation';

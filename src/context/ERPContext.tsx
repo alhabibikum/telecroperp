@@ -38,7 +38,8 @@ import {
   SmsLog,
   AuthUser,
   BackupSnapshot,
-  CrudResult
+  CrudResult,
+  CommissionDisbursement
 } from '../types/erp';
 import {
   initialBrands,
@@ -70,7 +71,8 @@ import {
   initialJournalEntries,
   initialAlerts,
   initialAuditLogs,
-  initialSettings
+  initialSettings,
+  initialCommissionDisbursements
 } from '../data/initialData';
 import { getSupabaseClient } from '../lib/supabase';
 import {
@@ -511,6 +513,8 @@ interface ERPContextType {
   updatePriceDropStatus: (id: string, status: PriceDropClaim['claimStatus'], creditNoteNo?: string) => void;
   sendSmsNotification: (sms: Omit<SmsLog, 'id' | 'sentAt' | 'status'>) => { success: boolean };
   addBankStatementEntry: (entry: Omit<BankStatementEntry, 'id'>) => { success: boolean; id: string };
+  commissionDisbursements: CommissionDisbursement[];
+  disburseSalesmanCommission: (data: Omit<CommissionDisbursement, 'id' | 'disbursementNo' | 'status' | 'paidAt'>) => { success: boolean; disbursementNo: string };
 
   // Network & Cloud Sync
   isOnline: boolean;
@@ -586,6 +590,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [deliveryChallans, setDeliveryChallans] = useState<DeliveryChallan[]>(savedState?.deliveryChallans || initialDeliveryChallans);
   const [priceDropClaims, setPriceDropClaims] = useState<PriceDropClaim[]>(savedState?.priceDropClaims || initialPriceDropClaims);
   const [smsLogs, setSmsLogs] = useState<SmsLog[]>(savedState?.smsLogs || initialSmsLogs);
+  const [commissionDisbursements, setCommissionDisbursements] = useState<CommissionDisbursement[]>(savedState?.commissionDisbursements || initialCommissionDisbursements);
 
   // Users Management State (Real-Time RBAC)
   const [users, setUsers] = useState<AuthUser[]>(() => {
@@ -1459,7 +1464,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         brandIncentives,
         deliveryChallans,
         priceDropClaims,
-        smsLogs
+        smsLogs,
+        commissionDisbursements
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (e) {
@@ -1472,7 +1478,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     chartOfAccounts, journalEntries, alerts, auditLogs, settings,
     salesmanVisits, customerFollowUps, dayClosings, phoneExchanges,
     bankStatements, supplierReturns, warrantyClaims, brandIncentives,
-    deliveryChallans, priceDropClaims, smsLogs
+    deliveryChallans, priceDropClaims, smsLogs, commissionDisbursements
   ]);
 
   const addAudit = (action: string, module: string, referenceNo?: string, oldValue?: string, newValue?: string) => {
@@ -1554,6 +1560,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setDeliveryChallans(initialDeliveryChallans);
     setPriceDropClaims(initialPriceDropClaims);
     setSmsLogs(initialSmsLogs);
+    setCommissionDisbursements(initialCommissionDisbursements);
 
     // 3. Supabase Cloud Seeding if connected
     let cloudDetail = '';
@@ -2044,6 +2051,58 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateSalesman = (id: string, data: Partial<Omit<Salesman, 'id' | 'employeeCode'>>) => executeUpdateSalesman(id, data, masterDataBundle);
   const deleteSalesman = (id: string) => executeDeleteSalesman(id, masterDataBundle);
 
+  const disburseSalesmanCommission = (data: Omit<CommissionDisbursement, 'id' | 'disbursementNo' | 'status' | 'paidAt'>) => {
+    const today = new Date().toISOString().split('T')[0];
+    const disbursementNo = `COM-${data.month.replace('-', '')}-${String(commissionDisbursements.length + 1).padStart(3, '0')}`;
+    const newRecord: CommissionDisbursement = {
+      ...data,
+      id: `com-disb-${Date.now()}`,
+      disbursementNo,
+      status: 'Paid',
+      paidAt: `${today} ${new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}`
+    };
+
+    setCommissionDisbursements(prev => [newRecord, ...prev]);
+
+    setSalesmen(prev =>
+      prev.map(s =>
+        s.id === data.salesmanId
+          ? {
+              ...s,
+              paidCommissionTotal: (s.paidCommissionTotal || 0) + data.netPayable
+            }
+          : s
+      )
+    );
+
+    if (data.paymentMethod === 'Cash') {
+      setCashTransactions(prev => [
+        {
+          id: `cash-${Date.now()}`,
+          date: `${today} 17:00`,
+          type: 'Cash Out',
+          category: 'Expense',
+          amount: data.netPayable,
+          referenceNo: disbursementNo,
+          description: `Sales & Collection Commission payout to ${data.salesmanName} for ${data.month}`,
+          performedBy: currentUserRole
+        },
+        ...prev
+      ]);
+    } else if (data.paymentMethod === 'Bank Transfer' && data.bankAccountId) {
+      setBankAccounts(prev =>
+        prev.map(b =>
+          b.id === data.bankAccountId
+            ? { ...b, currentBalance: Math.max(0, b.currentBalance - data.netPayable) }
+            : b
+        )
+      );
+    }
+
+    addAudit('Disbursed Salesman Commission', 'Salesman', disbursementNo, `Salesman: ${data.salesmanName}`, `Amount: ৳ ${data.netPayable} for ${data.month}`);
+    return { success: true, disbursementNo };
+  };
+
   const addWarehouse = (wh: Omit<Warehouse, 'id' | 'code'>) => executeAddWarehouse(wh, masterDataBundle);
   const updateWarehouse = (id: string, data: Partial<Omit<Warehouse, 'id' | 'code'>>) => executeUpdateWarehouse(id, data, masterDataBundle);
   const deleteWarehouse = (id: string) => executeDeleteWarehouse(id, masterDataBundle);
@@ -2196,6 +2255,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updatePriceDropStatus,
         sendSmsNotification,
         addBankStatementEntry,
+        commissionDisbursements,
+        disburseSalesmanCommission,
         isOnline,
         pendingSyncCount,
         syncQueue,
