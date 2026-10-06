@@ -6,7 +6,9 @@ import {
   Search,
   CheckCircle,
   Calendar,
-  Building
+  Building,
+  AlertTriangle,
+  CheckCircle2
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
 import { PaymentMethodType, Expense, ExpenseCategory } from '../../types/erp';
@@ -79,7 +81,16 @@ const CategoryManager: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 };
 
 export const ExpensesView: React.FC = () => {
-  const { expenses, expenseCategories, bankAccounts, createExpense, updateExpense, deleteExpense } = useERP();
+  const {
+    expenses,
+    expenseCategories,
+    bankAccounts,
+    chartOfAccounts,
+    cashTransactions,
+    createExpense,
+    updateExpense,
+    deleteExpense
+  } = useERP();
   const [editing, setEditing] = useState<Expense | null>(null);
   const [showCategories, setShowCategories] = useState(false);
 
@@ -90,11 +101,41 @@ export const ExpensesView: React.FC = () => {
   const [bankAccountId, setBankAccountId] = useState(bankAccounts[0]?.id || '');
   const [description, setDescription] = useState('');
   const [approvedBy, setApprovedBy] = useState('Masum Billah');
+  const [formError, setFormError] = useState<string | null>(null);
+  const [statusMsg, setStatusMsg] = useState<string | null>(null);
+
+  // Available liquid balances
+  const openingVaultCash = chartOfAccounts.find(a => a.code === '1000')?.balance ?? 0;
+  const totalCashIn = cashTransactions.filter(c => c.type === 'Cash In').reduce((acc, c) => acc + c.amount, 0);
+  const totalCashOut = cashTransactions.filter(c => c.type === 'Cash Out').reduce((acc, c) => acc + c.amount, 0);
+  const currentCashInHand = Math.max(0, openingVaultCash + totalCashIn - totalCashOut);
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     const cat = expenseCategories.find(c => c.id === categoryId);
-    if (!cat) return;
+    if (!cat) {
+      setFormError('অনুগ্রহ করে একটি বৈধ খরচের খাত নির্বাচন করুন।');
+      return;
+    }
+
+    if (!amount || amount <= 0) {
+      setFormError('খরচের পরিমাণ অবশ্যই ০ এর বেশি হতে হবে।');
+      return;
+    }
+
+    if (paymentMethod === 'Cash' && amount > currentCashInHand) {
+      setFormError(`অপর্যাপ্ত ক্যাশ ব্যালেন্স! বর্তমান ক্যাশ ইন হ্যান্ড ৳${currentCashInHand.toLocaleString('en-IN')} কিন্তু আপনি খরচ করতে চাচ্ছেন ৳${amount.toLocaleString('en-IN')}।`);
+      return;
+    }
+
+    if (paymentMethod !== 'Cash') {
+      const bAcc = bankAccounts.find(b => b.id === bankAccountId);
+      if (bAcc && amount > bAcc.currentBalance) {
+        setFormError(`অপর্যাপ্ত ব্যাংক ব্যালেন্স! ${bAcc.bankName} অ্যাকাউন্টে ব্যালেন্স রয়েছে ৳${bAcc.currentBalance.toLocaleString('en-IN')} কিন্তু খরচ ৳${amount.toLocaleString('en-IN')}।`);
+        return;
+      }
+    }
 
     createExpense({
       date: new Date().toISOString().split('T')[0],
@@ -109,6 +150,8 @@ export const ExpensesView: React.FC = () => {
 
     setShowAddModal(false);
     setDescription('');
+    setStatusMsg(`খরচ ভাউচার ৳${amount.toLocaleString('en-IN')} (${cat.name}) সফলভাবে বুক করা হয়েছে।`);
+    setTimeout(() => setStatusMsg(null), 4000);
   };
 
   const totalExpense = expenses.reduce((acc, e) => acc + e.amount, 0);
@@ -131,19 +174,30 @@ export const ExpensesView: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowCategories(true)}
-            className="px-3.5 py-2 border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-semibold transition"
+            className="px-3.5 py-2 border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-semibold transition cursor-pointer"
           >
             Manage Categories
           </button>
           <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition"
+            onClick={() => {
+              setFormError(null);
+              setShowAddModal(true);
+            }}
+            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
           >
             <PlusCircle className="w-4 h-4" />
             <span>+ Record Expense</span>
           </button>
         </div>
       </div>
+
+      {/* Action Notification */}
+      {statusMsg && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{statusMsg}</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
         <div className="p-4 rounded-xl border border-slate-200 bg-white">
@@ -208,6 +262,13 @@ export const ExpensesView: React.FC = () => {
               <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
             <form onSubmit={handleAddSubmit} className="p-5 space-y-4 text-xs">
+              {formError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-start gap-2 animate-in fade-in">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <span>{formError}</span>
+                </div>
+              )}
+
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Expense Head / Category *</label>
                 <select
@@ -224,9 +285,12 @@ export const ExpensesView: React.FC = () => {
                 <label className="block font-semibold text-slate-700 mb-1">Amount (৳) *</label>
                 <input
                   type="number"
-                  min="10"
+                  min="1"
                   value={amount}
-                  onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => {
+                    setAmount(parseFloat(e.target.value) || 0);
+                    setFormError(null);
+                  }}
                   className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg font-bold"
                   required
                 />
@@ -236,24 +300,35 @@ export const ExpensesView: React.FC = () => {
                   <label className="block font-semibold text-slate-700 mb-1">Payment Mode</label>
                   <select
                     value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value as PaymentMethodType)}
+                    onChange={(e) => {
+                      setPaymentMethod(e.target.value as PaymentMethodType);
+                      setFormError(null);
+                    }}
                     className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg"
                   >
                     <option value="Cash">Cash in Hand</option>
                     <option value="Bank Transfer">Bank Transfer</option>
                     <option value="bKash">bKash Merchant</option>
                   </select>
+                  {paymentMethod === 'Cash' && (
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      হাতে নগদ: <b className="text-emerald-700">{formatBDT(currentCashInHand)}</b>
+                    </p>
+                  )}
                 </div>
                 {paymentMethod !== 'Cash' && (
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">Debit Bank</label>
                     <select
                       value={bankAccountId}
-                      onChange={(e) => setBankAccountId(e.target.value)}
+                      onChange={(e) => {
+                        setBankAccountId(e.target.value);
+                        setFormError(null);
+                      }}
                       className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg"
                     >
                       {bankAccounts.map(b => (
-                        <option key={b.id} value={b.id}>{b.bankName}</option>
+                        <option key={b.id} value={b.id}>{b.bankName} ({formatBDT(b.currentBalance)})</option>
                       ))}
                     </select>
                   </div>

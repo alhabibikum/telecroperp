@@ -13,11 +13,13 @@ import {
   Edit3,
   Coins,
   Check,
-  X
+  X,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import { formatBDT, formatDateTime } from '../../utils/formatters';
 import { RowActions, EditModal, FieldDef } from '../common/CrudKit';
-import type { BankAccount } from '../../types/erp';
+import type { BankAccount, CashTransaction } from '../../types/erp';
 
 const bankFields: FieldDef[] = [
   { key: 'bankName', label: 'Bank / Gateway Name', required: true },
@@ -48,7 +50,10 @@ export const CashBankView: React.FC = () => {
     updateBankAccount,
     deleteBankAccount,
     resetCashAndBankBalances,
-    setVaultOpeningCash
+    setVaultOpeningCash,
+    addCashTransaction,
+    deleteCashTransaction,
+    currentUserRole
   } = useERP();
 
   const [activeTab, setActiveTab] = useState<'bank' | 'cash'>('bank');
@@ -57,6 +62,15 @@ export const CashBankView: React.FC = () => {
   const [showSetVaultModal, setShowSetVaultModal] = useState(false);
   const [vaultCashInput, setVaultCashInput] = useState<string>('');
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+
+  // Cash Transaction CRUD State
+  const [showAddCashModal, setShowAddCashModal] = useState(false);
+  const [cashType, setCashType] = useState<'Cash In' | 'Cash Out'>('Cash In');
+  const [cashCategory, setCashCategory] = useState<CashTransaction['category']>('Expense');
+  const [cashAmount, setCashAmount] = useState<string>('');
+  const [cashDesc, setCashDesc] = useState('');
+  const [cashRef, setCashRef] = useState('');
+  const [cashError, setCashError] = useState<string | null>(null);
 
   const totalBankFunds = bankAccounts.reduce((acc, b) => acc + b.currentBalance, 0);
   const totalCashIn = cashTransactions.filter(c => c.type === 'Cash In').reduce((acc, c) => acc + c.amount, 0);
@@ -83,6 +97,49 @@ export const CashBankView: React.FC = () => {
       resetCashAndBankBalances();
       setStatusMsg('সকল ক্যাশ ও ব্যাংক অ্যাকাউন্ট ব্যালেন্স সফলভাবে রিসেট (৳ ০) করা হয়েছে!');
       setTimeout(() => setStatusMsg(null), 4000);
+    }
+  };
+
+  const handleAddCashSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCashError(null);
+    const amt = parseFloat(cashAmount);
+    if (!amt || amt <= 0) {
+      setCashError('অনুগ্রহ করে ০ এর বেশি বৈধ টাকার পরিমাণ দিন।');
+      return;
+    }
+    if (cashType === 'Cash Out' && amt > currentCashInHand) {
+      setCashError(`অপর্যাপ্ত ক্যাশ ব্যালেন্স! বর্তমান ভল্ট ও টিল ক্যাশ ৳${currentCashInHand.toLocaleString('en-IN')} কিন্তু আপনি খরচ করতে চেয়েছেন ৳${amt.toLocaleString('en-IN')}।`);
+      return;
+    }
+    const res = addCashTransaction({
+      date: `${new Date().toISOString().split('T')[0]} ${new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}`,
+      type: cashType,
+      category: cashCategory,
+      amount: amt,
+      referenceNo: cashRef.trim() || `CSH-${Date.now().toString().slice(-6)}`,
+      description: cashDesc.trim() || `${cashType} Entry`,
+      performedBy: currentUserRole
+    });
+    if (res.success) {
+      setShowAddCashModal(false);
+      setCashAmount('');
+      setCashDesc('');
+      setCashRef('');
+      setStatusMsg(`নতুন ক্যাশ ${cashType === 'Cash In' ? 'ইনফ্লো (+)' : 'আউটফ্লো (-)'} ৳${amt.toLocaleString('en-IN')} সফলভাবে রেকর্ড করা হয়েছে।`);
+      setTimeout(() => setStatusMsg(null), 4000);
+    } else {
+      setCashError(res.error || 'ক্যাশ লেনদেন সেভ করা সম্ভব হয়নি।');
+    }
+  };
+
+  const handleDeleteCash = (id: string, refNo: string, amount: number) => {
+    if (confirm(`আপনি কি নিশ্চিত যে ক্যাশ ভাউচার #${refNo} (৳${amount.toLocaleString('en-IN')}) মুছে ফেলতে চান?`)) {
+      const res = deleteCashTransaction(id);
+      if (res.success) {
+        setStatusMsg(`ক্যাশ ভাউচার #${refNo} সফলভাবে মুছে ফেলা হয়েছে।`);
+        setTimeout(() => setStatusMsg(null), 4000);
+      }
     }
   };
 
@@ -128,6 +185,19 @@ export const CashBankView: React.FC = () => {
             >
               <PlusCircle className="w-3.5 h-3.5" />
               <span>+ Add Account</span>
+            </button>
+          )}
+
+          {activeTab === 'cash' && (
+            <button
+              onClick={() => {
+                setCashError(null);
+                setShowAddCashModal(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>+ ক্যাশ লেনদেন এন্ট্রি</span>
             </button>
           )}
           <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
@@ -266,12 +336,13 @@ export const CashBankView: React.FC = () => {
                   <th className="p-3">Responsible User</th>
                   <th className="p-3 text-right">Inflow (Cash In)</th>
                   <th className="p-3 text-right">Outflow (Cash Out)</th>
+                  <th className="p-3 text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {cashTransactions.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-slate-400 font-medium">
+                    <td colSpan={8} className="p-8 text-center text-slate-400 font-medium">
                       কোনো ক্যাশ লেনদেন রেকর্ড পাওয়া যায়নি।
                     </td>
                   </tr>
@@ -303,6 +374,15 @@ export const CashBankView: React.FC = () => {
                     </td>
                     <td className="p-3 text-right font-extrabold text-rose-700">
                       {tx.type === 'Cash Out' ? formatBDT(tx.amount) : '-'}
+                    </td>
+                    <td className="p-3 text-center">
+                      <button
+                        onClick={() => handleDeleteCash(tx.id, tx.referenceNo, tx.amount)}
+                        className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition cursor-pointer"
+                        title="ক্যাশ লেনদেন রেকর্ড ডিলিট করুন"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </td>
                   </tr>
                 )))}
@@ -400,6 +480,165 @@ export const CashBankView: React.FC = () => {
                 >
                   <Check className="w-4 h-4" />
                   <span>সংরক্ষণ করুন</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* New Cash Transaction Modal */}
+      {showAddCashModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white ${
+                  cashType === 'Cash In' ? 'bg-emerald-600' : 'bg-rose-600'
+                }`}>
+                  <Wallet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900">ম্যানুয়াল ক্যাশ লেনদেন এন্ট্রি</h3>
+                  <p className="text-[11px] text-slate-500">ভল্ট ও টিল ড্রয়ারের দৈনিক ক্যাশ ইনফ্লো / আউটফ্লো</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAddCashModal(false)}
+                className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {cashError && (
+              <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-start gap-2 animate-in fade-in">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <span>{cashError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleAddCashSubmit} className="space-y-4">
+              {/* Type Switch */}
+              <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCashType('Cash In');
+                    setCashError(null);
+                  }}
+                  className={`py-2 rounded-lg transition cursor-pointer ${
+                    cashType === 'Cash In' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  + ক্যাশ ইন (Inflow)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCashType('Cash Out');
+                    setCashError(null);
+                  }}
+                  className={`py-2 rounded-lg transition cursor-pointer ${
+                    cashType === 'Cash Out' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  - ক্যাশ আউট (Outflow)
+                </button>
+              </div>
+
+              {/* Amount */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  টাকার পরিমাণ (৳) *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-slate-400 font-bold text-xs">৳</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="any"
+                    value={cashAmount}
+                    onChange={e => {
+                      setCashAmount(e.target.value);
+                      setCashError(null);
+                    }}
+                    placeholder="0.00"
+                    required
+                    className="w-full pl-8 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                    autoFocus
+                  />
+                </div>
+                {cashType === 'Cash Out' && (
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    বর্তমান ক্যাশ ইন হ্যান্ড: <b className="text-emerald-700">{formatBDT(currentCashInHand)}</b>
+                  </p>
+                )}
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  লেনদেনের খাত / ক্যাটাগরি *
+                </label>
+                <select
+                  value={cashCategory}
+                  onChange={e => setCashCategory(e.target.value as any)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Expense">অফিস অপারেশনাল খরচ (Expense)</option>
+                  <option value="Customer Sale">কাস্টমার সেলস কালেকশন (Customer Sale)</option>
+                  <option value="Due Collection">বকেয়া কালেকশন (Due Collection)</option>
+                  <option value="Supplier Payment">সাপ্লায়ার নগদ পেমেন্ট (Supplier Payment)</option>
+                  <option value="Cash To Bank">ক্যাশ টু ব্যাংক ডিপোজিট (Cash To Bank)</option>
+                  <option value="Other">অন্যান্য নগদ লেনদেন (Other)</option>
+                </select>
+              </div>
+
+              {/* Reference */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  রেফারেন্স / ভাউচার নম্বর (ঐচ্ছিক)
+                </label>
+                <input
+                  type="text"
+                  value={cashRef}
+                  onChange={e => setCashRef(e.target.value)}
+                  placeholder="e.g. VOUCHER-101 / RECEIPT-55"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  বিবরণ / বর্ণনা
+                </label>
+                <textarea
+                  rows={2}
+                  value={cashDesc}
+                  onChange={e => setCashDesc(e.target.value)}
+                  placeholder="লেনদেনের প্রয়োজনীয় বিস্তারিত লিখুন..."
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCashModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className={`px-5 py-2 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5 ${
+                    cashType === 'Cash In' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
+                  }`}
+                >
+                  <Check className="w-4 h-4" />
+                  <span>ক্যাশ এন্ট্রি সম্পন্ন করুন</span>
                 </button>
               </div>
             </form>

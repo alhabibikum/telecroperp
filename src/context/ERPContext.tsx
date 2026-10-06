@@ -537,6 +537,20 @@ interface ERPContextType {
   clearOfflineSyncQueue: () => void;
   resetCashAndBankBalances: () => void;
   setVaultOpeningCash: (amount: number) => void;
+  addCashTransaction: (data: Omit<CashTransaction, 'id'>) => { success: boolean; error?: string };
+  deleteCashTransaction: (id: string) => { success: boolean; error?: string };
+  createStockTransfer: (data: {
+    sourceWarehouseId: string;
+    destinationWarehouseId: string;
+    items: Array<{ productId: string; variantId: string; imeis: string[] }>;
+    notes?: string;
+  }) => { success: boolean; transferNo?: string; error?: string };
+  updateStockTransferStatus: (id: string, status: StockTransfer['status'], notes?: string) => { success: boolean; error?: string };
+  deleteStockTransfer: (id: string) => { success: boolean; error?: string };
+  updateCustomerReturnStatus: (id: string, status: CustomerReturn['status'], notes?: string) => { success: boolean; error?: string };
+  deleteCustomerReturn: (id: string) => { success: boolean; error?: string };
+  updateSupplierReturnStatus: (id: string, status: SupplierReturn['status']) => { success: boolean; error?: string };
+  deleteSupplierReturn: (id: string) => { success: boolean; error?: string };
 }
 
 const ERPContext = createContext<ERPContextType | null>(null);
@@ -2189,6 +2203,90 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addAudit('SETTINGS', `ভল্ট প্রারম্ভিক নগদ (Vault Opening Cash) ৳${val.toLocaleString('en-IN')} এ সেট করা হয়েছে`, 'Vault Opening Cash Updated');
   };
 
+  const addCashTransaction = (data: Omit<CashTransaction, 'id'>) => {
+    if (!data.amount || data.amount <= 0) {
+      return { success: false, error: 'বৈধ নগদ টাকার পরিমাণ প্রদান করুন।' };
+    }
+    const newTx: CashTransaction = {
+      ...data,
+      id: `cash-${Date.now()}`
+    };
+    setCashTransactions(prev => [newTx, ...prev]);
+    enqueueChange('cash_transactions', 'INSERT', newTx.id, newTx, `ক্যাশ লেনদেন রেকর্ড (${data.type}: ৳${data.amount})`);
+    addAudit('CASH_MANAGEMENT', `নতুন ক্যাশ লেনদেন যুক্ত হয়েছে: ${data.type} ৳${data.amount}`, newTx.referenceNo);
+    return { success: true };
+  };
+
+  const deleteCashTransaction = (id: string) => {
+    const tx = cashTransactions.find(t => t.id === id);
+    if (!tx) return { success: false, error: 'লেনদেন খুঁজে পাওয়া যায়নি।' };
+    setCashTransactions(prev => prev.filter(t => t.id !== id));
+    enqueueChange('cash_transactions', 'DELETE', id, null, `ক্যাশ লেনদেন মুছে ফেলা হয়েছে (${tx.referenceNo})`);
+    addAudit('CASH_MANAGEMENT', `ক্যাশ লেনদেন ডিলিট করা হয়েছে: ${tx.referenceNo} (৳${tx.amount})`, tx.referenceNo);
+    return { success: true };
+  };
+
+  const createStockTransfer = (data: {
+    sourceWarehouseId: string;
+    destinationWarehouseId: string;
+    items: Array<{ productId: string; variantId: string; imeis: string[] }>;
+    notes?: string;
+  }) => transferStock(data);
+
+  const updateStockTransferStatus = (id: string, status: StockTransfer['status'], notes?: string) => {
+    const trf = stockTransfers.find(t => t.id === id);
+    if (!trf) return { success: false, error: 'ট্রান্সফার রেকর্ড পাওয়া যায়নি।' };
+    setStockTransfers(prev => prev.map(t => t.id === id ? { ...t, status, notes: notes || t.notes } : t));
+    enqueueChange('stock_transfers', 'UPDATE', id, { ...trf, status, notes: notes || trf.notes }, `স্টক ট্রান্সফার স্ট্যাটাস পরিবর্তন: ${status}`);
+    addAudit('INVENTORY', `স্টক ট্রান্সফার ${trf.transferNo} স্ট্যাটাস ${status} এ পরিবর্তিত হয়েছে`, trf.transferNo);
+    return { success: true };
+  };
+
+  const deleteStockTransfer = (id: string) => {
+    const trf = stockTransfers.find(t => t.id === id);
+    if (!trf) return { success: false, error: 'ট্রান্সফার রেকর্ড পাওয়া যায়নি।' };
+    setStockTransfers(prev => prev.filter(t => t.id !== id));
+    enqueueChange('stock_transfers', 'DELETE', id, null, `স্টক ট্রান্সফার মুছে ফেলা হয়েছে (${trf.transferNo})`);
+    addAudit('INVENTORY', `স্টক ট্রান্সফার ডিলিট করা হয়েছে: ${trf.transferNo}`, trf.transferNo);
+    return { success: true };
+  };
+
+  const updateCustomerReturnStatus = (id: string, status: CustomerReturn['status'], notes?: string) => {
+    const ret = customerReturns.find(r => r.id === id);
+    if (!ret) return { success: false, error: 'কাস্টমার রিটার্ন রেকর্ড পাওয়া যায়নি।' };
+    setCustomerReturns(prev => prev.map(r => r.id === id ? { ...r, status, notes: notes || r.notes } : r));
+    enqueueChange('customer_returns', 'UPDATE', id, { ...ret, status, notes: notes || ret.notes }, `কাস্টমার রিটার্ন স্ট্যাটাস পরিবর্তন: ${status}`);
+    addAudit('RETURNS', `কাস্টমার রিটার্ন ${ret.returnNo} স্ট্যাটাস ${status} এ পরিবর্তিত হয়েছে`, ret.returnNo);
+    return { success: true };
+  };
+
+  const deleteCustomerReturn = (id: string) => {
+    const ret = customerReturns.find(r => r.id === id);
+    if (!ret) return { success: false, error: 'কাস্টমার রিটার্ন রেকর্ড পাওয়া যায়নি।' };
+    setCustomerReturns(prev => prev.filter(r => r.id !== id));
+    enqueueChange('customer_returns', 'DELETE', id, null, `কাস্টমার রিটার্ন মুছে ফেলা হয়েছে (${ret.returnNo})`);
+    addAudit('RETURNS', `কাস্টমার রিটার্ন ডিলিট করা হয়েছে: ${ret.returnNo}`, ret.returnNo);
+    return { success: true };
+  };
+
+  const updateSupplierReturnStatus = (id: string, status: SupplierReturn['status']) => {
+    const ret = supplierReturns.find(r => r.id === id);
+    if (!ret) return { success: false, error: 'সাপ্লায়ার রিটার্ন রেকর্ড পাওয়া যায়নি।' };
+    setSupplierReturns(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+    enqueueChange('supplier_returns', 'UPDATE', id, { ...ret, status }, `সাপ্লায়ার রিটার্ন স্ট্যাটাস পরিবর্তন: ${status}`);
+    addAudit('RETURNS', `সাপ্লায়ার রিটার্ন ${ret.returnNo} স্ট্যাটাস ${status} এ পরিবর্তিত হয়েছে`, ret.returnNo);
+    return { success: true };
+  };
+
+  const deleteSupplierReturn = (id: string) => {
+    const ret = supplierReturns.find(r => r.id === id);
+    if (!ret) return { success: false, error: 'সাপ্লায়ার রিটার্ন রেকর্ড পাওয়া যায়নি।' };
+    setSupplierReturns(prev => prev.filter(r => r.id !== id));
+    enqueueChange('supplier_returns', 'DELETE', id, null, `সাপ্লায়ার রিটার্ন মুছে ফেলা হয়েছে (${ret.returnNo})`);
+    addAudit('RETURNS', `সাপ্লায়ার রিটার্ন ডিলিট করা হয়েছে: ${ret.returnNo}`, ret.returnNo);
+    return { success: true };
+  };
+
   return (
     <ERPContext.Provider
       value={{
@@ -2324,7 +2422,16 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         factoryResetFullWipe,
         clearOfflineSyncQueue,
         resetCashAndBankBalances,
-        setVaultOpeningCash
+        setVaultOpeningCash,
+        addCashTransaction,
+        deleteCashTransaction,
+        createStockTransfer,
+        updateStockTransferStatus,
+        deleteStockTransfer,
+        updateCustomerReturnStatus,
+        deleteCustomerReturn,
+        updateSupplierReturnStatus,
+        deleteSupplierReturn
       }}
     >
       {children}
