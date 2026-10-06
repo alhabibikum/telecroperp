@@ -10,10 +10,22 @@ import {
   CreditCard,
   DollarSign,
   Smartphone,
-  Printer
+  Printer,
+  Usb,
+  Bluetooth,
+  Zap,
+  Power
 } from 'lucide-react';
 import { formatBDT } from '../../utils/formatters';
 import { PaymentMethodType } from '../../types/erp';
+import {
+  connectSerialPrinter,
+  connectBluetoothPrinter,
+  disconnectPrinter,
+  sendRawBytesToPrinter,
+  generateESCPOSReceipt,
+  checkHardwareSupport
+} from '../../services/thermalPrinterService';
 
 interface RetailPOSViewProps {
   onPrintInvoice: (invoiceNo: string) => void;
@@ -28,6 +40,18 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
   const [customerName, setCustomerName] = useState('Walk-in Customer');
   const [customerPhone, setCustomerPhone] = useState('01700-000000');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('Cash');
+
+  // Direct Hardware Thermal Printer State
+  const [connectedPrinter, setConnectedPrinter] = useState<{
+    connected: boolean;
+    name: string;
+    type: 'serial' | 'bluetooth' | null;
+  }>({
+    connected: false,
+    name: '',
+    type: null
+  });
+  const [isConnectingPrinter, setIsConnectingPrinter] = useState(false);
 
   // Cart
   const [cartItems, setCartItems] = useState<Array<{
@@ -120,12 +144,77 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
     });
 
     if (result.success && result.invoiceNo) {
+      const invNo = result.invoiceNo;
       setCartItems([]);
-      setMessage({ type: 'success', text: `Sale successful! Memo #${result.invoiceNo} issued.` });
-      onPrintInvoice(result.invoiceNo);
+
+      // If hardware thermal printer is connected, dispatch raw ESC/POS receipt
+      if (connectedPrinter.connected) {
+        try {
+          const receiptBytes = generateESCPOSReceipt({
+            invoiceNo: invNo,
+            date: new Date().toISOString().split('T')[0],
+            customerName,
+            customerPhone,
+            warehouseName: retailOutlet.name,
+            items: saleItems.map(it => ({
+              name: it.productName,
+              imei: it.imeiList?.[0],
+              qty: it.quantity,
+              price: it.unitPrice,
+              total: it.totalAmount
+            })),
+            subTotal: totalBill,
+            discount: 0,
+            grandTotal: totalBill,
+            paidAmount: totalBill,
+            dueAmount: 0,
+            paymentMethod
+          });
+          sendRawBytesToPrinter(receiptBytes);
+          setMessage({
+            type: 'success',
+            text: `বিক্রয় সফল! থার্মাল প্রিন্টারে সরাসরি ক্যাশ মেমো (#${invNo}) প্রিন্ট হয়েছে।`
+          });
+        } catch {
+          onPrintInvoice(invNo);
+        }
+      } else {
+        setMessage({ type: 'success', text: `Sale successful! Memo #${invNo} issued.` });
+        onPrintInvoice(invNo);
+      }
     } else {
       setMessage({ type: 'error', text: result.error || 'Failed to complete checkout' });
     }
+  };
+
+  const handleConnectUSB = async () => {
+    setIsConnectingPrinter(true);
+    const res = await connectSerialPrinter();
+    if (res.success) {
+      setConnectedPrinter({ connected: true, name: res.name, type: 'serial' });
+      setMessage({ type: 'success', text: `USB থার্মাল প্রিন্টার সংযুক্ত হয়েছে (${res.name})` });
+    } else if (res.error) {
+      setMessage({ type: 'error', text: res.error });
+    }
+    setIsConnectingPrinter(false);
+  };
+
+  const handleConnectBluetooth = async () => {
+    setIsConnectingPrinter(true);
+    const res = await connectBluetoothPrinter();
+    if (res.success) {
+      setConnectedPrinter({ connected: true, name: res.name, type: 'bluetooth' });
+      setMessage({ type: 'success', text: `Bluetooth থার্মাল প্রিন্টার সংযুক্ত হয়েছে (${res.name})` });
+    } else if (res.error) {
+      setMessage({ type: 'error', text: res.error });
+    }
+    setIsConnectingPrinter(false);
+  };
+
+  const handleDisconnectPrinter = async () => {
+    await disconnectPrinter();
+    setConnectedPrinter({ connected: false, name: '', type: null });
+    setMessage({ type: 'success', text: 'থার্মাল প্রিন্টার ডিসকানেক্ট করা হয়েছে।' });
   };
 
   return (
@@ -140,14 +229,55 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
             </h2>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Outlet Terminal: <b className="text-slate-800">{retailOutlet.name}</b> • Direct Barcode/IMEI Scan
+            Outlet Terminal: <b className="text-slate-800">{retailOutlet.name}</b> • Direct Barcode/IMEI Scan & Hardware Printing
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {/* Hardware Thermal Printer Quick Connect */}
+          {!connectedPrinter.connected ? (
+            <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200">
+              <span className="text-[11px] font-semibold text-slate-500 pl-2">Thermal Printer:</span>
+              <button
+                type="button"
+                onClick={handleConnectUSB}
+                disabled={isConnectingPrinter}
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 font-bold transition shadow-2xs"
+                title="Connect USB Thermal Receipt Printer via Web-Serial"
+              >
+                <Usb className="w-3.5 h-3.5 text-blue-600" />
+                <span>USB</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleConnectBluetooth}
+                disabled={isConnectingPrinter}
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 font-bold transition shadow-2xs"
+                title="Connect Bluetooth POS Printer via Web-Bluetooth"
+              >
+                <Bluetooth className="w-3.5 h-3.5 text-indigo-600" />
+                <span>BLE</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 text-emerald-800">
+              <Zap className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+              <span className="font-bold text-[11px]">
+                {connectedPrinter.type?.toUpperCase()} Ready ({connectedPrinter.name})
+              </span>
+              <button
+                type="button"
+                onClick={handleDisconnectPrinter}
+                className="text-[10px] text-rose-600 hover:text-rose-800 underline font-semibold ml-1"
+              >
+                Disconnect
+              </button>
+            </div>
+          )}
+
           <span className="text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 font-semibold flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>POS Register Ready</span>
+            <span>Register Ready</span>
           </span>
         </div>
       </div>

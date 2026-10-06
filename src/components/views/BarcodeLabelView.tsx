@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
   Barcode,
@@ -11,18 +11,71 @@ import {
   ShieldCheck,
   Layers,
   Settings,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Usb,
+  Bluetooth,
+  Zap,
+  CheckCircle2,
+  AlertCircle,
+  Radio,
+  RefreshCw,
+  Power,
+  Cpu
 } from 'lucide-react';
 import { formatBDT } from '../../utils/formatters';
+import {
+  checkHardwareSupport,
+  connectSerialPrinter,
+  connectBluetoothPrinter,
+  disconnectPrinter,
+  sendRawBytesToPrinter,
+  generateTSPLLabelCommands,
+  generateESCPOSLabelCommands,
+  generateTestSticker,
+  PrinterProtocol,
+  LabelPrintItem
+} from '../../services/thermalPrinterService';
 
 export const BarcodeLabelView: React.FC = () => {
-  const { products, imeis, brands } = useERP();
+  const { products, imeis, brands, settings } = useERP();
+  const isBn = settings.language === 'bn';
 
   const [selectedBrand, setSelectedBrand] = useState<string>('All');
   const [selectedProductId, setSelectedProductId] = useState<string>(products[0]?.id || '');
   const [selectedVariantId, setSelectedVariantId] = useState<string>(products[0]?.variants[0]?.id || '');
   const [labelSize, setLabelSize] = useState<'50x30' | '40x25' | 'A4'>('50x30');
   const [selectedImeis, setSelectedImeis] = useState<string[]>([]);
+
+  // Hardware Printer Integration State
+  const [hardwareSupport, setHardwareSupport] = useState<{ serial: boolean; bluetooth: boolean; recommendedBrowser: string | null }>({
+    serial: true,
+    bluetooth: true,
+    recommendedBrowser: null
+  });
+  const [connectedDevice, setConnectedDevice] = useState<{
+    connected: boolean;
+    type: 'serial' | 'bluetooth' | null;
+    name: string;
+  }>({
+    connected: false,
+    type: null,
+    name: ''
+  });
+  const [printerProtocol, setPrinterProtocol] = useState<PrinterProtocol>('TSPL');
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+
+  // Check hardware API support on mount
+  useEffect(() => {
+    const support = checkHardwareSupport();
+    setHardwareSupport(support);
+  }, []);
+
+  const showToast = (type: 'success' | 'error' | 'info', text: string) => {
+    setToastMessage({ type, text });
+    setTimeout(() => setToastMessage(null), 5000);
+  };
 
   const filteredProducts = selectedBrand === 'All'
     ? products
@@ -54,12 +107,159 @@ export const BarcodeLabelView: React.FC = () => {
     );
   };
 
-  const handlePrint = () => {
+  // Connect USB via Web Serial
+  const handleConnectUSB = async () => {
+    setIsConnecting(true);
+    try {
+      const res = await connectSerialPrinter(9600);
+      if (res.success) {
+        setConnectedDevice({
+          connected: true,
+          type: 'serial',
+          name: res.name
+        });
+        showToast('success', isBn ? `ইউএসবি থার্মাল প্রিন্টার সংযুক্ত হয়েছে (${res.name})` : `USB Thermal Printer connected (${res.name})`);
+      } else if (res.error) {
+        showToast('error', res.error);
+      }
+    } catch (e: any) {
+      showToast('error', e.message || 'Error connecting to USB printer');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  // Connect Bluetooth via Web Bluetooth
+  const handleConnectBluetooth = async () => {
+    setIsConnecting(true);
+    try {
+      const res = await connectBluetoothPrinter();
+      if (res.success) {
+        setConnectedDevice({
+          connected: true,
+          type: 'bluetooth',
+          name: res.name
+        });
+        showToast('success', isBn ? `ব্লুটুথ থার্মাল প্রিন্টার সংযুক্ত হয়েছে (${res.name})` : `Bluetooth Thermal Printer connected (${res.name})`);
+      } else if (res.error) {
+        showToast('error', res.error);
+      }
+    } catch (e: any) {
+      showToast('error', e.message || 'Error connecting to Bluetooth printer');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  // Disconnect printer
+  const handleDisconnect = async () => {
+    await disconnectPrinter();
+    setConnectedDevice({
+      connected: false,
+      type: null,
+      name: ''
+    });
+    showToast('info', isBn ? 'প্রিন্টার সংযোগ বিচ্ছিন্ন করা হয়েছে।' : 'Hardware printer disconnected.');
+  };
+
+  // Direct Hardware Print Dispatch
+  const handleDirectHardwarePrint = async () => {
+    if (selectedImeis.length === 0) {
+      showToast('error', isBn ? 'প্রথমে কমপক্ষে একটি আইএমইআই নির্বাচন করুন।' : 'Please select at least one IMEI first.');
+      return;
+    }
+
+    if (!connectedDevice.connected) {
+      showToast('error', isBn ? 'কোনো হার্ডওয়্যার প্রিন্টার সংযুক্ত নেই! অনুগ্রহ করে USB অথবা Bluetooth দিয়ে প্রিন্টার কানেক্ট করুন।' : 'No hardware printer connected! Please connect via USB or Bluetooth.');
+      return;
+    }
+
+    setIsPrinting(true);
+    try {
+      // Build items payload
+      const printItems: LabelPrintItem[] = selectedImeis.map(imeiNum => {
+        const imeiRec = imeis.find(i => i.imei1 === imeiNum);
+        return {
+          brandName: currentProduct?.brandName || 'Brand',
+          model: currentProduct?.model || 'Phone Model',
+          variantDesc: `${currentVariant?.ram || '8GB'}/${currentVariant?.storage || '128GB'} - ${currentVariant?.color || 'Black'}`,
+          imei1: imeiNum,
+          imei2: imeiRec?.imei2,
+          retailPrice: currentVariant?.retailPrice || 0,
+          warrantyPeriodMonths: currentProduct?.warrantyPeriodMonths || 12,
+          tacCode: (currentProduct as any)?.tacCode || 'TAC'
+        };
+      });
+
+      // Encode command stream based on selected protocol
+      let rawBytes: Uint8Array;
+      if (printerProtocol === 'TSPL') {
+        const [w, h] = labelSize === '40x25' ? [40, 25] : [50, 30];
+        rawBytes = generateTSPLLabelCommands(printItems, w, h);
+      } else {
+        rawBytes = generateESCPOSLabelCommands(printItems);
+      }
+
+      const res = await sendRawBytesToPrinter(rawBytes);
+      if (res.success) {
+        showToast('success', isBn 
+          ? `সফলভাবে ${selectedImeis.length}টি লেবেল সরাসরি থার্মাল প্রিন্টারে পাঠানো হয়েছে!` 
+          : `Successfully transmitted ${selectedImeis.length} labels directly to thermal printer!`
+        );
+      } else {
+        showToast('error', res.error || 'Failed to dispatch raw bytes to thermal printer');
+      }
+    } catch (err: any) {
+      showToast('error', err.message || 'Print error');
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+  // Direct Test Sticker Print
+  const handleTestPrint = async () => {
+    if (!connectedDevice.connected) {
+      showToast('error', isBn ? 'টেস্ট প্রিন্ট করতে প্রথমে প্রিন্টার কানেক্ট করুন।' : 'Connect printer first to send test print.');
+      return;
+    }
+
+    setIsPrinting(true);
+    try {
+      const testBytes = generateTestSticker(printerProtocol);
+      const res = await sendRawBytesToPrinter(testBytes);
+      if (res.success) {
+        showToast('success', isBn ? 'টেস্ট ক্যালিব্রেশন স্টিকার সফলভাবে প্রিন্টারে পাঠানো হয়েছে!' : 'Test calibration label sent to printer successfully!');
+      } else {
+        showToast('error', res.error || 'Failed to send test label');
+      }
+    } catch (err: any) {
+      showToast('error', err.message || 'Test print error');
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+  // Fallback Browser Print Dialog
+  const handleBrowserPrint = () => {
     window.print();
   };
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+      {/* Toast Alert */}
+      {toastMessage && (
+        <div className={`p-4 rounded-xl flex items-center gap-3 text-xs font-semibold shadow-md border ${
+          toastMessage.type === 'success' ? 'bg-emerald-50 text-emerald-900 border-emerald-300' :
+          toastMessage.type === 'error' ? 'bg-rose-50 text-rose-900 border-rose-300' :
+          'bg-blue-50 text-blue-900 border-blue-300'
+        }`}>
+          {toastMessage.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />}
+          {toastMessage.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />}
+          {toastMessage.type === 'info' && <Radio className="w-5 h-5 text-blue-600 shrink-0" />}
+          <span>{toastMessage.text}</span>
+        </div>
+      )}
+
       {/* Top Banner - hidden during print */}
       <div className="print:hidden bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -70,22 +270,164 @@ export const BarcodeLabelView: React.FC = () => {
             </h1>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            মোবাইল ফোনের বক্স স্টিকার, আইএমইআই বারকোড ও থার্মাল লেবেল সরাসরি প্রিন্ট করুন (BTRC TAC & MRP ফরম্যাট)
+            মোবাইল ফোনের বক্স স্টিকার ও আইএমইআই বারকোড লেবেল সরাসরি থার্মাল প্রিন্টারে (Web-Serial USB & Web-Bluetooth) অথবা ব্রাউজার প্রিন্টে প্রস্তুত করুন
           </p>
         </div>
 
-        <button
-          onClick={handlePrint}
-          disabled={selectedImeis.length === 0}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs shadow-xs transition ${
-            selectedImeis.length > 0
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
-              : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-          }`}
-        >
-          <Printer className="w-4 h-4" />
-          Print {selectedImeis.length} Labels
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Direct Hardware Thermal Print Button */}
+          <button
+            onClick={handleDirectHardwarePrint}
+            disabled={selectedImeis.length === 0 || isPrinting}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs shadow-xs transition ${
+              connectedDevice.connected && selectedImeis.length > 0
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse'
+                : 'bg-emerald-700 hover:bg-emerald-800 text-white opacity-90'
+            }`}
+          >
+            <Zap className="w-4 h-4 text-emerald-200" />
+            <span>
+              {isPrinting ? 'Transmitting...' : `Direct Thermal Print (${selectedImeis.length})`}
+            </span>
+          </button>
+
+          {/* Standard Browser Print Fallback */}
+          <button
+            onClick={handleBrowserPrint}
+            disabled={selectedImeis.length === 0}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs shadow-xs transition border ${
+              selectedImeis.length > 0
+                ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
+                : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+            }`}
+          >
+            <Printer className="w-4 h-4" />
+            <span>Browser Print ({selectedImeis.length})</span>
+          </button>
+        </div>
+      </div>
+
+      {/* HARDWARE DIRECT THERMAL PRINTER CONTROL COCKPIT */}
+      <div className="print:hidden bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 p-5 rounded-2xl text-white shadow-md space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 rounded-xl ${connectedDevice.connected ? 'bg-emerald-500/20 text-emerald-400 ring-2 ring-emerald-500/50' : 'bg-slate-700 text-slate-300'}`}>
+              <Cpu className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm">Direct Hardware Thermal Printing Engine</h3>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                  connectedDevice.connected ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-300'
+                }`}>
+                  {connectedDevice.connected ? `Connected (${connectedDevice.type?.toUpperCase()})` : 'Disconnected'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {connectedDevice.connected
+                  ? `Active Device: ${connectedDevice.name} | Protocol: ${printerProtocol}`
+                  : 'Web-Serial (USB) অথবা Web-Bluetooth (BLE) দিয়ে সরাসরি থার্মাল লেবেল প্রিন্টারে বাইনারি কমান্ড পাঠান (No browser dialog required)'}
+              </p>
+            </div>
+          </div>
+
+          {/* Hardware Connection Actions */}
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {!connectedDevice.connected ? (
+              <>
+                <button
+                  onClick={handleConnectUSB}
+                  disabled={isConnecting || !hardwareSupport.serial}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold transition shadow-xs ${
+                    hardwareSupport.serial
+                      ? 'bg-blue-600 hover:bg-blue-500 text-white'
+                      : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                  }`}
+                  title={hardwareSupport.serial ? 'Connect via USB Serial' : 'Web Serial not supported in this browser'}
+                >
+                  <Usb className="w-4 h-4" />
+                  <span>Connect USB (Serial)</span>
+                </button>
+
+                <button
+                  onClick={handleConnectBluetooth}
+                  disabled={isConnecting || !hardwareSupport.bluetooth}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold transition shadow-xs ${
+                    hardwareSupport.bluetooth
+                      ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                      : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                  }`}
+                  title={hardwareSupport.bluetooth ? 'Connect via Bluetooth BLE' : 'Web Bluetooth not supported'}
+                >
+                  <Bluetooth className="w-4 h-4" />
+                  <span>Connect Bluetooth (BLE)</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleTestPrint}
+                  disabled={isPrinting}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition shadow-xs"
+                >
+                  <Zap className="w-4 h-4" />
+                  <span>Test Sticker</span>
+                </button>
+
+                <button
+                  onClick={handleDisconnect}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-rose-600/80 hover:bg-rose-600 text-white rounded-xl font-bold transition shadow-xs"
+                >
+                  <Power className="w-4 h-4" />
+                  <span>Disconnect</span>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Protocol & Hardware Settings Selector */}
+        <div className="pt-3 border-t border-slate-700/60 flex flex-wrap items-center justify-between gap-4 text-xs">
+          <div className="flex items-center gap-4">
+            <span className="font-semibold text-slate-300">Printer Command Protocol:</span>
+            <div className="flex items-center gap-2">
+              <label className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg cursor-pointer transition ${
+                printerProtocol === 'TSPL' ? 'bg-indigo-600 text-white font-bold' : 'bg-slate-800 text-slate-400 hover:text-white'
+              }`}>
+                <input
+                  type="radio"
+                  name="protocol"
+                  checked={printerProtocol === 'TSPL'}
+                  onChange={() => setPrinterProtocol('TSPL')}
+                  className="hidden"
+                />
+                <span>TSPL (Xprinter/TSC/Zebra Labels)</span>
+              </label>
+
+              <label className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg cursor-pointer transition ${
+                printerProtocol === 'ESC_POS' ? 'bg-indigo-600 text-white font-bold' : 'bg-slate-800 text-slate-400 hover:text-white'
+              }`}>
+                <input
+                  type="radio"
+                  name="protocol"
+                  checked={printerProtocol === 'ESC_POS'}
+                  onChange={() => setPrinterProtocol('ESC_POS')}
+                  className="hidden"
+                />
+                <span>ESC/POS (POS-58 / POS-80)</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="text-[11px] text-slate-400">
+            {hardwareSupport.recommendedBrowser && (
+              <span className="text-amber-400">⚠️ {hardwareSupport.recommendedBrowser} ব্রাউজার ব্যবহার করুন</span>
+            )}
+            {!hardwareSupport.recommendedBrowser && (
+              <span>✓ Web-Serial & Web-Bluetooth APIs Ready</span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Control Panel - hidden during print */}
@@ -233,7 +575,7 @@ export const BarcodeLabelView: React.FC = () => {
           </div>
 
           <div className="text-xs text-slate-400">
-            Formatted for Direct Thermal / Barcode Printers
+            Formatted for Direct Thermal / Barcode Printers ({labelSize === 'A4' ? 'A4 Sheet' : `${labelSize} mm`})
           </div>
         </div>
 
