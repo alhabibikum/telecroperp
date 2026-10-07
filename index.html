@@ -20,6 +20,28 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function() {
+        function triggerAutoFullscreen() {
+          var el = document.documentElement;
+          var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+          if (fn && !document.fullscreenElement && !document.webkitFullscreenElement) {
+            try { fn.call(el).catch(function() {}); } catch(e) {}
+          }
+        }
+        // Attempt instant launch
+        triggerAutoFullscreen();
+        // Fallback: earliest user touch / click / key before React mounts
+        var events = ['pointerdown', 'mousedown', 'keydown', 'touchstart'];
+        function onEarlyInteraction() {
+          triggerAutoFullscreen();
+          events.forEach(function(ev) { window.removeEventListener(ev, onEarlyInteraction, true); });
+        }
+        events.forEach(function(ev) {
+          window.addEventListener(ev, onEarlyInteraction, { capture: true, passive: true, once: true });
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

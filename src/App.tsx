@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ERPProvider, useERP } from './context/ERPContext';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
@@ -58,7 +58,7 @@ import { CommandPaletteModal } from './components/common/CommandPaletteModal';
 import { KeyboardShortcutHelpModal } from './components/common/KeyboardShortcutHelpModal';
 import { FullScreenSkipButton } from './components/common/FullScreenSkipButton';
 import { useToast } from './components/common/ToastNotificationSystem';
-import { ShieldAlert, ArrowRight, ChevronRight } from 'lucide-react';
+import { ShieldAlert, ArrowRight } from 'lucide-react';
 import { WindowManagerProvider, useWindowManager } from './context/WindowManagerContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
@@ -134,32 +134,90 @@ const ERPAppContent: React.FC = () => {
 
   const [openViewIds, setOpenViewIds] = useState<string[]>(['dashboard']);
 
+  // Header auto-hide & pin state (Default false so software opens with header auto-hidden instantly)
+  const [isHeaderPinned, setIsHeaderPinned] = useState<boolean>(false);
+
+  const handleToggleHeaderPin = () => {
+    setIsHeaderPinned(prev => {
+      const next = !prev;
+      if (next) {
+        showInfo('হেডার পিন করা হয়েছে', 'হেডারটি এখন স্থায়ী থাকবে।');
+      } else {
+        showInfo('হেডার অটো-হাইড চালু', 'মাউস নিচে নিলে হেডার লুকাবে। উপরে আনলে দেখাবে।');
+      }
+      return next;
+    });
+  };
+
   // Desktop Fullscreen F11 State & Auto-Launch
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() => {
-    return typeof document !== 'undefined' && !!document.fullscreenElement;
+    if (typeof document === 'undefined') return false;
+    const doc = document as any;
+    return !!(
+      doc.fullscreenElement ||
+      doc.webkitFullscreenElement ||
+      doc.mozFullScreenElement ||
+      doc.msFullscreenElement
+    );
   });
 
+  const userManuallySkippedRef = useRef<boolean>(false);
+
+  const getIsFullscreen = (): boolean => {
+    if (typeof document === 'undefined') return false;
+    const doc = document as any;
+    return !!(
+      doc.fullscreenElement ||
+      doc.webkitFullscreenElement ||
+      doc.mozFullScreenElement ||
+      doc.msFullscreenElement
+    );
+  };
+
   const enterFullScreenMode = async () => {
+    if (userManuallySkippedRef.current) return;
     try {
-      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-        await document.documentElement.requestFullscreen();
+      const el = document.documentElement as any;
+      if (!getIsFullscreen()) {
+        if (el.requestFullscreen) {
+          await el.requestFullscreen();
+        } else if (el.webkitRequestFullscreen) {
+          await el.webkitRequestFullscreen();
+        } else if (el.mozRequestFullScreen) {
+          await el.mozRequestFullScreen();
+        } else if (el.msRequestFullscreen) {
+          await el.msRequestFullscreen();
+        }
       }
-    } catch {}
+    } catch {
+      // Modern browsers require a user interaction first if un-gestured
+    }
   };
 
   const exitFullScreenMode = async () => {
+    userManuallySkippedRef.current = true;
     try {
-      if (document.fullscreenElement && document.exitFullscreen) {
-        await document.exitFullscreen();
-        showInfo('ফুলস্ক্রিন স্কিপ করা হয়েছে', 'স্বাভাবিক উইন্ডো মোডে ফিরে আসা হয়েছে।');
+      const doc = document as any;
+      if (getIsFullscreen()) {
+        if (doc.exitFullscreen) {
+          await doc.exitFullscreen();
+        } else if (doc.webkitExitFullscreen) {
+          await doc.webkitExitFullscreen();
+        } else if (doc.mozCancelFullScreen) {
+          await doc.mozCancelFullScreen();
+        } else if (doc.msExitFullscreen) {
+          await doc.msExitFullscreen();
+        }
+        showInfo('ফুলস্ক্রিন স্কিপ করা হয়েছে', 'স্বাভাবিক উইন্ডো মোডে ফিরে আসা হয়েছে। F11 চেপে পুনরায় ফুলস্ক্রিন করতে পারবেন।');
       }
     } catch {}
   };
 
   const handleToggleFullscreen = () => {
-    if (document.fullscreenElement) {
+    if (getIsFullscreen()) {
       exitFullScreenMode();
     } else {
+      userManuallySkippedRef.current = false;
       enterFullScreenMode();
     }
   };
@@ -167,31 +225,36 @@ const ERPAppContent: React.FC = () => {
   // Synchronize fullscreen state changes
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      setIsFullscreen(getIsFullscreen());
     };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    const events = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'];
+    events.forEach(evt => document.addEventListener(evt, handleFullscreenChange));
+    return () => {
+      events.forEach(evt => document.removeEventListener(evt, handleFullscreenChange));
+    };
   }, []);
 
   // Automatic Fullscreen on Launch and First User Gesture
   useEffect(() => {
+    // 1. Instant fullscreen attempt on launch
     enterFullScreenMode();
 
-    const onFirstUserGesture = () => {
-      enterFullScreenMode();
-      window.removeEventListener('click', onFirstUserGesture);
-      window.removeEventListener('keydown', onFirstUserGesture);
-      window.removeEventListener('pointerdown', onFirstUserGesture);
+    // 2. High-priority capture-phase listeners on any first user interaction (touch, click, key, pointer)
+    const gestureEvents = ['pointerdown', 'mousedown', 'keydown', 'touchstart', 'click'];
+    const onUserInteraction = () => {
+      if (!userManuallySkippedRef.current && !getIsFullscreen()) {
+        enterFullScreenMode();
+      }
     };
 
-    window.addEventListener('click', onFirstUserGesture, { once: true });
-    window.addEventListener('keydown', onFirstUserGesture, { once: true });
-    window.addEventListener('pointerdown', onFirstUserGesture, { once: true });
+    gestureEvents.forEach(evt => {
+      window.addEventListener(evt, onUserInteraction, { capture: true, passive: true });
+    });
 
     return () => {
-      window.removeEventListener('click', onFirstUserGesture);
-      window.removeEventListener('keydown', onFirstUserGesture);
-      window.removeEventListener('pointerdown', onFirstUserGesture);
+      gestureEvents.forEach(evt => {
+        window.removeEventListener(evt, onUserInteraction, { capture: true });
+      });
     };
   }, []);
 
@@ -685,8 +748,8 @@ const ERPAppContent: React.FC = () => {
         onOpenCommandPalette={() => setShowCommandPalette(true)}
         onOpenShortcutsHelp={() => setShowShortcutHelp(true)}
         onSelectView={handleNavigateView}
-        isFullscreen={isFullscreen}
-        onToggleFullscreen={handleToggleFullscreen}
+        isPinned={isHeaderPinned}
+        onTogglePin={handleToggleHeaderPin}
       />
 
       <div className={`flex-1 flex overflow-hidden relative ${isDesktop ? 'pb-11 sm:pb-12' : ''}`}>
@@ -698,21 +761,6 @@ const ERPAppContent: React.FC = () => {
           onSelectView={handleNavigateView}
         />
 
-        {/* Floating Expand Sidebar Button (">") when sidebar is collapsed */}
-        {!isSidebarExpanded && (
-          <button
-            type="button"
-            onClick={() => setIsSidebarExpanded(true)}
-            className="fixed left-0 top-20 z-40 bg-white/95 hover:bg-blue-600 hover:text-white text-slate-700 border border-slate-300 rounded-r-xl py-3 px-1.5 shadow-lg hover:shadow-xl transition-all flex flex-col items-center gap-1 cursor-pointer group backdrop-blur-xs select-none"
-            title="সাইডবার খুলুন (Expand Sidebar: > / Ctrl + [)"
-            aria-label="Expand Sidebar"
-          >
-            <ChevronRight className="w-4 h-4 text-blue-600 group-hover:text-white transition-colors stroke-[3]" />
-            <span className="text-[9px] font-black uppercase tracking-wider [writing-mode:vertical-lr] text-slate-500 group-hover:text-white transition-colors">
-              মেন্যু
-            </span>
-          </button>
-        )}
 
         {/* Main Content Viewport - Windows Desktop Workspace */}
         <main className="flex-1 h-full overflow-hidden relative">

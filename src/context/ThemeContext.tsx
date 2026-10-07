@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type Theme = 'light' | 'dark';
-type FontSize = 'small' | 'normal' | 'large' | 'xlarge';
+export type Theme = 'light' | 'dark';
+export type FontSize = 'small' | 'normal' | 'large' | 'xlarge';
 
 interface ThemeContextType {
   theme: Theme;
