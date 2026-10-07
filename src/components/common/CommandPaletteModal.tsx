@@ -1048,7 +1048,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
   return (
     <div
       className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-start justify-center pt-8 md:pt-12 p-3 md:p-6 animate-in fade-in duration-150"
-      onClick={onClose}
+      onClick={e => e.stopPropagation()}
       role="dialog"
       aria-modal="true"
     >
@@ -1094,10 +1094,20 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
               )}
             </div>
 
+            {/* Skip Button */}
             <button
               type="button"
               onClick={onClose}
-              className="p-2.5 rounded-2xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-slate-200 cursor-pointer transition flex items-center gap-1 shrink-0"
+              className="px-3 py-2 rounded-2xl bg-amber-500/20 hover:bg-amber-500 text-amber-800 hover:text-slate-950 border border-amber-300 cursor-pointer font-black text-xs transition flex items-center gap-1 shrink-0"
+              title="উইন্ডোটি স্কিপ করুন"
+            >
+              <span>স্কিপ (Skip)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2.5 rounded-2xl text-slate-400 hover:text-white hover:bg-rose-600 border border-slate-200 cursor-pointer transition flex items-center gap-1 shrink-0"
               title="বন্ধ করুন (Esc)"
             >
               <X className="w-4 h-4" />

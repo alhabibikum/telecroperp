@@ -1,16 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
-import { UserRole } from '../../types/erp';
 import {
   Search,
   Bell,
   PlusCircle,
   Smartphone,
   CreditCard,
-  Building2,
-  DollarSign,
   AlertTriangle,
-  Info,
   CheckCircle,
   X,
   Globe,
@@ -20,17 +16,11 @@ import {
   RefreshCw,
   Database,
   Trash2,
-  Barcode,
-  QrCode,
-  Command,
-  Keyboard,
-  ChevronLeft,
-  ChevronRight
+  Keyboard
 } from 'lucide-react';
-import { formatBDT } from '../../utils/formatters';
-import { extractTokensFromRaw } from '../../utils/barcodeScannerUtils';
 import { Notifications } from './Notifications';
-import { testSupabaseConnection, getSupabaseConfig } from '../../lib/supabase';
+import { testSupabaseConnection } from '../../lib/supabase';
+import { WindowsModalFrame } from '../common/WindowsModalFrame';
 
 interface HeaderProps {
   isSidebarExpanded?: boolean;
@@ -46,31 +36,15 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  isSidebarExpanded = false,
-  onToggleSidebar,
   onOpenNewSale,
   onOpenNewPurchase,
   onOpenDueCollection,
   onOpenIMEILookup,
-  onOpenMultiScanner,
-  onOpenCommandPalette,
   onOpenShortcutsHelp,
   onSelectView
 }) => {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
-        e.preventDefault();
-        if (onOpenMultiScanner) onOpenMultiScanner();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onOpenMultiScanner]);
-
   const {
     currentUserRole,
-    setCurrentUserRole,
     currentUser,
     logout,
     users,
@@ -78,25 +52,20 @@ export const Header: React.FC<HeaderProps> = ({
     hasPermission,
     loginAsDemoUser,
     alerts,
-    markAlertRead,
-    clearAllAlerts,
     imeis,
-    customers,
-    salesInvoices,
     products,
+    customers,
+    customerReturns,
     settings,
     updateSettings,
     isOnline,
     pendingSyncCount,
     syncQueue,
     isSyncing,
-    syncCloudData,
     triggerManualSync,
     clearOfflineSyncQueue
   } = useERP();
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearchResults, setShowSearchResults] = useState(false);
   const [showAlertDropdown, setShowAlertDropdown] = useState(false);
   const [showNetworkModal, setShowNetworkModal] = useState(false);
   const [testingPing, setTestingPing] = useState(false);
@@ -123,274 +92,53 @@ export const Header: React.FC<HeaderProps> = ({
     setTimeout(() => setManualSyncMsg(null), 6000);
   };
 
-  const unreadAlerts = alerts.filter(a => !a.read);
-
-  // Global search matcher across IMEIs, Customers, Invoices, Products
-  const searchResults = searchQuery.trim().length >= 2 ? {
-    imeis: imeis.filter(i =>
-      i.imei1.includes(searchQuery.trim()) ||
-      (i.serialNumber && i.serialNumber.toLowerCase().includes(searchQuery.toLowerCase()))
-    ).slice(0, 5),
-    customers: customers.filter(c =>
-      c.shopName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.mobile.includes(searchQuery)
-    ).slice(0, 4),
-    invoices: salesInvoices.filter(inv =>
-      inv.invoiceNo.toLowerCase().includes(searchQuery.toLowerCase())
-    ).slice(0, 4),
-    products: products.filter(p =>
-      p.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.brandName.toLowerCase().includes(searchQuery.toLowerCase())
-    ).slice(0, 4)
-  } : null;
-
-  const roles: UserRole[] = [
-    'Super Admin',
-    'Owner',
-    'General Manager',
-    'Accounts Manager',
-    'Sales Manager',
-    'Warehouse Manager',
-    'Salesman',
-    'Cashier'
-  ];
+  // Real operational notification counts - NO DUMMY VALUES
+  const inStockImeis = imeis.filter(i => i.status === 'In Stock');
+  const unreadAlertsCount = alerts.filter(a => !a.read).length;
+  const lowStockCount = products.flatMap(p =>
+    p.variants.filter(v => {
+      const stock = inStockImeis.filter(i => i.productId === p.id && i.variantId === v.id).length;
+      return stock <= v.reorderLevel;
+    })
+  ).length;
+  const pendingApprovalsCount = (
+    customerReturns.filter(r => r.status === 'Pending').length +
+    customers.filter(c => c.creditLimit > 0 && c.currentDue >= c.creditLimit).length
+  );
+  const totalRealNotifications = unreadAlertsCount + lowStockCount + pendingApprovalsCount;
 
   return (
-    <header className="h-16 bg-white/85 backdrop-blur-xl border-b border-slate-200/70 px-4 md:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
-      {/* Left: Brand info & Quick Stats */}
-      <div className="flex items-center gap-2.5">
-        {onToggleSidebar && (
-          <button
-            type="button"
-            onClick={onToggleSidebar}
-            className={`p-2 rounded-xl transition-all flex items-center justify-center cursor-pointer border shadow-2xs ${
-              isSidebarExpanded
-                ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'
-                : 'bg-slate-100 border-slate-300 text-slate-800 hover:bg-blue-600 hover:text-white hover:border-blue-600'
-            }`}
-            title={isSidebarExpanded ? "সাইডবার লুকান (Collapse Sidebar: <)" : "সাইডবার খুলুন (Expand Sidebar: >)"}
-            aria-label="Toggle Sidebar Navigation"
-          >
-            {isSidebarExpanded ? (
-              <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
-            ) : (
-              <ChevronRight className="w-5 h-5 stroke-[3]" />
-            )}
-          </button>
-        )}
-
-        <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => onSelectView('dashboard')}>
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-teal-500 via-emerald-500 to-blue-600 flex items-center justify-center text-white shadow-[0_4px_14px_rgba(20,184,166,0.3)] font-black text-xl">
-            <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current" xmlns="http://www.w3.org/2000/svg">
-              <path d="M4 4h9a7 7 0 0 1 7 7 7 7 0 0 1-7 7H9v2H4V4zm5 10h4a3 3 0 0 0 3-3 3 3 0 0 0-3-3H9v6z" />
-            </svg>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-black text-slate-900 tracking-tight text-base md:text-lg uppercase">
-                DEALERFLOW <span className="text-teal-600 font-black">ERP</span>
-              </span>
-              <span className="hidden sm:inline-block text-[10px] font-extrabold bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full border border-teal-200">
-                Mobile Edition
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 font-medium hidden md:block">
-              Multi-Brand Smartphone & Dealer Distribution
-            </p>
-          </div>
+    <header className="h-16 bg-white/85 backdrop-blur-xl border-b border-slate-200/70 px-3 sm:px-4 md:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+      {/* Left: Brand info */}
+      <div
+        className="flex items-center gap-2 sm:gap-3 cursor-pointer shrink-0 select-none"
+        onClick={() => onSelectView('dashboard')}
+      >
+        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-teal-500 via-emerald-500 to-blue-600 flex items-center justify-center text-white shadow-[0_4px_14px_rgba(20,184,166,0.3)] font-black text-lg sm:text-xl shrink-0 transition-transform hover:scale-105 active:scale-95">
+          <svg viewBox="0 0 24 24" className="w-5 h-5 sm:w-6 sm:h-6 fill-current" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 4h9a7 7 0 0 1 7 7 7 7 0 0 1-7 7H9v2H4V4zm5 10h4a3 3 0 0 0 3-3 3 3 0 0 0-3-3H9v6z" />
+          </svg>
         </div>
-      </div>
-
-      {/* Center: Global Search Bar + Multi-Scanner Action */}
-      <div className="relative flex-1 max-w-lg mx-4 hidden lg:flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            id="global-header-search"
-            data-search-input="true"
-            type="text"
-            placeholder="Search IMEI, Barcode, Invoice, Customer (Ctrl+F / Ctrl+K)..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setShowSearchResults(true);
-            }}
-            onFocus={() => setShowSearchResults(true)}
-            className="w-full pl-9 pr-8 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setShowSearchResults(false);
-              }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
-        {/* Dedicated Multi-Barcode / IMEI Scanner button */}
-        <button
-          onClick={() => {
-            const tokens = extractTokensFromRaw(searchQuery);
-            if (onOpenMultiScanner) onOpenMultiScanner(tokens.length > 0 ? tokens : undefined);
-            else onOpenIMEILookup();
-          }}
-          title="Multi Barcode / IMEI Scanner (Ctrl+B)"
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition shrink-0 cursor-pointer"
-        >
-          <Barcode className="w-4 h-4" />
-          <span className="hidden xl:inline">Multi-Scanner</span>
-          <kbd className="hidden 2xl:inline-block px-1 py-0.2 bg-blue-800/60 rounded text-[10px] font-mono">^B</kbd>
-        </button>
-
-        {/* Global Search Popover */}
-        {showSearchResults && (
-          <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl shadow-xl border border-slate-200 p-2.5 z-50 max-h-96 overflow-y-auto">
-            {/* Quick Multi-Scanner Batch Trigger if multiple tokens */}
-            {extractTokensFromRaw(searchQuery).length > 1 && (
-              <div
-                onClick={() => {
-                  setShowSearchResults(false);
-                  if (onOpenMultiScanner) onOpenMultiScanner(extractTokensFromRaw(searchQuery));
-                }}
-                className="p-2.5 mb-2.5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200 cursor-pointer flex items-center justify-between text-blue-900 transition shadow-xs"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
-                    <Barcode className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-xs text-blue-900">
-                      একাধিক Barcode/IMEI শনাক্ত হয়েছে ({extractTokensFromRaw(searchQuery).length}টি কোড)
-                    </p>
-                    <p className="text-[11px] text-blue-600">
-                      সবগুলো কোড Multi-Scanner এ একবারে ভেরিফাই করতে ক্লিক করুন
-                    </p>
-                  </div>
-                </div>
-                <span className="text-xs font-bold px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shrink-0">
-                  স্ক্যানারে খুলুন
-                </span>
-              </div>
-            )}
-
-            {searchResults && searchResults.imeis.length === 0 &&
-              searchResults.customers.length === 0 &&
-              searchResults.invoices.length === 0 &&
-              searchResults.products.length === 0 ? (
-              <div className="p-4 text-center text-xs text-slate-500">
-                No matching single IMEI, customer, invoice or product found for "{searchQuery}".
-              </div>
-            ) : searchResults ? (
-              <div className="space-y-3 text-xs">
-                {/* IMEIs */}
-                {searchResults.imeis.length > 0 && (
-                  <div>
-                    <div className="font-semibold text-slate-400 uppercase text-[10px] px-2 py-1 tracking-wider">
-                      IMEI Records ({searchResults.imeis.length})
-                    </div>
-                    {searchResults.imeis.map(im => (
-                      <div
-                        key={im.id}
-                        onClick={() => {
-                          onOpenIMEILookup(im.imei1);
-                          setShowSearchResults(false);
-                        }}
-                        className="px-2 py-1.5 rounded-lg hover:bg-blue-50 cursor-pointer flex items-center justify-between group"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Smartphone className="w-3.5 h-3.5 text-blue-600" />
-                          <div>
-                            <div className="font-mono font-medium text-slate-800">{im.imei1}</div>
-                            <div className="text-[11px] text-slate-500">{im.productName} ({im.variantDesc})</div>
-                          </div>
-                        </div>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${im.status === 'In Stock' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                            im.status === 'Sold' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
-                              'bg-amber-50 text-amber-700 border border-amber-200'
-                          }`}>
-                          {im.status}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Customers */}
-                {searchResults.customers.length > 0 && (
-                  <div>
-                    <div className="font-semibold text-slate-400 uppercase text-[10px] px-2 py-1 tracking-wider">
-                      Dealer Shops ({searchResults.customers.length})
-                    </div>
-                    {searchResults.customers.map(c => (
-                      <div
-                        key={c.id}
-                        onClick={() => {
-                          onSelectView('customers');
-                          setShowSearchResults(false);
-                        }}
-                        className="px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Building2 className="w-3.5 h-3.5 text-purple-600" />
-                          <div>
-                            <div className="font-semibold text-slate-800">{c.shopName}</div>
-                            <div className="text-[11px] text-slate-500">{c.ownerName} • {c.area}, {c.district}</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-[11px] font-bold text-rose-600">Due: {formatBDT(c.currentDue)}</div>
-                          <div className="text-[10px] text-slate-400">Limit: {formatBDT(c.creditLimit)}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Invoices */}
-                {searchResults.invoices.length > 0 && (
-                  <div>
-                    <div className="font-semibold text-slate-400 uppercase text-[10px] px-2 py-1 tracking-wider">
-                      Sales Invoices ({searchResults.invoices.length})
-                    </div>
-                    {searchResults.invoices.map(inv => (
-                      <div
-                        key={inv.id}
-                        onClick={() => {
-                          onSelectView('wholesale-sales');
-                          setShowSearchResults(false);
-                        }}
-                        className="px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer flex items-center justify-between"
-                      >
-                        <div>
-                          <div className="font-mono font-semibold text-blue-700">{inv.invoiceNo}</div>
-                          <div className="text-[11px] text-slate-500">{inv.customerName} ({inv.invoiceDate})</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold text-slate-800">{formatBDT(inv.grandTotal)}</div>
-                          <div className="text-[10px] text-amber-600">Due: {formatBDT(inv.dueAmount)}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : null}
+        <div className="min-w-0">
+          <div className="flex items-center">
+            <span className="font-black text-slate-900 tracking-tight text-sm sm:text-base md:text-lg uppercase whitespace-nowrap">
+              DEALERFLOW <span className="text-teal-600 font-black">ERP</span>
+            </span>
           </div>
-        )}
+          <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium hidden md:block truncate">
+            Multi-Brand Smartphone & Dealer Distribution
+          </p>
+        </div>
       </div>
 
       {/* Right: Quick Action Buttons, Notifications, Role Switcher, Lang */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-2.5 md:gap-3 shrink-0">
         {/* Quick Action Shortcuts */}
-        <div className="hidden sm:flex items-center gap-1.5">
+        <div className="hidden md:flex items-center gap-1.5">
           {(hasPermission(currentUserRole, 'wholesale-sales') || hasPermission(currentUserRole, 'retail-pos')) && (
             <button
               onClick={onOpenNewSale}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-xs transition"
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-xs transition cursor-pointer"
               title="Create Wholesale or Dealer Sale Invoice"
             >
               <PlusCircle className="w-3.5 h-3.5" />
@@ -401,7 +149,7 @@ export const Header: React.FC<HeaderProps> = ({
           {hasPermission(currentUserRole, 'purchases') && (
             <button
               onClick={onOpenNewPurchase}
-              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-xs transition"
+              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-xs transition cursor-pointer"
               title="Supplier Purchase & Bulk IMEI Inward"
             >
               <Smartphone className="w-3.5 h-3.5" />
@@ -412,7 +160,7 @@ export const Header: React.FC<HeaderProps> = ({
           {hasPermission(currentUserRole, 'due-collection') && (
             <button
               onClick={onOpenDueCollection}
-              className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-xs transition"
+              className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-xs transition cursor-pointer"
               title="Collect Customer Due & Allocate"
             >
               <CreditCard className="w-3.5 h-3.5" />
@@ -423,32 +171,11 @@ export const Header: React.FC<HeaderProps> = ({
           {hasPermission(currentUserRole, 'imei-trace') && (
             <button
               onClick={() => onOpenIMEILookup()}
-              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-xs transition"
+              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-xs transition cursor-pointer"
               title="Track IMEI Lifecycle"
             >
               <Search className="w-3.5 h-3.5" />
               <span>IMEI Trace</span>
-            </button>
-          )}
-
-          <button
-            onClick={() => onOpenMultiScanner ? onOpenMultiScanner() : onOpenIMEILookup()}
-            className="flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg shadow-xs transition"
-            title="Multi-Barcode & IMEI Scanner Engine (Ctrl+B)"
-          >
-            <Barcode className="w-3.5 h-3.5" />
-            <span>Multi-Scanner</span>
-          </button>
-
-          {onOpenCommandPalette && (
-            <button
-              onClick={onOpenCommandPalette}
-              className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs transition cursor-pointer"
-              title="Global Command Palette & Quick Navigation (Ctrl+K)"
-            >
-              <Command className="w-3.5 h-3.5 text-teal-600" />
-              <span className="hidden xl:inline">Commands</span>
-              <kbd className="px-1 py-0.2 bg-white rounded text-[10px] font-mono border border-slate-200">^K</kbd>
             </button>
           )}
 
@@ -463,15 +190,6 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Mobile Multi-Scanner Button */}
-        <button
-          onClick={() => onOpenMultiScanner ? onOpenMultiScanner() : onOpenIMEILookup()}
-          className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition lg:hidden"
-          title="Multi-Barcode / IMEI Scanner"
-        >
-          <Barcode className="w-4 h-4" />
-        </button>
-
         {/* Alerts & Operational Notification Bell */}
         <div className="relative">
           <button
@@ -480,9 +198,9 @@ export const Header: React.FC<HeaderProps> = ({
             title="Real-Time Notifications, Stock Warnings & Approvals"
           >
             <Bell className="w-4 h-4" />
-            {(unreadAlerts.length > 0 || imeis.filter(i => i.status === 'In Stock').length > 0) && (
-              <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center animate-pulse">
-                {unreadAlerts.length + 3}
+            {totalRealNotifications > 0 && (
+              <span className="absolute top-1 right-1 min-w-4 h-4 px-1 bg-rose-500 text-white rounded-full text-[10px] font-extrabold flex items-center justify-center animate-pulse">
+                {totalRealNotifications > 99 ? '99+' : totalRealNotifications}
               </span>
             )}
           </button>
@@ -598,91 +316,85 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Network & Cloud Sync Diagnostic Modal */}
-      {showNetworkModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="p-5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isOnline ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-                  }`}>
-                  {isOnline ? <Wifi className="w-5 h-5" /> : <WifiOff className="w-5 h-5" />}
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-slate-800 text-base">নেটওয়ার্ক ও ডেটা সিঙ্ক স্ট্যাটাস</h3>
-                  <p className="text-xs text-slate-500">TeleCorp ERP অফলাইন ও অনলাইন হাইব্রিড আর্কিটেকচার</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowNetworkModal(false)}
-                className="w-8 h-8 rounded-full hover:bg-slate-200/60 flex items-center justify-center text-slate-400 hover:text-slate-700 transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {/* Network & Cloud Sync Diagnostic Modal (Windows Sub-Window) */}
+      <WindowsModalFrame
+        isOpen={showNetworkModal}
+        onClose={() => setShowNetworkModal(false)}
+        onSkip={() => setShowNetworkModal(false)}
+        modalId="modal-network-status"
+        title="নেটওয়ার্ক ও ডেটা সিঙ্ক স্ট্যাটাস"
+        subtitle="TeleCorp ERP অফলাইন ও অনলাইন হাইব্রিড ডায়াগনস্টিক"
+        icon={isOnline ? <Wifi className="w-4 h-4 text-emerald-400" /> : <WifiOff className="w-4 h-4 text-amber-400" />}
+        maxWidth="max-w-xl"
+      >
 
-            {/* Modal Body */}
-            <div className="p-6 space-y-4 text-xs">
+            {/* Modal Body - Scrollable & Responsive */}
+            <div className="p-4 sm:p-6 space-y-3.5 sm:space-y-4 text-xs flex-1 overflow-y-auto overscroll-contain">
               {/* Status Indicator Card */}
-              <div className={`p-4 rounded-2xl border flex items-center justify-between ${isOnline
+              <div className={`p-3.5 sm:p-4 rounded-2xl border flex items-center justify-between gap-3 ${
+                isOnline
                   ? 'bg-emerald-50/50 border-emerald-200/80 text-emerald-900'
                   : 'bg-amber-50/60 border-amber-200 text-amber-900'
-                }`}>
-                <div className="flex items-center gap-3">
-                  <span className={`w-3.5 h-3.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
-                    }`} />
-                  <div>
-                    <div className="font-black text-sm">
+              }`}>
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <span className={`w-3.5 h-3.5 rounded-full shrink-0 ${
+                    isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                  }`} />
+                  <div className="min-w-0">
+                    <div className="font-black text-xs sm:text-sm truncate">
                       {isOnline ? 'ডিভাইস বর্তমানে অনলাইন (Online)' : 'ডিভাইস বর্তমানে অফলাইন (Offline)'}
                     </div>
-                    <div className="text-[11px] opacity-80 mt-0.5">
+                    <div className="text-[10px] sm:text-[11px] opacity-80 mt-0.5 leading-snug">
                       {isOnline
                         ? 'ইন্টারনেট সক্রিয়। ক্লাউড ডেটাবেস এবং সার্ভিস সচল।'
                         : 'ইন্টারনেট সংযোগ বিচ্ছিন্ন। সফটওয়্যারটি লোকাল ক্যাশে সম্পূর্ণ সচল রয়েছে।'}
                     </div>
                   </div>
                 </div>
-                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${isOnline ? 'bg-emerald-200/70 text-emerald-800' : 'bg-amber-200 text-amber-800'
-                  }`}>
+                <span className={`px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider shrink-0 ${
+                  isOnline ? 'bg-emerald-200/70 text-emerald-800' : 'bg-amber-200 text-amber-800'
+                }`}>
                   {isOnline ? 'Connected' : 'Local Only'}
                 </span>
               </div>
 
               {/* Feature Highlights */}
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <div className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-1">
-                  <div className="font-bold text-slate-800 flex items-center gap-1.5">
-                    <Database className="w-3.5 h-3.5 text-blue-600" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 pt-0.5">
+                <div className="p-3 sm:p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-1">
+                  <div className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                    <Database className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                     <span>লোকাল পারসিস্টেন্স</span>
                   </div>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                  <p className="text-[10px] sm:text-[11px] text-slate-500 leading-relaxed">
                     ব্রাউজার স্টোরেজে সমস্ত ইনভয়েস, স্টক, আইএমইআই ও কালেকশন স্বয়ংক্রিয়ভাবে সংরক্ষিত হয়।
                   </p>
                 </div>
 
-                <div className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-1">
-                  <div className="font-bold text-slate-800 flex items-center gap-1.5">
-                    <CheckCircle className="w-3.5 h-3.5 text-teal-600" />
+                <div className="p-3 sm:p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-1">
+                  <div className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                    <CheckCircle className="w-3.5 h-3.5 text-teal-600 shrink-0" />
                     <span>PWA অফলাইন সাপোর্ট</span>
                   </div>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                  <p className="text-[10px] sm:text-[11px] text-slate-500 leading-relaxed">
                     সার্ভিস ওয়ার্কার ক্যাশের কারণে ইন্টারনেট ছাড়াও অ্যাপ চালু হয় এবং দ্রুত রেসপন্স করে।
                   </p>
                 </div>
               </div>
 
               {/* Offline Sync Queue Card */}
-              <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/70 space-y-3">
+              <div className="p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 bg-slate-50/70 space-y-2.5 sm:space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Database className="w-4 h-4 text-indigo-600" />
-                    <span className="font-extrabold text-slate-800">অফলাইন সিঙ্ক কিউ (Sync Queue)</span>
+                    <span className="font-extrabold text-slate-800 text-xs sm:text-sm">
+                      অফলাইন সিঙ্ক কিউ (Sync Queue)
+                    </span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${pendingSyncCount > 0
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                    pendingSyncCount > 0
                       ? 'bg-amber-100 text-amber-800 border border-amber-300'
                       : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                    }`}>
+                  }`}>
                     {pendingSyncCount > 0 ? `${pendingSyncCount}টি পেন্ডিং` : 'সব সিঙ্কড'}
                   </span>
                 </div>
@@ -695,14 +407,15 @@ export const Header: React.FC<HeaderProps> = ({
 
                 {/* Queue Items List Preview */}
                 {pendingSyncCount > 0 && (
-                  <div className="max-h-36 overflow-y-auto space-y-1.5 p-2 bg-white rounded-xl border border-slate-200 text-[11px]">
+                  <div className="max-h-32 overflow-y-auto space-y-1.5 p-2 bg-white rounded-xl border border-slate-200 text-[11px]">
                     {syncQueue.slice(0, 6).map((q) => (
                       <div key={q.id} className="flex items-center justify-between py-1 px-1.5 border-b border-slate-100 last:border-0">
-                        <div className="flex items-center gap-1.5 truncate max-w-[280px]">
-                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${q.action === 'INSERT' ? 'bg-emerald-100 text-emerald-800' :
-                              q.action === 'DELETE' ? 'bg-rose-100 text-rose-800' :
-                                'bg-blue-100 text-blue-800'
-                            }`}>
+                        <div className="flex items-center gap-1.5 truncate max-w-[260px] sm:max-w-[280px]">
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                            q.action === 'INSERT' ? 'bg-emerald-100 text-emerald-800' :
+                            q.action === 'DELETE' ? 'bg-rose-100 text-rose-800' :
+                            'bg-blue-100 text-blue-800'
+                          }`}>
                             {q.action}
                           </span>
                           <span className="text-slate-800 font-medium truncate">{q.description}</span>
@@ -722,7 +435,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                 {/* Manual Sync Trigger Button & Clear Queue */}
                 <div className="pt-1 flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button
                       onClick={handleTriggerSync}
                       disabled={isSyncing || (!isOnline && pendingSyncCount > 0)}
@@ -764,11 +477,13 @@ export const Header: React.FC<HeaderProps> = ({
               {/* Supabase Ping Test */}
               <div className="pt-2 border-t border-slate-100">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-slate-700">ক্লাউড সংযোগ পরীক্ষা (Supabase Ping):</span>
+                  <span className="font-bold text-slate-700 text-xs">
+                    ক্লাউড সংযোগ পরীক্ষা (Supabase Ping):
+                  </span>
                   <button
                     onClick={handleTestPing}
                     disabled={testingPing}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-bold transition shadow-xs cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-bold text-xs transition shadow-xs cursor-pointer"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${testingPing ? 'animate-spin' : ''}`} />
                     <span>{testingPing ? 'চেক হচ্ছে...' : 'পিং টেস্ট করুন'}</span>
@@ -776,10 +491,11 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 {pingResult && (
-                  <div className={`p-3 rounded-xl border text-[11px] font-medium mt-2 flex items-start gap-2 ${pingResult.success
+                  <div className={`p-3 rounded-xl border text-[11px] font-medium mt-2 flex items-start gap-2 ${
+                    pingResult.success
                       ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                       : 'bg-rose-50 border-rose-200 text-rose-800'
-                    }`}>
+                  }`}>
                     {pingResult.success ? (
                       <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                     ) : (
@@ -799,7 +515,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+            <div className="p-3.5 sm:p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
               <button
                 onClick={() => {
                   setShowNetworkModal(false);
@@ -811,14 +527,12 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
               <button
                 onClick={() => setShowNetworkModal(false)}
-                className="px-4 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition cursor-pointer"
+                className="px-4 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition cursor-pointer shadow-xs"
               >
                 ঠিক আছে
               </button>
             </div>
-          </div>
-        </div>
-      )}
+      </WindowsModalFrame>
     </header>
   );
 };

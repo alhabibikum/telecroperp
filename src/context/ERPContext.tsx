@@ -421,6 +421,8 @@ interface ERPContextType {
   updateSettings: (newSettings: Partial<SystemSettings>) => void;
   markAlertRead: (alertId: string) => void;
   clearAllAlerts: () => void;
+  addAlert: (alert: Omit<SystemAlert, 'id' | 'timestamp' | 'read'> & { id?: string; timestamp?: string; read?: boolean }) => void;
+  removeAlert: (alertId: string) => void;
 
   // Business Transactions
   createPurchase: (purchase: Omit<PurchaseInvoice, 'id' | 'invoiceNo' | 'createdAt'>, imeisToRegister: Array<{ imei1: string; imei2?: string; serialNumber?: string; variantId: string; productId: string }>) => { success: boolean; error?: string; invoiceNo?: string };
@@ -1705,6 +1707,26 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAlerts(prev => prev.map(a => ({ ...a, read: true })));
   };
 
+  const addAlert = (alert: Omit<SystemAlert, 'id' | 'timestamp' | 'read'> & { id?: string; timestamp?: string; read?: boolean }) => {
+    const newAlert: SystemAlert = {
+      id: alert.id || `alert-${Date.now()}`,
+      timestamp: alert.timestamp || new Date().toISOString().replace('T', ' ').substring(0, 16),
+      read: alert.read ?? false,
+      type: alert.type,
+      title: alert.title,
+      message: alert.message,
+      linkModule: alert.linkModule,
+      referenceId: alert.referenceId
+    };
+    setAlerts(prev => [newAlert, ...prev]);
+    enqueueChange('system_alerts', 'INSERT', newAlert.id, newAlert, `নতুন নোটিফিকেশন: ${newAlert.title}`);
+  };
+
+  const removeAlert = (alertId: string) => {
+    setAlerts(prev => prev.filter(a => a.id !== alertId));
+    enqueueChange('system_alerts', 'DELETE', alertId, {}, 'নোটিফিকেশন মুছে ফেলা হয়েছে');
+  };
+
   const resetToDemoData = async (): Promise<{ success: boolean; message: string }> => {
     // 1. Clear offline sync queue
     clearSyncQueue();
@@ -2870,6 +2892,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateSettings,
         markAlertRead,
         clearAllAlerts,
+        addAlert,
+        removeAlert,
         createPurchase,
         createSale,
         collectCustomerPayment,

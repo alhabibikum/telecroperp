@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { formatBDT } from '../../utils/formatters';
 import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
+import { WindowsModalFrame } from '../common/WindowsModalFrame';
 
 interface SupplierReturnModalProps {
   isOpen: boolean;
@@ -76,18 +77,17 @@ export const SupplierReturnModal: React.FC<SupplierReturnModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200">
-        <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Truck className="w-5 h-5 text-rose-600" />
-            <div>
-              <h3 className="font-bold text-slate-900 text-sm">Return Stock Handset to Supplier</h3>
-              <p className="text-xs text-slate-500">Deducts from supplier payable & updates inventory</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">✕</button>
-        </div>
+    <>
+      <WindowsModalFrame
+        isOpen={isOpen}
+        onClose={onClose}
+        onSkip={onClose}
+        modalId="modal-supplier-return"
+        title="সাপ্লায়ার স্টক রিটার্ন (Return Stock to Supplier)"
+        subtitle="Deducts from supplier payable & updates inventory"
+        icon={<Truck className="w-4 h-4 text-rose-400" />}
+        maxWidth="max-w-xl"
+      >
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
           {errorMsg && (
@@ -185,7 +185,7 @@ export const SupplierReturnModal: React.FC<SupplierReturnModalProps> = ({
             </button>
           </div>
         </form>
-      </div>
+      </WindowsModalFrame>
 
       <MultiBarcodeScannerModal
         isOpen={showMultiScanner}
@@ -199,6 +199,6 @@ export const SupplierReturnModal: React.FC<SupplierReturnModalProps> = ({
         }}
         confirmButtonText="রিটার্ন আইটেম নির্ধারণ করুন"
       />
-    </div>
+    </>
   );
 };

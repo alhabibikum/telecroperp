@@ -19,6 +19,7 @@ import { PaymentMethodType, SaleItem, PaymentSplit, IMEIRecord } from '../../typ
 import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 import { useFormKeyboardNavigation } from '../../hooks/useFormKeyboardNavigation';
 import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog';
+import { WindowsModalFrame } from '../common/WindowsModalFrame';
 
 interface NewSaleModalProps {
   isOpen: boolean;
@@ -354,47 +355,37 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative bg-white/90 backdrop-blur-3xl rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] w-full max-w-5xl my-auto overflow-hidden border border-white/60 animate-in zoom-in-95 duration-200">
-        {/* Top Glossy Highlight Sheen */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500/40 via-teal-500/50 to-blue-500/40 pointer-events-none z-10" />
-
-        {/* Header */}
-        <div className="px-6 py-4.5 border-b border-slate-200/80 bg-white/60 backdrop-blur-xl flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center font-bold shadow-xs">
-              <ShoppingBag className="w-5 h-5 stroke-[2.2]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-3">
-                <h2 className="text-base font-black text-slate-900 tracking-tight">
-                  {invoiceType === 'Wholesale' ? 'New Wholesale Dealer Invoice' : 'New Retail POS Sale'}
-                </h2>
-                <div className="flex bg-slate-200/70 p-0.5 rounded-xl text-xs font-bold">
-                  <button
-                    type="button"
-                    onClick={() => setInvoiceType('Wholesale')}
-                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${invoiceType === 'Wholesale' ? 'bg-white text-blue-700 shadow-xs font-black' : 'text-slate-600'}`}
-                  >
-                    Wholesale
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setInvoiceType('Retail POS')}
-                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${invoiceType === 'Retail POS' ? 'bg-white text-blue-700 shadow-xs font-black' : 'text-slate-600'}`}
-                  >
-                    Retail POS
-                  </button>
-                </div>
-              </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Direct stock decrement, real-time IMEI status update to 'Sold' & ledger synchronization
-              </p>
-            </div>
+    <>
+      <WindowsModalFrame
+        isOpen={isOpen}
+        onClose={handleRequestClose}
+        onSkip={handleRequestClose}
+        modalId="modal-new-sale"
+        title={invoiceType === 'Wholesale' ? 'পাইকারি বিক্রয় ইনভয়েস (Wholesale Invoice)' : 'কাউন্টার রিটেইল পিওএস (Retail POS Sale)'}
+        subtitle="Direct stock decrement, real-time IMEI status update to 'Sold' & ledger synchronization"
+        icon={<ShoppingBag className="w-4 h-4 text-emerald-400" />}
+        maxWidth="max-w-5xl"
+      >
+        <div className="bg-slate-100 p-3 border-b border-slate-200 flex items-center justify-between">
+          <div className="flex bg-slate-200/90 p-0.5 rounded-xl text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setInvoiceType('Wholesale')}
+              className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${invoiceType === 'Wholesale' ? 'bg-white text-blue-700 shadow-xs font-black' : 'text-slate-600'}`}
+            >
+              Wholesale (পাইকারি)
+            </button>
+            <button
+              type="button"
+              onClick={() => setInvoiceType('Retail POS')}
+              className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${invoiceType === 'Retail POS' ? 'bg-white text-blue-700 shadow-xs font-black' : 'text-slate-600'}`}
+            >
+              Retail POS (খুচরা)
+            </button>
           </div>
-          <button onClick={handleRequestClose} className="p-2 text-slate-400 hover:text-slate-800 rounded-2xl hover:bg-slate-100/80 transition-all cursor-pointer" title="Close (Esc)">
-            <X className="w-5 h-5" />
-          </button>
+          <span className="text-[11px] text-slate-500 font-medium">
+            সরাসরি বারকোড/আইএমইআই স্ক্যানার সমর্থিত
+          </span>
         </div>
 
         <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto bg-white/40 backdrop-blur-md">
@@ -845,7 +836,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
             </div>
           </div>
         </form>
-      </div>
+      </WindowsModalFrame>
 
       <MultiBarcodeScannerModal
         isOpen={showMultiScanner}
@@ -866,6 +857,6 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
         title="সেল ইনভয়েস বাতিল করবেন? (Discard Sale Invoice?)"
         message="আপনি ইতিমধ্যে আইটেম বা আইএমইআই সিলেক্ট করেছেন। এখন বন্ধ করলে সম্পূর্ণ ইনভয়েস ড্রাফট মুছে যাবে।"
       />
-    </div>
+    </>
   );
 };

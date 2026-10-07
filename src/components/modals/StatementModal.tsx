@@ -9,6 +9,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
+import { WindowsModalFrame } from '../common/WindowsModalFrame';
 
 interface StatementModalProps {
   isOpen: boolean;
@@ -110,29 +111,28 @@ export const StatementModal: React.FC<StatementModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-auto overflow-hidden border border-slate-200">
-        {/* Actions bar */}
-        <div className="px-6 py-3 border-b border-slate-200 bg-slate-100 flex items-center justify-between print:hidden">
-          <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-blue-600" />
-            <span className="font-bold text-xs text-slate-800">
-              Official Account Statement: {entityName}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => window.print()}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print Statement</span>
-            </button>
-            <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+    <WindowsModalFrame
+      isOpen={isOpen}
+      onClose={onClose}
+      onSkip={onClose}
+      modalId={`statement-${entityType}-${entityId}`}
+      title={`লেজার স্টেটমেন্ট: ${entityName}`}
+      subtitle="Official Account Statement"
+      icon={<FileText className="w-4 h-4 text-blue-400" />}
+      maxWidth="max-w-4xl"
+    >
+      <div className="px-6 py-3 border-b border-slate-200 bg-slate-100 flex items-center justify-between print:hidden">
+        <span className="font-bold text-xs text-slate-800">
+          অফিসিয়াল লেজার হিসাব বিবরণী
+        </span>
+        <button
+          onClick={() => window.print()}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs"
+        >
+          <Printer className="w-3.5 h-3.5" />
+          <span>প্রিন্ট স্টেটমেন্ট (Print)</span>
+        </button>
+      </div>
 
         {/* Printable Statement Document */}
         <div className="p-8 bg-white text-slate-800 max-h-[85vh] overflow-y-auto print:p-0 print:max-h-none text-xs">
@@ -205,7 +205,6 @@ export const StatementModal: React.FC<StatementModalProps> = ({
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </WindowsModalFrame>
   );
 };

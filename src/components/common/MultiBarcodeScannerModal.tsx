@@ -507,8 +507,14 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
       : 'Rapidly scan or paste multiple barcodes/IMEIs with real-time duplicate and validation detection');
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xl flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200">
-      <div className="relative bg-white/95 backdrop-blur-2xl rounded-3xl shadow-[0_25px_70px_-15px_rgba(0,0,0,0.4)] w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden border border-white/70 animate-in zoom-in-95 duration-200">
+    <div
+      className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xl flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200"
+      onClick={e => e.stopPropagation()}
+    >
+      <div
+        className="relative bg-white/95 backdrop-blur-2xl rounded-3xl shadow-[0_25px_70px_-15px_rgba(0,0,0,0.4)] w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden border border-white/70 animate-in zoom-in-95 duration-200"
+        onClick={e => e.stopPropagation()}
+      >
         {/* Top Gloss Sheen */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-teal-500 via-blue-600 to-indigo-600 pointer-events-none z-20" />
 
@@ -525,6 +531,9 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
                 </h2>
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
                   {mode.toUpperCase()}
+                </span>
+                <span className="text-[9px] bg-blue-50 text-blue-700 font-black px-1.5 py-0.5 rounded uppercase">
+                  সাব-উইন্ডো
                 </span>
               </div>
               <p className="text-xs text-slate-500 font-medium line-clamp-1">
@@ -547,13 +556,26 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
               {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </button>
 
+            {/* Skip Button */}
+            <button
+              type="button"
+              onClick={() => {
+                stopCamera();
+                onClose();
+              }}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-800 hover:text-slate-950 border border-amber-300 font-black text-xs transition cursor-pointer"
+              title="উইন্ডোটি স্কিপ করুন"
+            >
+              <span>স্কিপ (Skip)</span>
+            </button>
+
             {/* Close Button */}
             <button
               onClick={() => {
                 stopCamera();
                 onClose();
               }}
-              className="p-2 text-slate-400 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+              className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-rose-600 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>

@@ -17,6 +17,7 @@ import { PaymentMethodType, PurchaseItem } from '../../types/erp';
 import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 import { useFormKeyboardNavigation } from '../../hooks/useFormKeyboardNavigation';
 import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog';
+import { WindowsModalFrame } from '../common/WindowsModalFrame';
 
 interface NewPurchaseModalProps {
   isOpen: boolean;
@@ -302,31 +303,17 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative bg-white/90 backdrop-blur-3xl rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] w-full max-w-5xl my-auto overflow-hidden border border-white/60 animate-in zoom-in-95 duration-200">
-        {/* Top Glossy Highlight Sheen */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500/40 via-indigo-500/50 to-teal-500/40 pointer-events-none z-10" />
-
-        {/* Header */}
-        <div className="px-6 py-4.5 border-b border-slate-200/80 bg-white/60 backdrop-blur-xl flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-700 text-white flex items-center justify-center font-bold shadow-xs">
-              <Truck className="w-5 h-5 stroke-[2.2]" />
-            </div>
-            <div>
-              <h2 className="text-base font-black text-slate-900 tracking-tight">
-                Supplier Purchase & Bulk IMEI Inward
-              </h2>
-              <p className="text-xs text-slate-500 font-medium">
-                Register authorized consignment stock, automatically generate warehouse inventory & accounts payable
-              </p>
-            </div>
-          </div>
-          <button onClick={handleRequestClose} className="p-2 text-slate-400 hover:text-slate-800 rounded-2xl hover:bg-slate-100/80 transition-all cursor-pointer" title="Close (Esc)">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
+    <>
+      <WindowsModalFrame
+        isOpen={isOpen}
+        onClose={handleRequestClose}
+        onSkip={handleRequestClose}
+        modalId="modal-new-purchase"
+        title="নতুন পারচেজ ও স্টক ইনওয়ার্ড (Supplier Purchase & Inward)"
+        subtitle="Register authorized consignment stock, automatically generate warehouse inventory & accounts payable"
+        icon={<Truck className="w-4 h-4 text-blue-400" />}
+        maxWidth="max-w-5xl"
+      >
         <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto bg-white/40 backdrop-blur-md">
           {errorMsg && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
@@ -689,7 +676,7 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
             </div>
           </div>
         </form>
-      </div>
+      </WindowsModalFrame>
 
       <MultiBarcodeScannerModal
         isOpen={showMultiScanner}
@@ -710,6 +697,6 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
         title="পারচেজ ইনভয়েস বাতিল করবেন? (Discard Purchase Entry?)"
         message="আপনি ইতিমধ্যে আইটেম বিবরণ বা আইএমইআই টাইপ করেছেন। এখন বাতিল করলে সব ইনওয়ার্ড এন্ট্রি ড্রাফট মুছে যাবে।"
       />
-    </div>
+    </>
   );
 };

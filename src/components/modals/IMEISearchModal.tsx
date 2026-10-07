@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
 import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
+import { WindowsModalFrame } from '../common/WindowsModalFrame';
 
 interface IMEISearchModalProps {
   isOpen: boolean;
@@ -55,29 +56,17 @@ export const IMEISearchModal: React.FC<IMEISearchModalProps> = ({
     : null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-      <div className="relative bg-white/90 backdrop-blur-3xl rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-white/60 animate-in zoom-in-95 duration-200">
-        {/* Top Glossy Highlight Sheen */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-500/40 via-blue-500/50 to-indigo-500/40 pointer-events-none z-10" />
-
-        {/* Header */}
-        <div className="px-6 py-4.5 border-b border-slate-200/80 flex items-center justify-between bg-white/60 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center font-bold shadow-xs">
-              <Smartphone className="w-5 h-5 stroke-[2.2]" />
-            </div>
-            <div>
-              <h2 className="text-base font-black text-slate-900 tracking-tight">IMEI 360° Lifecycle & Traceability</h2>
-              <p className="text-xs text-slate-500 font-medium">Every single unit tracked from Supplier to Customer</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-800 rounded-2xl hover:bg-slate-100/80 transition-all cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <>
+      <WindowsModalFrame
+        isOpen={isOpen}
+        onClose={onClose}
+        onSkip={onClose}
+        modalId="modal-imei-search"
+        title="IMEI 360° লাইফসাইকেল ও ট্র্যাকিং (IMEI Lifecycle)"
+        subtitle="Every single unit tracked from Supplier to Customer"
+        icon={<Smartphone className="w-4 h-4 text-sky-400" />}
+        maxWidth="max-w-4xl"
+      >
 
         {/* Content Body */}
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-white/40 backdrop-blur-md">
@@ -336,7 +325,7 @@ export const IMEISearchModal: React.FC<IMEISearchModalProps> = ({
             Close
           </button>
         </div>
-      </div>
+      </WindowsModalFrame>
 
       {/* Multi-Barcode / Multi-IMEI Scanner Modal */}
       {showScannerModal && (
@@ -355,6 +344,6 @@ export const IMEISearchModal: React.FC<IMEISearchModalProps> = ({
           }}
         />
       )}
-    </div>
+    </>
   );
 };

@@ -11,6 +11,7 @@ import {
 import { ProductVariant } from '../../types/erp';
 import { useFormKeyboardNavigation } from '../../hooks/useFormKeyboardNavigation';
 import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog';
+import { WindowsModalFrame } from '../common/WindowsModalFrame';
 
 interface NewProductModalProps {
   isOpen: boolean;
@@ -113,26 +114,17 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative bg-white/90 backdrop-blur-3xl rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] w-full max-w-4xl my-auto overflow-hidden border border-white/60 animate-in zoom-in-95 duration-200">
-        {/* Top Glossy Highlight Sheen */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500/40 via-indigo-500/50 to-teal-500/40 pointer-events-none z-10" />
-
-        <div className="p-5 border-b border-slate-200/80 bg-white/60 backdrop-blur-xl flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-700 text-white flex items-center justify-center font-bold shadow-xs">
-              <Smartphone className="w-5 h-5 stroke-[2.2]" />
-            </div>
-            <div>
-              <h3 className="font-black text-slate-900 text-base tracking-tight">Add New Product Master & Variants</h3>
-              <p className="text-xs text-slate-500 font-medium">Define pricing tiers, storage options & warranty</p>
-            </div>
-          </div>
-          <button onClick={handleRequestClose} className="p-2 text-slate-400 hover:text-slate-800 rounded-2xl hover:bg-slate-100/80 transition cursor-pointer" title="Close (Esc)">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
+    <>
+      <WindowsModalFrame
+        isOpen={isOpen}
+        onClose={handleRequestClose}
+        onSkip={handleRequestClose}
+        modalId="modal-new-product"
+        title="নতুন প্রোডাক্ট ও ভ্যারিয়েন্ট এন্ট্রি (Add Product Master)"
+        subtitle="Define pricing tiers, storage options & warranty"
+        icon={<Smartphone className="w-4 h-4 text-blue-400" />}
+        maxWidth="max-w-4xl"
+      >
         <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-6 space-y-5 text-xs max-h-[80vh] overflow-y-auto bg-white/40 backdrop-blur-md">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -337,7 +329,7 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
             </button>
           </div>
         </form>
-      </div>
+      </WindowsModalFrame>
 
       <UnsavedChangesDialog
         isOpen={showUnsavedPrompt}
@@ -349,6 +341,6 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
         title="নতুন প্রোডাক্ট এন্ট্রি বাতিল করবেন? (Discard Product Entry?)"
         message="আপনি ইতিমধ্যে মডেল বা বিবরণ লিখেছেন। এখন বাতিল করলে কোনো নতুন প্রোডাক্ট সংরক্ষিত হবে না।"
       />
-    </div>
+    </>
   );
 };

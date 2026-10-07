@@ -13,6 +13,7 @@ import { formatBDT, formatDate } from '../../utils/formatters';
 import { PaymentMethodType, PaymentAllocationItem } from '../../types/erp';
 import { useFormKeyboardNavigation } from '../../hooks/useFormKeyboardNavigation';
 import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog';
+import { WindowsModalFrame } from '../common/WindowsModalFrame';
 
 interface DueCollectionModalProps {
   isOpen: boolean;
@@ -139,31 +140,17 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative bg-white/90 backdrop-blur-3xl rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] w-full max-w-4xl my-auto overflow-hidden border border-white/60 animate-in zoom-in-95 duration-200">
-        {/* Top Glossy Highlight Sheen */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500/40 via-yellow-500/50 to-emerald-500/40 pointer-events-none z-10" />
-
-        {/* Header */}
-        <div className="px-6 py-4.5 border-b border-slate-200/80 bg-white/60 backdrop-blur-xl flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center font-bold shadow-xs">
-              <Receipt className="w-5 h-5 stroke-[2.2]" />
-            </div>
-            <div>
-              <h2 className="text-base font-black text-slate-900 tracking-tight">
-                Customer Due Collection & Multi-Invoice Allocation
-              </h2>
-              <p className="text-xs text-slate-500 font-medium">
-                Receive customer payments and automatically adjust outstanding invoices (FIFO or Manual)
-              </p>
-            </div>
-          </div>
-          <button onClick={handleRequestClose} className="p-2 text-slate-400 hover:text-slate-800 rounded-2xl hover:bg-slate-100/80 transition-all cursor-pointer" title="Close (Esc)">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
+    <>
+      <WindowsModalFrame
+        isOpen={isOpen}
+        onClose={handleRequestClose}
+        onSkip={handleRequestClose}
+        modalId="modal-due-collection"
+        title="বকেয়া কালেকশন ও রসিদ (Customer Due Collection)"
+        subtitle="Receive customer payments and automatically adjust outstanding invoices (FIFO or Manual)"
+        icon={<Receipt className="w-4 h-4 text-amber-400" />}
+        maxWidth="max-w-4xl"
+      >
         <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto bg-white/40 backdrop-blur-md">
           {errorMsg && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
@@ -413,7 +400,7 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
             </div>
           </div>
         </form>
-      </div>
+      </WindowsModalFrame>
 
       <UnsavedChangesDialog
         isOpen={showUnsavedPrompt}
@@ -425,6 +412,6 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
         title="বকেয়া আদায় ড্রাফট বাতিল করবেন? (Discard Due Collection?)"
         message="আপনি ইতিমধ্যে আদায়ের পরিমাণ বা নোট পরিবর্তন করেছেন। এখন বাতিল করলে কোনো ভাউচার তৈরি হবে না।"
       />
-    </div>
+    </>
   );
 };

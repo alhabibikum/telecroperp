@@ -108,7 +108,7 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
   return (
     <div
       className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3 md:p-6 animate-in fade-in duration-150"
-      onClick={onClose}
+      onClick={e => e.stopPropagation()}
       role="dialog"
       aria-modal="true"
     >
@@ -127,6 +127,9 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
                 টেলিকর্প ইআরপি • অপারেশনাল সেন্টার ও সহায়িকা
                 <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full border border-indigo-200">
                   v3.2 Enterprise
+                </span>
+                <span className="text-[9px] bg-blue-100 text-blue-700 font-black px-1.5 py-0.5 rounded uppercase">
+                  সাব-উইন্ডো
                 </span>
               </h3>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
@@ -159,10 +162,23 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
               <span>Word গাইড</span>
               <Download className="w-3 h-3 text-blue-500" />
             </a>
+
+            {/* Skip Button */}
             <button
               type="button"
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-800 hover:text-slate-950 border border-amber-300 font-black text-xs transition cursor-pointer"
+              title="উইন্ডোটি স্কিপ করুন"
+            >
+              <span>স্কিপ (Skip)</span>
+            </button>
+
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-rose-600 transition-colors cursor-pointer"
+              title="বন্ধ করুন (Close)"
             >
               <X className="w-5 h-5" />
             </button>

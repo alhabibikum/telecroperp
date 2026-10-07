@@ -67,13 +67,41 @@ export const EditModal: React.FC<EditModalProps> = ({ title, fields, initial, on
   const inputCls = 'w-full p-2 bg-slate-50 border border-slate-300 rounded-lg text-xs disabled:opacity-60';
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-slate-200 flex flex-col">
+    <div
+      className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={e => e.stopPropagation()}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-slate-200 flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-          <h3 className="font-bold text-slate-900 text-sm">{title}</h3>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Close">
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold text-slate-900 text-sm">{title}</h3>
+            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+              সাব-উইন্ডো
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500 text-amber-800 hover:text-slate-950 border border-amber-300 rounded font-black text-xs transition cursor-pointer"
+              title="উইন্ডোটি স্কিপ করুন"
+            >
+              <span>স্কিপ (Skip)</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-rose-600 transition"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
         <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={submit} className="p-5 overflow-y-auto space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -176,11 +204,41 @@ export const ConfirmAction: React.FC<ConfirmActionProps> = ({ title, message, co
   }, [onClose, askReason, run]);
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" role="alertdialog" aria-modal="true">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-200 bg-rose-50 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-rose-600" />
-          <h3 className="font-bold text-slate-900 text-sm">{title}</h3>
+    <div
+      className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+      role="alertdialog"
+      aria-modal="true"
+      onClick={e => e.stopPropagation()}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-4 border-b border-slate-200 bg-rose-50 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-600" />
+            <h3 className="font-bold text-slate-900 text-sm">{title}</h3>
+            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-rose-100 text-rose-800">
+              সাব-উইন্ডো
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-2 py-0.5 bg-amber-500/20 hover:bg-amber-500 text-amber-900 rounded font-bold text-[11px] transition cursor-pointer"
+              title="স্কিপ করুন"
+            >
+              স্কিপ
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 rounded text-slate-400 hover:text-white hover:bg-rose-600 transition"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
         <div className="p-5 space-y-3 text-xs">
           <p className="text-slate-700 leading-relaxed">{message}</p>

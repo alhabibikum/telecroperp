@@ -14,6 +14,7 @@ import {
 import { formatBDT, formatDate } from '../../utils/formatters';
 import { ReturnCondition, IMEIRecord } from '../../types/erp';
 import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
+import { WindowsModalFrame } from '../common/WindowsModalFrame';
 
 interface CustomerReturnModalProps {
   isOpen: boolean;
@@ -92,31 +93,17 @@ export const CustomerReturnModal: React.FC<CustomerReturnModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative bg-white/90 backdrop-blur-3xl rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] w-full max-w-2xl my-auto overflow-hidden border border-white/60 animate-in zoom-in-95 duration-200">
-        {/* Top Glossy Highlight Sheen */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500/40 via-violet-500/50 to-pink-500/40 pointer-events-none z-10" />
-
-        {/* Header */}
-        <div className="px-6 py-4.5 border-b border-slate-200/80 bg-white/60 backdrop-blur-xl flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-700 text-white flex items-center justify-center font-bold shadow-xs">
-              <Undo2 className="w-5 h-5 stroke-[2.2]" />
-            </div>
-            <div>
-              <h2 className="text-base font-black text-slate-900 tracking-tight">
-                Customer Return & IMEI Validation Engine
-              </h2>
-              <p className="text-xs text-slate-500 font-medium">
-                Verifies genuine sales invoice, restocks unit & issues credit note
-              </p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-800 rounded-2xl hover:bg-slate-100/80 transition-all cursor-pointer">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
+    <>
+      <WindowsModalFrame
+        isOpen={isOpen}
+        onClose={onClose}
+        onSkip={onClose}
+        modalId="modal-customer-return"
+        title="Customer Return & IMEI Validation Engine"
+        subtitle="Verifies genuine sales invoice, restocks unit & issues credit note"
+        icon={<Undo2 className="w-4 h-4 text-purple-400" />}
+        maxWidth="max-w-2xl"
+      >
         <form onSubmit={handleSubmit} className="p-6 space-y-5 bg-white/40 backdrop-blur-md">
           {errorMsg && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
@@ -267,7 +254,7 @@ export const CustomerReturnModal: React.FC<CustomerReturnModalProps> = ({
             </div>
           </div>
         </form>
-      </div>
+      </WindowsModalFrame>
 
       <MultiBarcodeScannerModal
         isOpen={showMultiScanner}
@@ -280,6 +267,6 @@ export const CustomerReturnModal: React.FC<CustomerReturnModalProps> = ({
         }}
         confirmButtonText="রিটার্ন আইটেম নির্ধারণ করুন"
       />
-    </div>
+    </>
   );
 };

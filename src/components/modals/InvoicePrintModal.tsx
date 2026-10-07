@@ -9,6 +9,7 @@ import {
   Smartphone
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
+import { WindowsModalFrame } from '../common/WindowsModalFrame';
 
 interface InvoicePrintModalProps {
   isOpen: boolean;
@@ -45,35 +46,28 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-xl flex items-center justify-center p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative bg-white/95 backdrop-blur-3xl rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] w-full max-w-4xl my-auto overflow-hidden border border-white/60 animate-in zoom-in-95 duration-200">
-        {/* Top Glossy Highlight Sheen */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500/40 via-indigo-500/50 to-teal-500/40 pointer-events-none z-10 print:hidden" />
-
-        {/* Modal Top Actions */}
-        <div className="px-6 py-3.5 border-b border-slate-200/80 bg-white/60 backdrop-blur-xl flex items-center justify-between print:hidden">
-          <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-blue-600" />
-            <span className="font-black text-xs text-slate-900 tracking-tight">
-              Tax Invoice Preview: {invoice.invoiceNo}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white rounded-xl text-xs font-black shadow-xs transition-all cursor-pointer"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print / Save PDF</span>
-            </button>
-            <button
-              onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+    <WindowsModalFrame
+      isOpen={isOpen}
+      onClose={onClose}
+      onSkip={onClose}
+      modalId={`invoice-print-${invoice.invoiceNo}`}
+      title={`ট্যাক্স ইনভয়েস প্রিন্ট ও প্রিভিউ: ${invoice.invoiceNo}`}
+      subtitle="TeleCorp Official Tax Invoice"
+      icon={<Printer className="w-4 h-4 text-blue-400" />}
+      maxWidth="max-w-4xl"
+    >
+      <div className="bg-slate-100 p-3 border-b border-slate-200 flex items-center justify-between print:hidden">
+        <span className="text-xs font-bold text-slate-700">
+          প্রিন্ট অথবা পিডিএফ কপি সেভ করুন
+        </span>
+        <button
+          onClick={handlePrint}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white rounded-xl text-xs font-black shadow-xs transition-all cursor-pointer"
+        >
+          <Printer className="w-3.5 h-3.5" />
+          <span>প্রিন্ট / সেভ PDF (Ctrl+P)</span>
+        </button>
+      </div>
 
         {/* Printable Invoice Document */}
         <div className="p-8 bg-white text-slate-800 max-h-[85vh] overflow-y-auto print:p-0 print:max-h-none">
@@ -255,7 +249,6 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </WindowsModalFrame>
   );
 };
