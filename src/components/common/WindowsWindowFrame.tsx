@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { Minus, Square, Copy, X } from 'lucide-react';
+import { Minus, Square, Copy, X, Columns2 } from 'lucide-react';
 import { useWindowManager } from '../../context/WindowManagerContext';
 
 interface WindowsWindowFrameProps {
@@ -27,7 +26,9 @@ export const WindowsWindowFrame: React.FC<WindowsWindowFrameProps> = ({
     isWindowMaximized,
     minimizeWindow,
     toggleMaximizeWindow,
-    closeWindow
+    closeWindow,
+    isSplitView,
+    toggleSplitView
   } = useWindowManager();
 
   const isMinimized = isWindowMinimized(id);
@@ -110,6 +111,20 @@ export const WindowsWindowFrame: React.FC<WindowsWindowFrameProps> = ({
               ) : (
                 <Square className="w-3 h-3 stroke-[2.5]" />
               )}
+            </button>
+
+            {/* Snap Assist / Split View 50-50 Button */}
+            <button
+              type="button"
+              onClick={() => toggleSplitView()}
+              className={`w-7 h-7 rounded flex items-center justify-center transition cursor-pointer ${
+                isSplitView
+                  ? 'bg-blue-600 text-white'
+                  : 'hover:bg-slate-700/80 text-slate-300 hover:text-white'
+              }`}
+              title={isSplitView ? "একক ভিউতে ফিরে যান (Exit Split View)" : "স্প্লিট ভিউ (Side-by-Side 50/50 Snap Assist)"}
+            >
+              <Columns2 className="w-3.5 h-3.5 stroke-[2.2]" />
             </button>
 
             {/* Close Button */}

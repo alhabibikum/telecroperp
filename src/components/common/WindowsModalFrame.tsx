@@ -36,7 +36,7 @@ export const WindowsModalFrame: React.FC<WindowsModalFrameProps> = ({
 
   const isMinimized = isWindowMinimized(effectiveId);
 
-  // Register in Window Manager so it shows in the Windows Taskbar
+  // Register in Window Manager so it shows in the Windows Taskbar only when open
   useEffect(() => {
     if (isOpen) {
       registerWindow({
@@ -50,10 +50,11 @@ export const WindowsModalFrame: React.FC<WindowsModalFrameProps> = ({
         onClose,
         onSkip: onSkip || onClose
       });
-    } else {
-      unregisterWindow(effectiveId);
+      return () => {
+        unregisterWindow(effectiveId);
+      };
     }
-  }, [isOpen, effectiveId, title, subtitle, isLocalMaximized, onClose, onSkip, registerWindow, unregisterWindow]);
+  }, [isOpen, effectiveId, isLocalMaximized]);
 
   if (!isOpen) return null;
 

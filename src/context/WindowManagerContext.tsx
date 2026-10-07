@@ -30,6 +30,10 @@ interface WindowManagerContextType {
   restoreAll: () => void;
   isWindowMinimized: (id: string) => boolean;
   isWindowMaximized: (id: string) => boolean;
+  isSplitView: boolean;
+  splitWindowIds: [string, string] | null;
+  toggleSplitView: (secondWindowId?: string) => void;
+  closeSplitView: () => void;
 }
 
 const WindowManagerContext = createContext<WindowManagerContextType | null>(null);
@@ -53,12 +57,42 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [windows, setWindows] = useState<WindowItem[]>([]);
   const [activeWindowId, setActiveWindowId] = useState<string | null>(null);
+  const [isSplitView, setIsSplitView] = useState<boolean>(false);
+  const [splitWindowIds, setSplitWindowIds] = useState<[string, string] | null>(null);
+
+  const toggleSplitView = useCallback((secondWindowId?: string) => {
+    setIsSplitView(prev => {
+      if (prev) {
+        setSplitWindowIds(null);
+        return false;
+      }
+      const primary = activeWindowId || 'dashboard';
+      const secondary = secondWindowId || (primary === 'dashboard' ? 'wholesale-sales' : 'dashboard');
+      setSplitWindowIds([primary, secondary]);
+      return true;
+    });
+  }, [activeWindowId]);
+
+  const closeSplitView = useCallback(() => {
+    setIsSplitView(false);
+    setSplitWindowIds(null);
+  }, []);
 
   const registerWindow = useCallback((win: WindowItem) => {
     setWindows(prev => {
       const idx = prev.findIndex(w => w.id === win.id);
       if (idx >= 0) {
-        // Update existing window
+        const existing = prev[idx];
+        if (
+          existing.title === win.title &&
+          existing.subtitle === win.subtitle &&
+          existing.isMinimized === win.isMinimized &&
+          existing.isMaximized === win.isMaximized &&
+          existing.onClose === win.onClose &&
+          existing.onSkip === win.onSkip
+        ) {
+          return prev;
+        }
         const updated = [...prev];
         updated[idx] = { ...updated[idx], ...win };
         return updated;
@@ -66,22 +100,16 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
       return [...prev, win];
     });
     if (!win.isMinimized) {
-      setActiveWindowId(win.id);
+      setActiveWindowId(curr => (curr !== win.id ? win.id : curr));
     }
   }, []);
 
   const unregisterWindow = useCallback((id: string) => {
     setWindows(prev => {
-      const next = prev.filter(w => w.id !== id);
-      return next;
+      if (!prev.some(w => w.id === id)) return prev;
+      return prev.filter(w => w.id !== id);
     });
-    setActiveWindowId(curr => {
-      if (curr === id) {
-        // focus another window if available
-        return null;
-      }
-      return curr;
-    });
+    setActiveWindowId(curr => (curr === id ? null : curr));
   }, []);
 
   const focusWindow = useCallback((id: string) => {
@@ -199,7 +227,11 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
       minimizeAll,
       restoreAll,
       isWindowMinimized,
-      isWindowMaximized
+      isWindowMaximized,
+      isSplitView,
+      splitWindowIds,
+      toggleSplitView,
+      closeSplitView
     }),
     [
       isDesktop,
@@ -218,7 +250,11 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
       minimizeAll,
       restoreAll,
       isWindowMinimized,
-      isWindowMaximized
+      isWindowMaximized,
+      isSplitView,
+      splitWindowIds,
+      toggleSplitView,
+      closeSplitView
     ]
   );
 

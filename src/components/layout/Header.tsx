@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
+import { useTheme } from '../../context/ThemeContext';
 import {
   Search,
   Bell,
@@ -16,7 +17,9 @@ import {
   RefreshCw,
   Database,
   Trash2,
-  Keyboard
+  Keyboard,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { Notifications } from './Notifications';
 import { testSupabaseConnection } from '../../lib/supabase';
@@ -65,6 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
     triggerManualSync,
     clearOfflineSyncQueue
   } = useERP();
+  const { theme, fontSize, toggleTheme, setFontSize } = useTheme();
 
   const [showAlertDropdown, setShowAlertDropdown] = useState(false);
   const [showNetworkModal, setShowNetworkModal] = useState(false);
@@ -272,6 +276,48 @@ export const Header: React.FC<HeaderProps> = ({
           <Globe className="w-3.5 h-3.5 text-blue-600" />
           <span>{settings.language === 'en' ? 'বাংলা' : 'EN'}</span>
         </button>
+
+        {/* Dark/Light Mode Theme Toggle */}
+        <button
+          onClick={toggleTheme}
+          className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl border border-slate-200/80 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold transition cursor-pointer shadow-2xs"
+          title={theme === 'dark' ? "লাইট মোডে ফিরুন (Switch to Light Mode)" : "ডার্ক মোড সক্রিয় করুন (Switch to Dark Mode)"}
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-3.5 h-3.5 text-amber-500" />
+          ) : (
+            <Moon className="w-3.5 h-3.5 text-slate-700" />
+          )}
+          <span className="hidden sm:inline">{theme === 'dark' ? 'লাইট' : 'ডার্ক'}</span>
+        </button>
+
+        {/* Font Size Scaler */}
+        <div className="hidden md:flex items-center rounded-xl border border-slate-200/80 bg-slate-50 p-0.5 text-[11px] font-black text-slate-600 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => setFontSize('small')}
+            className={`px-1.5 py-0.5 rounded-lg transition cursor-pointer ${fontSize === 'small' ? 'bg-blue-600 text-white' : 'hover:bg-slate-200 text-slate-700'}`}
+            title="ছোট ফন্ট (Compact text: 90%)"
+          >
+            A-
+          </button>
+          <button
+            type="button"
+            onClick={() => setFontSize('normal')}
+            className={`px-1.5 py-0.5 rounded-lg transition cursor-pointer ${fontSize === 'normal' ? 'bg-blue-600 text-white' : 'hover:bg-slate-200 text-slate-700'}`}
+            title="স্ট্যান্ডার্ড ফন্ট (Standard text: 100%)"
+          >
+            A
+          </button>
+          <button
+            type="button"
+            onClick={() => setFontSize('large')}
+            className={`px-1.5 py-0.5 rounded-lg transition cursor-pointer ${fontSize === 'large' ? 'bg-blue-600 text-white' : 'hover:bg-slate-200 text-slate-700'}`}
+            title="বড় ফন্ট (Enlarged text: 115%)"
+          >
+            A+
+          </button>
+        </div>
 
         {/* User Profile & Logout */}
         <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200">

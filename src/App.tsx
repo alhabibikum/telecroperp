@@ -59,6 +59,8 @@ import { KeyboardShortcutHelpModal } from './components/common/KeyboardShortcutH
 import { useToast } from './components/common/ToastNotificationSystem';
 import { ShieldAlert, ArrowRight, ChevronRight } from 'lucide-react';
 import { WindowManagerProvider, useWindowManager } from './context/WindowManagerContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { WindowsWindowFrame } from './components/common/WindowsWindowFrame';
 import { WindowsTaskbar } from './components/layout/WindowsTaskbar';
 import { DesktopView } from './components/views/DesktopView';
@@ -114,7 +116,10 @@ const ERPAppContent: React.FC = () => {
     unregisterWindow,
     focusWindow,
     activeWindowId,
-    isWindowMinimized
+    isWindowMinimized,
+    isSplitView,
+    splitWindowIds,
+    closeSplitView
   } = useWindowManager();
 
   const [currentView, setCurrentView] = useState<string>(() => {
@@ -179,9 +184,9 @@ const ERPAppContent: React.FC = () => {
   // When activeWindowId changes in WindowManager, sync currentView
   useEffect(() => {
     if (activeWindowId && openViewIds.includes(activeWindowId)) {
-      setCurrentView(activeWindowId);
+      setCurrentView(prev => (prev !== activeWindowId ? activeWindowId : prev));
     }
-  }, [activeWindowId, openViewIds]);
+  }, [activeWindowId]);
 
   // Desktop Full Screen Workspace & Sidebar Behavior (Initially collapsed for maximum workspace)
   const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(false);
@@ -466,6 +471,125 @@ const ERPAppContent: React.FC = () => {
     salesInvoices
   ]);
 
+  const renderViewContent = (viewId: string) => {
+    switch (viewId) {
+      case 'dashboard':
+        return (
+          <DashboardView
+            onOpenNewSale={() => handleOpenNewSale('Wholesale')}
+            onOpenNewPurchase={() => setShowNewPurchaseModal(true)}
+            onOpenDueCollection={() => handleOpenDueCollection()}
+            onOpenIMEILookup={handleOpenIMEILookup}
+            onSelectView={setCurrentView}
+            onPrintInvoice={handlePrintInvoice}
+          />
+        );
+      case 'imei-trace':
+        return <IMEITraceView onOpenLifecycleModal={handleOpenIMEILookup} />;
+      case 'wholesale-sales':
+        return (
+          <WholesaleSalesView
+            onOpenNewSale={() => handleOpenNewSale('Wholesale')}
+            onPrintInvoice={handlePrintInvoice}
+            onOpenReturn={() => setShowCustomerReturnModal(true)}
+          />
+        );
+      case 'retail-pos':
+        return <RetailPOSView onPrintInvoice={handlePrintInvoice} />;
+      case 'phone-exchange':
+        return <PhoneExchangeView />;
+      case 'emi-installment':
+        return <EMIInstallmentView />;
+      case 'delivery-dispatch':
+        return <DeliveryDispatchView />;
+      case 'sms-marketing':
+        return <SmsMarketingView />;
+      case 'due-ageing':
+        return <DueAgeingView onOpenDueCollection={handleOpenDueCollection} />;
+      case 'due-collection':
+        return <DueCollectionView onOpenDueCollection={handleOpenDueCollection} />;
+      case 'purchases':
+        return <PurchaseView onOpenNewPurchase={() => setShowNewPurchaseModal(true)} />;
+      case 'inventory':
+        return (
+          <InventoryView
+            onOpenStockTransfer={() => setShowStockTransferModal(true)}
+            onOpenIMEILookup={handleOpenIMEILookup}
+            onSelectView={setCurrentView}
+          />
+        );
+      case 'barcode-labels':
+        return <BarcodeLabelView />;
+      case 'brands':
+        return <BrandsView />;
+      case 'warehouses':
+        return <WarehousesView onOpenStockTransfer={() => setShowStockTransferModal(true)} />;
+      case 'stock-transfers':
+        return (
+          <StockTransfersView
+            onOpenStockTransfer={() => setShowStockTransferModal(true)}
+            onOpenIMEILookup={handleOpenIMEILookup}
+          />
+        );
+      case 'brand-incentives':
+        return <BrandIncentivesView />;
+      case 'price-drop':
+        return <PriceDropClaimView />;
+      case 'customers':
+        return <CustomersView onOpenDueCollection={handleOpenDueCollection} />;
+      case 'suppliers':
+        return <SuppliersView />;
+      case 'returns':
+        return (
+          <ReturnsView
+            onOpenCustomerReturn={() => setShowCustomerReturnModal(true)}
+            onOpenIMEILookup={handleOpenIMEILookup}
+          />
+        );
+      case 'warranty-service':
+        return <WarrantyServiceView />;
+      case 'salesmen':
+        return <SalesmenView />;
+      case 'salesman-app':
+        return <SalesmanMobileAppView />;
+      case 'field-visits':
+        return <FieldVisitsView />;
+      case 'cash-bank':
+        return <CashBankView />;
+      case 'bank-reconciliation':
+        return <BankReconciliationView />;
+      case 'day-closing':
+        return <DayClosingView />;
+      case 'expenses':
+        return <ExpensesView />;
+      case 'accounting':
+        return <AccountingView />;
+      case 'reports':
+      case 'dynamic-business-report':
+        return <DynamicBusinessReportView />;
+      case 'classic-reports':
+        return <ReportsView />;
+      case 'custom-reports':
+        return <CustomReportBuilderView />;
+      case 'data-import':
+        return <DataImportView />;
+      case 'api-integrations':
+        return <ApiIntegrationsView />;
+      case 'alert-center':
+        return <AlertCenterView onSelectView={setCurrentView} />;
+      case 'audit-logs':
+        return <AuditLogsView />;
+      case 'settings':
+        return <SettingsView />;
+      default:
+        return (
+          <div className="p-8 text-center text-slate-500">
+            মডিউলটি প্রক্রিয়াধীন রয়েছে ({viewId})
+          </div>
+        );
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <>
@@ -519,8 +643,37 @@ const ERPAppContent: React.FC = () => {
 
         {/* Main Content Viewport - Windows Desktop Workspace */}
         <main className="flex-1 h-full overflow-hidden relative">
-          {!currentView || (isDesktop && (isWindowMinimized(currentView) || !openViewIds.includes(currentView))) ? (
+          {!currentView || (isDesktop && !isSplitView && (isWindowMinimized(currentView) || !openViewIds.includes(currentView))) ? (
             <DesktopView onOpenApp={handleNavigateView} />
+          ) : isDesktop && isSplitView && splitWindowIds ? (
+            <div className="h-full w-full flex flex-row overflow-hidden divide-x-2 divide-slate-300 dark:divide-slate-800 bg-slate-900/10">
+              <div className="w-1/2 h-full flex flex-col overflow-hidden">
+                <WindowsWindowFrame
+                  id={splitWindowIds[0]}
+                  title={VIEW_CONFIG[splitWindowIds[0]]?.title || splitWindowIds[0]}
+                  subtitle={VIEW_CONFIG[splitWindowIds[0]]?.subtitle}
+                  icon={<span>{VIEW_CONFIG[splitWindowIds[0]]?.icon || '🖥️'}</span>}
+                  onClose={() => closeSplitView()}
+                >
+                  <ErrorBoundary fallbackTitle={splitWindowIds[0]}>
+                    {renderViewContent(splitWindowIds[0])}
+                  </ErrorBoundary>
+                </WindowsWindowFrame>
+              </div>
+              <div className="w-1/2 h-full flex flex-col overflow-hidden">
+                <WindowsWindowFrame
+                  id={splitWindowIds[1]}
+                  title={VIEW_CONFIG[splitWindowIds[1]]?.title || splitWindowIds[1]}
+                  subtitle={VIEW_CONFIG[splitWindowIds[1]]?.subtitle}
+                  icon={<span>{VIEW_CONFIG[splitWindowIds[1]]?.icon || '🖥️'}</span>}
+                  onClose={() => closeSplitView()}
+                >
+                  <ErrorBoundary fallbackTitle={splitWindowIds[1]}>
+                    {renderViewContent(splitWindowIds[1])}
+                  </ErrorBoundary>
+                </WindowsWindowFrame>
+              </div>
+            </div>
           ) : !hasPermission(currentUserRole, currentView) ? (
             <WindowsWindowFrame
               id={currentView}
@@ -586,162 +739,11 @@ const ERPAppContent: React.FC = () => {
             icon={<span>{VIEW_CONFIG[currentView]?.icon || '🖥️'}</span>}
             onClose={() => handleCloseViewWindow(currentView)}
           >
-              {currentView === 'dashboard' && (
-                <DashboardView
-                  onOpenNewSale={() => handleOpenNewSale('Wholesale')}
-                  onOpenNewPurchase={() => setShowNewPurchaseModal(true)}
-                  onOpenDueCollection={() => handleOpenDueCollection()}
-                  onOpenIMEILookup={handleOpenIMEILookup}
-                  onSelectView={setCurrentView}
-                  onPrintInvoice={handlePrintInvoice}
-                />
-              )}
-
-              {currentView === 'imei-trace' && (
-                <IMEITraceView onOpenLifecycleModal={handleOpenIMEILookup} />
-              )}
-
-              {currentView === 'wholesale-sales' && (
-                <WholesaleSalesView
-                  onOpenNewSale={() => handleOpenNewSale('Wholesale')}
-                  onPrintInvoice={handlePrintInvoice}
-                  onOpenReturn={() => setShowCustomerReturnModal(true)}
-                />
-              )}
-
-              {currentView === 'retail-pos' && (
-                <RetailPOSView onPrintInvoice={handlePrintInvoice} />
-              )}
-
-              {currentView === 'phone-exchange' && (
-                <PhoneExchangeView />
-              )}
-
-              {currentView === 'emi-installment' && (
-                <EMIInstallmentView />
-              )}
-
-              {currentView === 'delivery-dispatch' && (
-                <DeliveryDispatchView />
-              )}
-
-              {currentView === 'sms-marketing' && (
-                <SmsMarketingView />
-              )}
-
-              {currentView === 'due-ageing' && (
-                <DueAgeingView onOpenDueCollection={handleOpenDueCollection} />
-              )}
-
-              {currentView === 'due-collection' && (
-                <DueCollectionView onOpenDueCollection={handleOpenDueCollection} />
-              )}
-
-              {currentView === 'purchases' && (
-                <PurchaseView onOpenNewPurchase={() => setShowNewPurchaseModal(true)} />
-              )}
-
-              {currentView === 'inventory' && (
-                <InventoryView
-                  onOpenStockTransfer={() => setShowStockTransferModal(true)}
-                  onOpenIMEILookup={handleOpenIMEILookup}
-                  onSelectView={setCurrentView}
-                />
-              )}
-
-              {currentView === 'barcode-labels' && (
-                <BarcodeLabelView />
-              )}
-
-              {currentView === 'brands' && <BrandsView />}
-
-              {currentView === 'warehouses' && (
-                <WarehousesView onOpenStockTransfer={() => setShowStockTransferModal(true)} />
-              )}
-
-              {currentView === 'stock-transfers' && (
-                <StockTransfersView
-                  onOpenStockTransfer={() => setShowStockTransferModal(true)}
-                  onOpenIMEILookup={handleOpenIMEILookup}
-                />
-              )}
-
-              {currentView === 'brand-incentives' && (
-                <BrandIncentivesView />
-              )}
-
-              {currentView === 'price-drop' && (
-                <PriceDropClaimView />
-              )}
-
-              {currentView === 'customers' && (
-                <CustomersView onOpenDueCollection={handleOpenDueCollection} />
-              )}
-
-              {currentView === 'suppliers' && <SuppliersView />}
-
-              {currentView === 'returns' && (
-                <ReturnsView
-                  onOpenCustomerReturn={() => setShowCustomerReturnModal(true)}
-                  onOpenIMEILookup={handleOpenIMEILookup}
-                />
-              )}
-
-              {currentView === 'warranty-service' && (
-                <WarrantyServiceView />
-              )}
-
-              {currentView === 'salesmen' && <SalesmenView />}
-
-              {currentView === 'salesman-app' && (
-                <SalesmanMobileAppView />
-              )}
-
-              {currentView === 'field-visits' && (
-                <FieldVisitsView />
-              )}
-
-              {currentView === 'cash-bank' && <CashBankView />}
-
-              {currentView === 'bank-reconciliation' && (
-                <BankReconciliationView />
-              )}
-
-              {currentView === 'day-closing' && (
-                <DayClosingView />
-              )}
-
-              {currentView === 'expenses' && <ExpensesView />}
-
-              {currentView === 'accounting' && <AccountingView />}
-
-              {(currentView === 'reports' || currentView === 'dynamic-business-report') && (
-                <DynamicBusinessReportView />
-              )}
-
-              {currentView === 'classic-reports' && <ReportsView />}
-
-              {currentView === 'custom-reports' && (
-                <CustomReportBuilderView />
-              )}
-
-              {currentView === 'data-import' && (
-                <DataImportView />
-              )}
-
-              {currentView === 'api-integrations' && (
-                <ApiIntegrationsView />
-              )}
-
-              {currentView === 'alert-center' && (
-                <AlertCenterView onSelectView={setCurrentView} />
-              )}
-
-              {currentView === 'audit-logs' && <AuditLogsView />}
-
-              {currentView === 'settings' && <SettingsView />}
-            </WindowsWindowFrame>
-          )}
+            <ErrorBoundary fallbackTitle={currentView}>
+              {renderViewContent(currentView)}
+            </ErrorBoundary>
+          </WindowsWindowFrame>
+        )}
         </main>
       </div>
 
@@ -855,9 +857,11 @@ const ERPAppContent: React.FC = () => {
 export default function App() {
   return (
     <ERPProvider>
-      <WindowManagerProvider>
-        <ERPAppContent />
-      </WindowManagerProvider>
+      <ThemeProvider>
+        <WindowManagerProvider>
+          <ERPAppContent />
+        </WindowManagerProvider>
+      </ThemeProvider>
     </ERPProvider>
   );
 }

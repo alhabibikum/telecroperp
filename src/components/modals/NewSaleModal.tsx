@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
   X,
@@ -12,7 +12,10 @@ import {
   HelpCircle,
   Barcode,
   Camera,
-  QrCode
+  QrCode,
+  MessageCircle,
+  History,
+  Sparkles
 } from 'lucide-react';
 import { formatBDT } from '../../utils/formatters';
 import { PaymentMethodType, SaleItem, PaymentSplit, IMEIRecord } from '../../types/erp';
@@ -20,6 +23,8 @@ import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 import { useFormKeyboardNavigation } from '../../hooks/useFormKeyboardNavigation';
 import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog';
 import { WindowsModalFrame } from '../common/WindowsModalFrame';
+import { playScanSuccessSound, playWarningBuzzer, playCashRegisterSound } from '../../utils/audioAlertUtils';
+import { shareInvoiceViaWhatsApp } from '../../utils/whatsappUtils';
 
 interface NewSaleModalProps {
   isOpen: boolean;
@@ -79,9 +84,78 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showUnsavedPrompt, setShowUnsavedPrompt] = useState(false);
+  const [duplicateAlertImei, setDuplicateAlertImei] = useState<string | null>(null);
+  const [draftAvailable, setDraftAvailable] = useState<any | null>(null);
+
+  // Check draft on modal open
+  useEffect(() => {
+    if (isOpen) {
+      try {
+        const savedDraft = localStorage.getItem('telecorp_sale_draft');
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+          if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
+            setDraftAvailable(parsed);
+          }
+        }
+      } catch {}
+    } else {
+      setDraftAvailable(null);
+      setDuplicateAlertImei(null);
+    }
+  }, [isOpen]);
 
   // Form dirty state check
   const isFormDirty = items.some(it => it.selectedImeis.length > 0 || it.quantity > 1) || paidAmount > 0 || notes.trim().length > 0;
+
+  // Debounced Auto-Save Draft to LocalStorage
+  useEffect(() => {
+    if (!isOpen) return;
+    const timeout = setTimeout(() => {
+      if (isFormDirty) {
+        try {
+          const draft = {
+            invoiceType,
+            customerId,
+            warehouseId,
+            salesmanId,
+            invoiceDate,
+            notes,
+            items,
+            paymentMethod,
+            bankAccountId,
+            paidAmount,
+            savedAt: new Date().toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' })
+          };
+          localStorage.setItem('telecorp_sale_draft', JSON.stringify(draft));
+        } catch {}
+      }
+    }, 800);
+    return () => clearTimeout(timeout);
+  }, [isOpen, isFormDirty, invoiceType, customerId, warehouseId, salesmanId, invoiceDate, notes, items, paymentMethod, bankAccountId, paidAmount]);
+
+  const handleRestoreDraft = () => {
+    if (!draftAvailable) return;
+    if (draftAvailable.invoiceType) setInvoiceType(draftAvailable.invoiceType);
+    if (draftAvailable.customerId) setCustomerId(draftAvailable.customerId);
+    if (draftAvailable.warehouseId) setWarehouseId(draftAvailable.warehouseId);
+    if (draftAvailable.salesmanId) setSalesmanId(draftAvailable.salesmanId);
+    if (draftAvailable.invoiceDate) setInvoiceDate(draftAvailable.invoiceDate);
+    if (draftAvailable.notes) setNotes(draftAvailable.notes);
+    if (draftAvailable.items) setItems(draftAvailable.items);
+    if (draftAvailable.paymentMethod) setPaymentMethod(draftAvailable.paymentMethod);
+    if (draftAvailable.bankAccountId) setBankAccountId(draftAvailable.bankAccountId);
+    if (draftAvailable.paidAmount) setPaidAmount(draftAvailable.paidAmount);
+    setDraftAvailable(null);
+    playScanSuccessSound();
+  };
+
+  const handleDiscardDraft = () => {
+    try {
+      localStorage.removeItem('telecorp_sale_draft');
+    } catch {}
+    setDraftAvailable(null);
+  };
 
   const handleRequestClose = () => {
     if (isFormDirty) {
@@ -124,6 +198,16 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
       );
       const chosenRecords = matched.length > 0 ? matched : validRecords;
       const imeisToAdd = chosenRecords.map(r => r.imei1);
+
+      // Check if any IMEI is already selected in another line
+      const otherLinesImeis = items.filter((_, i) => i !== lineIdx).flatMap(it => it.selectedImeis);
+      const duplicateFound = imeisToAdd.find(im => otherLinesImeis.includes(im));
+      if (duplicateFound) {
+        playWarningBuzzer();
+        setDuplicateAlertImei(duplicateFound);
+      } else {
+        playScanSuccessSound();
+      }
 
       setItems(prev =>
         prev.map((it, i) => {
@@ -347,6 +431,10 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
     });
 
     if (result.success && result.invoiceNo) {
+      try {
+        localStorage.removeItem('telecorp_sale_draft');
+      } catch {}
+      playCashRegisterSound();
       if (onSuccessInvoice) onSuccessInvoice(result.invoiceNo);
       onClose();
     } else {
@@ -366,6 +454,54 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
         icon={<ShoppingBag className="w-4 h-4 text-emerald-400" />}
         maxWidth="max-w-5xl"
       >
+        {/* Draft Restore Notification Banner */}
+        {draftAvailable && (
+          <div className="p-3 bg-amber-500/10 border-b border-amber-300 dark:border-amber-800 flex items-center justify-between gap-3 text-xs select-none">
+            <div className="flex items-center gap-2 text-amber-900 dark:text-amber-300 font-bold">
+              <History className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>
+                পূর্বের অসম্পূর্ণ ড্রাফট চালান পাওয়া গেছে ({draftAvailable.items?.length || 0}টি আইটেম, সংরক্ষিত: {draftAvailable.savedAt || 'পূর্বে'})
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleRestoreDraft}
+                className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-black text-xs transition cursor-pointer flex items-center gap-1 shadow-xs"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>ড্রাফট রিস্টোর করুন</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleDiscardDraft}
+                className="px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-lg font-bold text-xs transition cursor-pointer"
+              >
+                বাতিল
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Duplicate IMEI Alert Banner */}
+        {duplicateAlertImei && (
+          <div className="p-3 bg-rose-600 text-white font-bold text-xs flex items-center justify-between border-b border-rose-700 animate-in slide-in-from-top-2 duration-150 transform-gpu select-none">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 animate-bounce" />
+              <span>
+                ⚠️ ডুপ্লিকেট আইএমইআই সতর্কতা! [{duplicateAlertImei}] ইতোমধ্যে বর্তমান চালানের তালিকায় যুক্ত আছে!
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDuplicateAlertImei(null)}
+              className="px-2 py-0.5 rounded bg-rose-700 hover:bg-rose-800 text-[11px] cursor-pointer"
+            >
+              ✕ ঠিক আছে
+            </button>
+          </div>
+        )}
+
         <div className="bg-slate-100 p-3 border-b border-slate-200 flex items-center justify-between">
           <div className="flex bg-slate-200/90 p-0.5 rounded-xl text-xs font-bold">
             <button
@@ -670,7 +806,17 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
                                       ...it,
                                       selectedImeis: it.selectedImeis.filter(n => n !== im.imei1)
                                     } : it));
+                                    setDuplicateAlertImei(null);
                                   } else {
+                                    // Check if duplicate across other lines
+                                    const isDuplicate = items.some((it, i) => i !== idx && it.selectedImeis.includes(im.imei1));
+                                    if (isDuplicate) {
+                                      playWarningBuzzer();
+                                      setDuplicateAlertImei(im.imei1);
+                                      return;
+                                    }
+                                    setDuplicateAlertImei(null);
+                                    playScanSuccessSound();
                                     if (item.selectedImeis.length < item.quantity) {
                                       setItems(prev => prev.map((it, i) => i === idx ? {
                                         ...it,

@@ -6,10 +6,12 @@ import {
   FileText,
   Building,
   CheckCircle,
-  Smartphone
+  Smartphone,
+  MessageCircle
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
 import { WindowsModalFrame } from '../common/WindowsModalFrame';
+import { shareInvoiceViaWhatsApp } from '../../utils/whatsappUtils';
 
 interface InvoicePrintModalProps {
   isOpen: boolean;
@@ -30,6 +32,24 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleShareWhatsApp = () => {
+    if (!invoice) return;
+    shareInvoiceViaWhatsApp({
+      invoiceNo: invoice.invoiceNo,
+      customerName: invoice.customerName,
+      mobile: (invoice as any).customerMobile || (invoice as any).mobile || '',
+      totalAmount: invoice.grandTotal,
+      paidAmount: invoice.paidAmount,
+      dueAmount: invoice.dueAmount,
+      items: invoice.items?.map(it => ({
+        productName: it.productName,
+        quantity: it.quantity,
+        unitPrice: it.unitPrice
+      })),
+      date: invoice.invoiceDate
+    });
   };
 
   if (!invoice) {
@@ -60,13 +80,24 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
         <span className="text-xs font-bold text-slate-700">
           প্রিন্ট অথবা পিডিএফ কপি সেভ করুন
         </span>
-        <button
-          onClick={handlePrint}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white rounded-xl text-xs font-black shadow-xs transition-all cursor-pointer"
-        >
-          <Printer className="w-3.5 h-3.5" />
-          <span>প্রিন্ট / সেভ PDF (Ctrl+P)</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleShareWhatsApp}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-black shadow-xs transition-all cursor-pointer"
+            title="গ্রাহকের হোয়াটসঅ্যাপে মেমো পাঠান (Send Invoice via WhatsApp)"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span>হোয়াটসঅ্যাপে পাঠান (WhatsApp)</span>
+          </button>
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white rounded-xl text-xs font-black shadow-xs transition-all cursor-pointer"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span>প্রিন্ট / সেভ PDF (Ctrl+P)</span>
+          </button>
+        </div>
       </div>
 
         {/* Printable Invoice Document */}
