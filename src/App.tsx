@@ -61,6 +61,7 @@ import { ShieldAlert, ArrowRight, ChevronRight } from 'lucide-react';
 
 const ERPAppContent: React.FC = () => {
   const { isAuthenticated, currentUserRole, currentUser, hasPermission, salesInvoices, triggerManualSync } = useERP();
+  const { showSuccess, showInfo, showError } = useToast();
   const [currentView, setCurrentView] = useState<string>(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
