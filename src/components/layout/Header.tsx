@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useERP } from '../../context/ERPContext';
 import { UserRole } from '../../types/erp';
 import {
@@ -19,27 +19,55 @@ import {
   WifiOff,
   RefreshCw,
   Database,
-  Trash2
+  Trash2,
+  Barcode,
+  QrCode,
+  Command,
+  Keyboard,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { formatBDT } from '../../utils/formatters';
+import { extractTokensFromRaw } from '../../utils/barcodeScannerUtils';
 import { Notifications } from './Notifications';
 import { testSupabaseConnection, getSupabaseConfig } from '../../lib/supabase';
 
 interface HeaderProps {
+  isSidebarExpanded?: boolean;
+  onToggleSidebar?: () => void;
   onOpenNewSale: () => void;
   onOpenNewPurchase: () => void;
   onOpenDueCollection: () => void;
   onOpenIMEILookup: (imei?: string) => void;
+  onOpenMultiScanner?: (initialTokens?: string[], mode?: string) => void;
+  onOpenCommandPalette?: () => void;
+  onOpenShortcutsHelp?: () => void;
   onSelectView: (view: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
+  isSidebarExpanded = false,
+  onToggleSidebar,
   onOpenNewSale,
   onOpenNewPurchase,
   onOpenDueCollection,
   onOpenIMEILookup,
+  onOpenMultiScanner,
+  onOpenCommandPalette,
+  onOpenShortcutsHelp,
   onSelectView
 }) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        if (onOpenMultiScanner) onOpenMultiScanner();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onOpenMultiScanner]);
+
   const {
     currentUserRole,
     setCurrentUserRole,
@@ -130,7 +158,27 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="h-16 bg-white/85 backdrop-blur-xl border-b border-slate-200/70 px-4 md:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
       {/* Left: Brand info & Quick Stats */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
+        {onToggleSidebar && (
+          <button
+            type="button"
+            onClick={onToggleSidebar}
+            className={`p-2 rounded-xl transition-all flex items-center justify-center cursor-pointer border shadow-2xs ${
+              isSidebarExpanded
+                ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'
+                : 'bg-slate-100 border-slate-300 text-slate-800 hover:bg-blue-600 hover:text-white hover:border-blue-600'
+            }`}
+            title={isSidebarExpanded ? "সাইডবার লুকান (Collapse Sidebar: <)" : "সাইডবার খুলুন (Expand Sidebar: >)"}
+            aria-label="Toggle Sidebar Navigation"
+          >
+            {isSidebarExpanded ? (
+              <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+            ) : (
+              <ChevronRight className="w-5 h-5 stroke-[3]" />
+            )}
+          </button>
+        )}
+
         <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => onSelectView('dashboard')}>
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-teal-500 via-emerald-500 to-blue-600 flex items-center justify-center text-white shadow-[0_4px_14px_rgba(20,184,166,0.3)] font-black text-xl">
             <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current" xmlns="http://www.w3.org/2000/svg">
@@ -153,13 +201,15 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Center: Global Search Bar */}
-      <div className="relative flex-1 max-w-md mx-4 hidden lg:block">
-        <div className="relative">
+      {/* Center: Global Search Bar + Multi-Scanner Action */}
+      <div className="relative flex-1 max-w-lg mx-4 hidden lg:flex items-center gap-2">
+        <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
+            id="global-header-search"
+            data-search-input="true"
             type="text"
-            placeholder="Search IMEI (15-digit), Invoice, Shop, Model..."
+            placeholder="Search IMEI, Barcode, Invoice, Customer (Ctrl+F / Ctrl+K)..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -181,17 +231,60 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
+        {/* Dedicated Multi-Barcode / IMEI Scanner button */}
+        <button
+          onClick={() => {
+            const tokens = extractTokensFromRaw(searchQuery);
+            if (onOpenMultiScanner) onOpenMultiScanner(tokens.length > 0 ? tokens : undefined);
+            else onOpenIMEILookup();
+          }}
+          title="Multi Barcode / IMEI Scanner (Ctrl+B)"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition shrink-0 cursor-pointer"
+        >
+          <Barcode className="w-4 h-4" />
+          <span className="hidden xl:inline">Multi-Scanner</span>
+          <kbd className="hidden 2xl:inline-block px-1 py-0.2 bg-blue-800/60 rounded text-[10px] font-mono">^B</kbd>
+        </button>
+
         {/* Global Search Popover */}
-        {showSearchResults && searchResults && (
-          <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl shadow-xl border border-slate-200 p-2 z-50 max-h-96 overflow-y-auto">
-            {searchResults.imeis.length === 0 &&
+        {showSearchResults && (
+          <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl shadow-xl border border-slate-200 p-2.5 z-50 max-h-96 overflow-y-auto">
+            {/* Quick Multi-Scanner Batch Trigger if multiple tokens */}
+            {extractTokensFromRaw(searchQuery).length > 1 && (
+              <div
+                onClick={() => {
+                  setShowSearchResults(false);
+                  if (onOpenMultiScanner) onOpenMultiScanner(extractTokensFromRaw(searchQuery));
+                }}
+                className="p-2.5 mb-2.5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200 cursor-pointer flex items-center justify-between text-blue-900 transition shadow-xs"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
+                    <Barcode className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-xs text-blue-900">
+                      একাধিক Barcode/IMEI শনাক্ত হয়েছে ({extractTokensFromRaw(searchQuery).length}টি কোড)
+                    </p>
+                    <p className="text-[11px] text-blue-600">
+                      সবগুলো কোড Multi-Scanner এ একবারে ভেরিফাই করতে ক্লিক করুন
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shrink-0">
+                  স্ক্যানারে খুলুন
+                </span>
+              </div>
+            )}
+
+            {searchResults && searchResults.imeis.length === 0 &&
               searchResults.customers.length === 0 &&
               searchResults.invoices.length === 0 &&
               searchResults.products.length === 0 ? (
               <div className="p-4 text-center text-xs text-slate-500">
-                No matching IMEI, customer, invoice or product found for "{searchQuery}".
+                No matching single IMEI, customer, invoice or product found for "{searchQuery}".
               </div>
-            ) : (
+            ) : searchResults ? (
               <div className="space-y-3 text-xs">
                 {/* IMEIs */}
                 {searchResults.imeis.length > 0 && (
@@ -285,7 +378,7 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
           </div>
         )}
       </div>
@@ -337,7 +430,47 @@ export const Header: React.FC<HeaderProps> = ({
               <span>IMEI Trace</span>
             </button>
           )}
+
+          <button
+            onClick={() => onOpenMultiScanner ? onOpenMultiScanner() : onOpenIMEILookup()}
+            className="flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg shadow-xs transition"
+            title="Multi-Barcode & IMEI Scanner Engine (Ctrl+B)"
+          >
+            <Barcode className="w-3.5 h-3.5" />
+            <span>Multi-Scanner</span>
+          </button>
+
+          {onOpenCommandPalette && (
+            <button
+              onClick={onOpenCommandPalette}
+              className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs transition cursor-pointer"
+              title="Global Command Palette & Quick Navigation (Ctrl+K)"
+            >
+              <Command className="w-3.5 h-3.5 text-teal-600" />
+              <span className="hidden xl:inline">Commands</span>
+              <kbd className="px-1 py-0.2 bg-white rounded text-[10px] font-mono border border-slate-200">^K</kbd>
+            </button>
+          )}
+
+          {onOpenShortcutsHelp && (
+            <button
+              onClick={onOpenShortcutsHelp}
+              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+              title="Keyboard Shortcuts & Operations Help (Ctrl+/)"
+            >
+              <Keyboard className="w-4 h-4" />
+            </button>
+          )}
         </div>
+
+        {/* Mobile Multi-Scanner Button */}
+        <button
+          onClick={() => onOpenMultiScanner ? onOpenMultiScanner() : onOpenIMEILookup()}
+          className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition lg:hidden"
+          title="Multi-Barcode / IMEI Scanner"
+        >
+          <Barcode className="w-4 h-4" />
+        </button>
 
         {/* Alerts & Operational Notification Bell */}
         <div className="relative">

@@ -7,26 +7,29 @@ import {
   Building,
   Phone,
   CreditCard,
-  CheckCircle,
   AlertTriangle,
-  FileText
+  FileText,
+  Scan,
+  QrCode
 } from 'lucide-react';
 import { formatBDT } from '../../utils/formatters';
 import { StatementModal } from '../modals/StatementModal';
 import { RowActions, EditModal } from '../common/CrudKit';
 import type { Customer } from '../../types/erp';
+import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 
 interface CustomersViewProps {
   onOpenDueCollection: (customerId: string) => void;
 }
 
 export const CustomersView: React.FC<CustomersViewProps> = ({ onOpenDueCollection }) => {
-  const { customers, salesmen, addCustomer, updateCustomer, deleteCustomer } = useERP();
+  const { customers, salesmen, imeis, addCustomer, updateCustomer, deleteCustomer } = useERP();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [statementCustomerId, setStatementCustomerId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Customer | null>(null);
+  const [showScannerModal, setShowScannerModal] = useState(false);
 
   // New Customer Form State
   const [shopName, setShopName] = useState('');
@@ -39,12 +42,23 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ onOpenDueCollectio
   const [allowedDueDays, setAllowedDueDays] = useState<number>(15);
   const [salesmanId, setSalesmanId] = useState('');
 
-  const filtered = customers.filter(c =>
-    c.shopName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.ownerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.mobile.includes(searchTerm) ||
-    c.area.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filtered = customers.filter(c => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return true;
+
+    const matchesSoldIMEI = imeis.some(im =>
+      im.customerId === c.id &&
+      (im.imei1.toLowerCase().includes(q) ||
+       (im.imei2 && im.imei2.toLowerCase().includes(q)) ||
+       (im.serialNumber && im.serialNumber.toLowerCase().includes(q)))
+    );
+
+    return c.shopName.toLowerCase().includes(q) ||
+      c.ownerName.toLowerCase().includes(q) ||
+      c.mobile.includes(q) ||
+      c.area.toLowerCase().includes(q) ||
+      matchesSoldIMEI;
+  });
 
   const handleCreateCustomer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,16 +115,32 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ onOpenDueCollectio
       </div>
 
       {/* Search */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
-        <div className="relative max-w-md w-full">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search dealer shop, proprietor name, mobile number..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:bg-white"
-          />
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 max-w-lg w-full">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              id="customer-search-input"
+              data-search-input="true"
+              type="text"
+              placeholder="Search dealer shop, proprietor, mobile or sold IMEI (Ctrl+F)..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-14 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:bg-white"
+            />
+            <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-slate-200/60 px-1 py-0.5 rounded border border-slate-300/80 pointer-events-none">
+              ^F
+            </kbd>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowScannerModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-bold transition shrink-0 cursor-pointer"
+            title="বিক্রিত হ্যান্ডসেটের IMEI স্ক্যান করে কাস্টমার খুঁজুন"
+          >
+            <Scan className="w-3.5 h-3.5" />
+            <span>Scan Sold IMEI</span>
+          </button>
         </div>
       </div>
 
@@ -376,6 +406,28 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ onOpenDueCollectio
         entityType="customer"
         entityId={statementCustomerId || ''}
       />
+
+      {/* Multi-Barcode / Multi-IMEI Scanner Modal */}
+      {showScannerModal && (
+        <MultiBarcodeScannerModal
+          isOpen={showScannerModal}
+          onClose={() => setShowScannerModal(false)}
+          title="কাস্টমার / ডিলার IMEI লুকআপ স্ক্যানার"
+          subtitle="বিক্রিত হ্যান্ডসেটের বারকোড বা IMEI স্ক্যান করে সংশ্লিষ্ট ডিলারের প্রোফাইল ও লেজার খুঁজুন"
+          mode="lookup"
+          onConfirm={(records, tokens) => {
+            if (tokens && tokens.length > 0) {
+              const matchedRec = records.length > 0 ? records[0] : imeis.find(i => tokens.includes(i.imei1) || (i.imei2 && tokens.includes(i.imei2)));
+              if (matchedRec?.customerName) {
+                setSearchTerm(matchedRec.customerName);
+              } else {
+                setSearchTerm(tokens[0]);
+              }
+            }
+            setShowScannerModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };

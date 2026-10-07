@@ -291,52 +291,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       )}
 
-      {/* Fast Action Toolbar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-base font-bold text-slate-900">
-            {isBn ? 'মোবাইল ডিলার অপারেশন ড্যাশবোর্ড' : 'Mobile Distribution Operations Cockpit'}
-          </h1>
-          <p className="text-xs text-slate-500">
-            Real-time multi-brand inventory, sales telemetry, receivables, and profit intelligence
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={onOpenNewSale}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-xs transition"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>+ Wholesale Sale</span>
-          </button>
-
-          <button
-            onClick={onOpenNewPurchase}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-xs transition"
-          >
-            <Smartphone className="w-4 h-4" />
-            <span>+ Supplier Purchase</span>
-          </button>
-
-          <button
-            onClick={onOpenDueCollection}
-            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-xs transition"
-          >
-            <CreditCard className="w-4 h-4" />
-            <span>Collect Due</span>
-          </button>
-
-          <button
-            onClick={() => onOpenIMEILookup()}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-xs transition"
-          >
-            <Search className="w-4 h-4" />
-            <span>IMEI 360° Trace</span>
-          </button>
-        </div>
-      </div>
-
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Stock Valuation */}

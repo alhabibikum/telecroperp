@@ -9,6 +9,8 @@ import {
   Tag
 } from 'lucide-react';
 import { ProductVariant } from '../../types/erp';
+import { useFormKeyboardNavigation } from '../../hooks/useFormKeyboardNavigation';
+import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog';
 
 interface NewProductModalProps {
   isOpen: boolean;
@@ -41,6 +43,23 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
       reorderLevel: 5
     }
   ]);
+
+  const [showUnsavedPrompt, setShowUnsavedPrompt] = useState(false);
+  const isFormDirty = model.trim().length > 0 || description.trim().length > 0;
+
+  const handleRequestClose = () => {
+    if (isFormDirty) {
+      setShowUnsavedPrompt(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const { containerRef, onKeyDown } = useFormKeyboardNavigation({
+    isOpen,
+    autoFocusFirst: true,
+    onCancel: handleRequestClose
+  });
 
   if (!isOpen) return null;
 
@@ -109,12 +128,12 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
               <p className="text-xs text-slate-500 font-medium">Define pricing tiers, storage options & warranty</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-800 rounded-2xl hover:bg-slate-100/80 transition cursor-pointer">
+          <button onClick={handleRequestClose} className="p-2 text-slate-400 hover:text-slate-800 rounded-2xl hover:bg-slate-100/80 transition cursor-pointer" title="Close (Esc)">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 text-xs max-h-[80vh] overflow-y-auto bg-white/40 backdrop-blur-md">
+        <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-6 space-y-5 text-xs max-h-[80vh] overflow-y-auto bg-white/40 backdrop-blur-md">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block font-semibold text-slate-700 mb-1">Brand *</label>
@@ -303,20 +322,33 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-200/80 bg-white/60 backdrop-blur-xl -mx-6 -mb-6 p-6">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleRequestClose}
               className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-white/80 rounded-xl transition cursor-pointer"
             >
-              Cancel
+              Cancel <kbd className="ml-1 text-[10px] font-mono opacity-60">Esc</kbd>
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white font-black text-xs rounded-xl shadow-md transition-all cursor-pointer"
+              data-action="save"
+              className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white font-black text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
             >
-              Save Product Master
+              <span>Save Product Master</span>
+              <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-[10px] font-mono">Ctrl+Enter</kbd>
             </button>
           </div>
         </form>
       </div>
+
+      <UnsavedChangesDialog
+        isOpen={showUnsavedPrompt}
+        onCancel={() => setShowUnsavedPrompt(false)}
+        onConfirmDiscard={() => {
+          setShowUnsavedPrompt(false);
+          onClose();
+        }}
+        title="নতুন প্রোডাক্ট এন্ট্রি বাতিল করবেন? (Discard Product Entry?)"
+        message="আপনি ইতিমধ্যে মডেল বা বিবরণ লিখেছেন। এখন বাতিল করলে কোনো নতুন প্রোডাক্ট সংরক্ষিত হবে না।"
+      />
     </div>
   );
 };

@@ -14,10 +14,13 @@ import {
   Usb,
   Bluetooth,
   Zap,
-  Power
+  Power,
+  Camera,
+  QrCode
 } from 'lucide-react';
 import { formatBDT } from '../../utils/formatters';
-import { PaymentMethodType } from '../../types/erp';
+import { PaymentMethodType, IMEIRecord } from '../../types/erp';
+import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 import {
   connectSerialPrinter,
   connectBluetoothPrinter,
@@ -61,9 +64,49 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
   }>>([]);
 
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showMultiScanner, setShowMultiScanner] = useState(false);
 
   // Available in-stock phones at retail outlet
   const outletStock = imeis.filter(i => i.status === 'In Stock');
+
+  const handleMultiScanConfirm = (validRecords: IMEIRecord[]) => {
+    if (validRecords.length === 0) return;
+
+    let addedCount = 0;
+    let alreadyInCartCount = 0;
+
+    setCartItems(prev => {
+      const existingImeis = new Set(prev.map(c => c.imeiRecord.imei1));
+      const newItems = [...prev];
+
+      validRecords.forEach(rec => {
+        if (existingImeis.has(rec.imei1)) {
+          alreadyInCartCount++;
+          return;
+        }
+        existingImeis.add(rec.imei1);
+        const prod = products.find(p => p.id === rec.productId);
+        const variant = prod?.variants.find(v => v.id === rec.variantId);
+        const retailPrice = variant?.retailPrice || 50000;
+        newItems.push({ imeiRecord: rec, retailPrice, discount: 0 });
+        addedCount++;
+      });
+
+      return newItems;
+    });
+
+    if (alreadyInCartCount > 0) {
+      setMessage({
+        type: 'success',
+        text: `${addedCount}টি হ্যান্ডসেট কার্টে যুক্ত হয়েছে (${alreadyInCartCount}টি পূর্বে যুক্ত ছিল)।`
+      });
+    } else {
+      setMessage({
+        type: 'success',
+        text: `${addedCount}টি হ্যান্ডসেট সফলভাবে POS কার্টে যুক্ত হয়েছে!`
+      });
+    }
+  };
 
   const handleScanIMEI = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -300,20 +343,29 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
               <Barcode className="w-4 h-4 text-blue-600" />
               <span>Barcode / IMEI Scanner Input (Scan Handset Box)</span>
             </label>
-            <form onSubmit={handleScanIMEI} className="flex gap-2">
+            <form onSubmit={handleScanIMEI} className="flex flex-wrap gap-2">
               <input
                 type="text"
                 placeholder="Scan or type 15-digit IMEI (e.g. 359841103982001)..."
                 value={scannedIMEI}
                 onChange={(e) => setScannedIMEI(e.target.value)}
-                className="flex-1 p-2.5 text-xs font-mono font-bold bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white"
+                className="flex-1 min-w-[200px] p-2.5 text-xs font-mono font-bold bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white"
                 autoFocus
               />
               <button
                 type="submit"
-                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition"
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer shrink-0"
               >
                 Scan Add
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowMultiScanner(true)}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer shrink-0"
+                title="Camera, Barcode Gun, বা বাল্ক পেস্টের মাধ্যমে একসাথে একাধিক ডিভাইস কার্টে যুক্ত করুন"
+              >
+                <Camera className="w-4 h-4" />
+                <span>Multi-Scan</span>
               </button>
             </form>
           </div>
@@ -431,6 +483,12 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
                 type="text"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleCheckout();
+                  }
+                }}
                 className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg text-xs"
               />
             </div>
@@ -466,15 +524,26 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
 
             <button
               onClick={handleCheckout}
+              data-action="save"
               disabled={cartItems.length === 0}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-extrabold text-sm shadow-md disabled:opacity-50 transition flex items-center justify-center gap-2"
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-extrabold text-sm shadow-md disabled:opacity-50 transition flex items-center justify-center gap-2 cursor-pointer"
             >
               <Printer className="w-4 h-4" />
               <span>Complete Sale & Print Cash Memo</span>
+              <kbd className="px-1.5 py-0.5 bg-emerald-800/60 rounded text-[10px] font-mono ml-1">Ctrl+Enter</kbd>
             </button>
           </div>
         </div>
       </div>
+
+      <MultiBarcodeScannerModal
+        isOpen={showMultiScanner}
+        onClose={() => setShowMultiScanner(false)}
+        mode="pos-sale"
+        targetWarehouseId={retailOutlet?.id}
+        onConfirm={handleMultiScanConfirm}
+        confirmButtonText="সবগুলো হ্যান্ডসেট কার্টে যুক্ত করুন"
+      />
     </div>
   );
 };

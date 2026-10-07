@@ -15,6 +15,7 @@ import {
   QrCode
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
+import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 
 interface IMEISearchModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export const IMEISearchModal: React.FC<IMEISearchModalProps> = ({
   const { imeis } = useERP();
   const [searchTerm, setSearchTerm] = useState(initialIMEI);
   const [selectedIMEI, setSelectedIMEI] = useState<string | null>(null);
+  const [showScannerModal, setShowScannerModal] = useState(false);
 
   useEffect(() => {
     if (initialIMEI) {
@@ -82,16 +84,26 @@ export const IMEISearchModal: React.FC<IMEISearchModalProps> = ({
           {/* Left: Search & Filter List */}
           <div className="w-full md:w-80 border-r border-slate-200/70 flex flex-col bg-white/30 backdrop-blur-sm">
             <div className="p-3 border-b border-slate-200">
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Enter 15-digit IMEI or Serial..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
-                  autoFocus
-                />
+              <div className="flex items-center gap-1.5">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Enter 15-digit IMEI or Serial..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
+                    autoFocus
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowScannerModal(true)}
+                  className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition shrink-0 cursor-pointer"
+                  title="ক্যামেরা বা গান দিয়ে স্ক্যান করুন"
+                >
+                  <QrCode className="w-4 h-4 text-blue-600" />
+                </button>
               </div>
               <div className="text-[11px] text-slate-500 mt-2 flex items-center justify-between">
                 <span>Matching IMEIs: <b>{filtered.length}</b></span>
@@ -325,6 +337,24 @@ export const IMEISearchModal: React.FC<IMEISearchModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Multi-Barcode / Multi-IMEI Scanner Modal */}
+      {showScannerModal && (
+        <MultiBarcodeScannerModal
+          isOpen={showScannerModal}
+          onClose={() => setShowScannerModal(false)}
+          title="IMEI লাইফসাইকেল স্ক্যানার"
+          subtitle="হ্যান্ডসেটের বারকোড বা IMEI গান বা ক্যামেরা দিয়ে স্ক্যান করে সম্পূর্ণ হিস্ট্রি দেখুন"
+          mode="lookup"
+          onConfirm={(_records, tokens) => {
+            if (tokens && tokens.length > 0) {
+              setSearchTerm(tokens[0]);
+              setSelectedIMEI(tokens[0]);
+            }
+            setShowScannerModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };

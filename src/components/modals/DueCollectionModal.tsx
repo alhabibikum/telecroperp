@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
 import { PaymentMethodType, PaymentAllocationItem } from '../../types/erp';
+import { useFormKeyboardNavigation } from '../../hooks/useFormKeyboardNavigation';
+import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog';
 
 interface DueCollectionModalProps {
   isOpen: boolean;
@@ -45,6 +47,23 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
   // Manual allocations map
   const [allocations, setAllocations] = useState<PaymentAllocationItem[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showUnsavedPrompt, setShowUnsavedPrompt] = useState(false);
+
+  const isFormDirty = collectionAmount !== 50000 || notes.trim().length > 0 || transactionRef.trim().length > 0;
+
+  const handleRequestClose = () => {
+    if (isFormDirty) {
+      setShowUnsavedPrompt(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const { containerRef, onKeyDown } = useFormKeyboardNavigation({
+    isOpen,
+    autoFocusFirst: true,
+    onCancel: handleRequestClose
+  });
 
   useEffect(() => {
     if (initialCustomerId) setCustomerId(initialCustomerId);
@@ -140,12 +159,12 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-800 rounded-2xl hover:bg-slate-100/80 transition-all cursor-pointer">
+          <button onClick={handleRequestClose} className="p-2 text-slate-400 hover:text-slate-800 rounded-2xl hover:bg-slate-100/80 transition-all cursor-pointer" title="Close (Esc)">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto bg-white/40 backdrop-blur-md">
+        <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto bg-white/40 backdrop-blur-md">
           {errorMsg && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -378,21 +397,34 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleRequestClose}
                 className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-white/80 rounded-xl transition cursor-pointer"
               >
-                Cancel
+                Cancel <kbd className="ml-1 text-[10px] font-mono opacity-60">Esc</kbd>
               </button>
               <button
                 type="submit"
-                className="px-5 py-2.5 text-xs font-black bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 active:scale-95 text-white rounded-xl shadow-md transition-all cursor-pointer"
+                data-action="save"
+                className="px-5 py-2.5 text-xs font-black bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 active:scale-95 text-white rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
               >
-                Collect ৳ {collectionAmount.toLocaleString()} & Issue Receipt
+                <span>Collect ৳ {collectionAmount.toLocaleString()} & Issue Receipt</span>
+                <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-[10px] font-mono">Ctrl+Enter</kbd>
               </button>
             </div>
           </div>
         </form>
       </div>
+
+      <UnsavedChangesDialog
+        isOpen={showUnsavedPrompt}
+        onCancel={() => setShowUnsavedPrompt(false)}
+        onConfirmDiscard={() => {
+          setShowUnsavedPrompt(false);
+          onClose();
+        }}
+        title="বকেয়া আদায় ড্রাফট বাতিল করবেন? (Discard Due Collection?)"
+        message="আপনি ইতিমধ্যে আদায়ের পরিমাণ বা নোট পরিবর্তন করেছেন। এখন বাতিল করলে কোনো ভাউচার তৈরি হবে না।"
+      />
     </div>
   );
 };

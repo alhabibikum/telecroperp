@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Pencil, Trash2, Ban, X, AlertTriangle } from 'lucide-react';
 import type { CrudResult } from '../../context/ERPContext';
+import { useFormKeyboardNavigation } from '../../hooks/useFormKeyboardNavigation';
 
 export interface FieldDef {
   key: string;
@@ -26,6 +27,11 @@ interface EditModalProps {
 export const EditModal: React.FC<EditModalProps> = ({ title, fields, initial, onSave, onClose, saveLabel = 'Save Changes' }) => {
   const [values, setValues] = useState<Record<string, any>>({ ...initial });
   const [error, setError] = useState<string | null>(null);
+
+  const { containerRef, onKeyDown } = useFormKeyboardNavigation({
+    autoFocusFirst: true,
+    onCancel: onClose
+  });
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +75,7 @@ export const EditModal: React.FC<EditModalProps> = ({ title, fields, initial, on
             <X className="w-4 h-4" />
           </button>
         </div>
-        <form onSubmit={submit} className="p-5 overflow-y-auto space-y-4">
+        <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={submit} className="p-5 overflow-y-auto space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {fields.map(f => (
               <div key={f.key} className={f.half === false || f.type === 'textarea' ? 'sm:col-span-2' : ''}>
@@ -124,10 +130,10 @@ export const EditModal: React.FC<EditModalProps> = ({ title, fields, initial, on
           )}
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
             <button type="button" onClick={onClose} className="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg">
-              Cancel
+              Cancel <kbd className="ml-1 text-[10px] opacity-60">Esc</kbd>
             </button>
-            <button type="submit" className="px-5 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-xs">
-              {saveLabel}
+            <button type="submit" data-action="save" className="px-5 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-xs">
+              {saveLabel} <kbd className="ml-1 text-[10px] opacity-70">Ctrl+Enter</kbd>
             </button>
           </div>
         </form>
@@ -155,6 +161,20 @@ export const ConfirmAction: React.FC<ConfirmActionProps> = ({ title, message, co
     else setError(res.error || 'Action failed.');
   };
 
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      } else if (e.key === 'Enter' && !askReason) {
+        e.preventDefault();
+        run();
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose, askReason, run]);
+
   return (
     <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" role="alertdialog" aria-modal="true">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 overflow-hidden">
@@ -167,19 +187,26 @@ export const ConfirmAction: React.FC<ConfirmActionProps> = ({ title, message, co
           {askReason && (
             <input
               type="text"
-              placeholder="Reason (optional)"
+              placeholder="Reason (optional - press Enter to submit)"
               value={reason}
               onChange={e => setReason(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  run();
+                }
+              }}
+              autoFocus
               className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg"
             />
           )}
           {error && <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700">{error}</div>}
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={onClose} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">
-              Keep
+              Keep <kbd className="ml-1 text-[10px] opacity-60">Esc</kbd>
             </button>
-            <button onClick={run} className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg">
-              {confirmLabel}
+            <button onClick={run} className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg shadow-xs">
+              {confirmLabel} <kbd className="ml-1 text-[10px] opacity-80">Enter</kbd>
             </button>
           </div>
         </div>

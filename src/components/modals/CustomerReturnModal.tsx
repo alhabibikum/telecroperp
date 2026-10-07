@@ -7,10 +7,13 @@ import {
   AlertTriangle,
   CheckCircle2,
   Warehouse,
-  ShieldCheck
+  ShieldCheck,
+  Camera,
+  Barcode
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
-import { ReturnCondition } from '../../types/erp';
+import { ReturnCondition, IMEIRecord } from '../../types/erp';
+import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 
 interface CustomerReturnModalProps {
   isOpen: boolean;
@@ -36,6 +39,7 @@ export const CustomerReturnModal: React.FC<CustomerReturnModalProps> = ({
   const [refundAmount, setRefundAmount] = useState<number>(0);
   const [restockWarehouseId, setRestockWarehouseId] = useState<string>(warehouses[0]?.id || '');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showMultiScanner, setShowMultiScanner] = useState(false);
 
   if (!isOpen) return null;
 
@@ -123,9 +127,20 @@ export const CustomerReturnModal: React.FC<CustomerReturnModalProps> = ({
 
           {/* IMEI input */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Scan or Enter 15-Digit IMEI to Validate Return *
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-slate-700">
+                Scan or Enter 15-Digit IMEI to Validate Return *
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowMultiScanner(true)}
+                className="flex items-center gap-1 text-[11px] font-bold text-purple-700 hover:text-purple-800 bg-purple-50 hover:bg-purple-100 px-2.5 py-1 rounded-md border border-purple-200 transition cursor-pointer"
+                title="Camera বা Barcode Gun স্ক্যানার দিয়ে রিটার্ন যাচাই করুন"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>Multi-Scan (Gun/Camera)</span>
+              </button>
+            </div>
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -253,6 +268,18 @@ export const CustomerReturnModal: React.FC<CustomerReturnModalProps> = ({
           </div>
         </form>
       </div>
+
+      <MultiBarcodeScannerModal
+        isOpen={showMultiScanner}
+        onClose={() => setShowMultiScanner(false)}
+        mode="return-customer"
+        onConfirm={(validRecords) => {
+          if (validRecords.length > 0) {
+            handleIMEIChange(validRecords[0].imei1);
+          }
+        }}
+        confirmButtonText="রিটার্ন আইটেম নির্ধারণ করুন"
+      />
     </div>
   );
 };

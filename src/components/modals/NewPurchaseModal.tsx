@@ -8,10 +8,15 @@ import {
   AlertTriangle,
   Barcode,
   CheckCircle2,
-  FileText
+  FileText,
+  Camera
 } from 'lucide-react';
 import { formatBDT, parseBulkIMEIs } from '../../utils/formatters';
+import { extractTokensFromRaw } from '../../utils/barcodeScannerUtils';
 import { PaymentMethodType, PurchaseItem } from '../../types/erp';
+import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
+import { useFormKeyboardNavigation } from '../../hooks/useFormKeyboardNavigation';
+import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog';
 
 interface NewPurchaseModalProps {
   isOpen: boolean;
@@ -64,6 +69,44 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
   const [referenceNo, setReferenceNo] = useState('');
   const [notes, setNotes] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showUnsavedPrompt, setShowUnsavedPrompt] = useState(false);
+
+  // Form dirty state check
+  const isFormDirty = items.some(it => it.bulkIMEIText.trim().length > 0 || it.quantity > 5) || paidAmount > 0 || referenceNo.trim().length > 0;
+
+  const handleRequestClose = () => {
+    if (isFormDirty) {
+      setShowUnsavedPrompt(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const { containerRef, onKeyDown } = useFormKeyboardNavigation({
+    isOpen,
+    autoFocusFirst: true,
+    onCancel: handleRequestClose
+  });
+
+  // Multi-Barcode Scanner State
+  const [showMultiScanner, setShowMultiScanner] = useState(false);
+  const [activeScanItemIdx, setActiveScanItemIdx] = useState<number>(0);
+
+  const handleMultiScanConfirm = (_records: any[], allCleanTokens: string[]) => {
+    if (allCleanTokens.length === 0) return;
+    setItems(prev =>
+      prev.map((item, idx) => {
+        if (idx === activeScanItemIdx) {
+          return {
+            ...item,
+            bulkIMEIText: allCleanTokens.join('\n'),
+            quantity: Math.max(item.quantity, allCleanTokens.length)
+          };
+        }
+        return item;
+      })
+    );
+  };
 
   if (!isOpen) return null;
 
@@ -279,12 +322,12 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-800 rounded-2xl hover:bg-slate-100/80 transition-all cursor-pointer">
+          <button onClick={handleRequestClose} className="p-2 text-slate-400 hover:text-slate-800 rounded-2xl hover:bg-slate-100/80 transition-all cursor-pointer" title="Close (Esc)">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto bg-white/40 backdrop-blur-md">
+        <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto bg-white/40 backdrop-blur-md">
           {errorMsg && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -465,13 +508,25 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                         <label className="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
                           <span>Paste {item.quantity} IMEI 1 Numbers (Comma or Newline separated)</span>
                         </label>
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveScanItemIdx(idx);
+                              setShowMultiScanner(true);
+                            }}
+                            className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-700 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-md border border-indigo-200 transition cursor-pointer"
+                            title="Camera, Barcode Gun, বা বাল্ক পেস্টের মাধ্যমে একসাথে একাধিক IMEI স্ক্যান করুন"
+                          >
+                            <Camera className="w-3.5 h-3.5" />
+                            <span>Multi-Scan (Gun/Camera)</span>
+                          </button>
                           <button
                             type="button"
                             onClick={() => handleAutoFillSampleIMEIs(idx)}
                             className="text-[11px] text-blue-600 hover:underline font-semibold"
                           >
-                            + Auto-Generate {item.quantity} Valid IMEIs (Quick Test)
+                            + Auto-Gen (Test)
                           </button>
                           <span className={`text-[11px] font-bold ${
                             isCountMatched ? 'text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded' : 'text-amber-700 bg-amber-100 px-2 py-0.5 rounded'
@@ -618,21 +673,43 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleRequestClose}
                 className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-white/80 rounded-xl transition cursor-pointer"
               >
-                Cancel
+                Cancel <kbd className="ml-1 text-[10px] font-mono opacity-60">Esc</kbd>
               </button>
               <button
                 type="submit"
-                className="px-5 py-2.5 text-xs font-black bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-95 text-white rounded-xl shadow-md transition-all cursor-pointer"
+                data-action="save"
+                className="px-5 py-2.5 text-xs font-black bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-95 text-white rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
               >
-                Receive Goods & Save Purchase
+                <span>Receive Goods & Save Purchase</span>
+                <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-[10px] font-mono">Ctrl+Enter</kbd>
               </button>
             </div>
           </div>
         </form>
       </div>
+
+      <MultiBarcodeScannerModal
+        isOpen={showMultiScanner}
+        onClose={() => setShowMultiScanner(false)}
+        mode="purchase"
+        initialTokens={extractTokensFromRaw(items[activeScanItemIdx]?.bulkIMEIText || '')}
+        onConfirm={handleMultiScanConfirm}
+        confirmButtonText="সবগুলো IMEI যুক্ত করুন"
+      />
+
+      <UnsavedChangesDialog
+        isOpen={showUnsavedPrompt}
+        onCancel={() => setShowUnsavedPrompt(false)}
+        onConfirmDiscard={() => {
+          setShowUnsavedPrompt(false);
+          onClose();
+        }}
+        title="পারচেজ ইনভয়েস বাতিল করবেন? (Discard Purchase Entry?)"
+        message="আপনি ইতিমধ্যে আইটেম বিবরণ বা আইএমইআই টাইপ করেছেন। এখন বাতিল করলে সব ইনওয়ার্ড এন্ট্রি ড্রাফট মুছে যাবে।"
+      />
     </div>
   );
 };

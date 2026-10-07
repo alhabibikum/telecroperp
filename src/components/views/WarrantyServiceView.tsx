@@ -15,10 +15,13 @@ import {
   Building,
   User,
   AlertTriangle,
-  X
+  X,
+  Scan,
+  QrCode
 } from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
 import { WarrantyStatus } from '../../types/erp';
+import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 
 export const WarrantyServiceView: React.FC = () => {
   const {
@@ -34,6 +37,8 @@ export const WarrantyServiceView: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedClaimForPrint, setSelectedClaimForPrint] = useState<any | null>(null);
+  const [showScannerModal, setShowScannerModal] = useState(false);
+  const [scannerContext, setScannerContext] = useState<'filter' | 'modal'>('filter');
 
   // New Claim Form State
   const [customerId, setCustomerId] = useState(customers[0]?.id || '');
@@ -230,6 +235,19 @@ export const WarrantyServiceView: React.FC = () => {
           />
         </div>
 
+        <button
+          type="button"
+          onClick={() => {
+            setScannerContext('filter');
+            setShowScannerModal(true);
+          }}
+          className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer"
+          title="বারকোড বা IMEI স্ক্যান করে ওয়ারেন্টি ক্লেইম খুঁজুন"
+        >
+          <Scan className="w-3.5 h-3.5" />
+          <span>Scan / Filter</span>
+        </button>
+
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-slate-400" />
           <select
@@ -408,9 +426,22 @@ export const WarrantyServiceView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Device IMEI Number *
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-semibold text-slate-700">
+                      Device IMEI Number *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setScannerContext('modal');
+                        setShowScannerModal(true);
+                      }}
+                      className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
+                      <span>⚡ Scan IMEI (Gun/Camera)</span>
+                    </button>
+                  </div>
                   <input
                     type="text"
                     placeholder="Scan or enter 15-digit IMEI..."
@@ -598,6 +629,42 @@ export const WarrantyServiceView: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Multi-Barcode / Multi-IMEI Scanner Modal */}
+      {showScannerModal && (
+        <MultiBarcodeScannerModal
+          isOpen={showScannerModal}
+          onClose={() => setShowScannerModal(false)}
+          title={
+            scannerContext === 'filter'
+              ? 'ওয়ারেন্টি ক্লেইম সার্চ স্ক্যানার'
+              : 'ওয়ারেন্টি ডিভাইস IMEI স্ক্যানার'
+          }
+          subtitle={
+            scannerContext === 'filter'
+              ? 'হ্যান্ডসেটের বারকোড বা IMEI স্ক্যান করে পূর্বের সার্ভিসিং রেকর্ড ট্র্যাক করুন'
+              : 'সার্ভিস সেন্টারে পাঠানোর জন্য হ্যান্ডসেটের বারকোড বা IMEI স্ক্যান করুন'
+          }
+          mode="lookup"
+          onConfirm={(records, tokens) => {
+            if (scannerContext === 'filter') {
+              if (tokens && tokens.length > 0) {
+                setSearchTerm(tokens[0]);
+              }
+            } else {
+              if (tokens && tokens.length > 0) {
+                const code = tokens[0];
+                handleIMEIChange(code);
+                const found = records.find(i => i.imei1 === code || i.imei2 === code) || imeis.find(i => i.imei1 === code || i.imei2 === code);
+                if (found?.customerId) {
+                  setCustomerId(found.customerId);
+                }
+              }
+            }
+            setShowScannerModal(false);
+          }}
+        />
       )}
     </div>
   );

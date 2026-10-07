@@ -104,12 +104,17 @@ export const WholesaleSalesView: React.FC<WholesaleSalesViewProps> = ({
         <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
+            id="wholesale-search-input"
+            data-search-input="true"
             type="text"
-            placeholder="Search Invoice #, Dealer Shop, Salesman..."
+            placeholder="Search Invoice #, Dealer Shop, Salesman (Ctrl+F)..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:bg-white"
+            className="w-full pl-9 pr-14 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:bg-white"
           />
+          <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-slate-200/60 px-1 py-0.5 rounded border border-slate-300/80 pointer-events-none">
+            ^F
+          </kbd>
         </div>
 
         <div className="flex items-center gap-2 text-xs">

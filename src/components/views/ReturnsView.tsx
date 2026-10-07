@@ -5,19 +5,22 @@ import {
   PlusCircle,
   Search,
   CheckCircle,
+  CheckCircle2,
   AlertTriangle,
   RotateCcw,
   Smartphone,
   ShieldAlert,
   Truck,
   Trash2,
-  CheckCircle2,
   Check,
   X,
-  Edit3
+  Edit3,
+  Scan,
+  QrCode
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
 import { SupplierReturnModal } from '../modals/SupplierReturnModal';
+import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 import type { CustomerReturn, SupplierReturn } from '../../types/erp';
 
 interface ReturnsViewProps {
@@ -43,6 +46,7 @@ export const ReturnsView: React.FC<ReturnsViewProps> = ({
   const [activeTab, setActiveTab] = useState<'customer' | 'supplier'>('customer');
   const [showSupplierReturnModal, setShowSupplierReturnModal] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [showScannerModal, setShowScannerModal] = useState(false);
 
   const filteredCustomer = customerReturns.filter(r =>
     r.returnNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -191,16 +195,32 @@ export const ReturnsView: React.FC<ReturnsViewProps> = ({
       </div>
 
       {/* Search */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
-        <div className="relative max-w-md w-full">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search return voucher #, IMEI, party, or product..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:bg-white"
-          />
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 max-w-lg w-full">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              id="returns-search-input"
+              data-search-input="true"
+              type="text"
+              placeholder="Search return voucher #, IMEI, party, or product (Ctrl+F)..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-14 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:bg-white"
+            />
+            <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-slate-200/60 px-1 py-0.5 rounded border border-slate-300/80 pointer-events-none">
+              ^F
+            </kbd>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowScannerModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-bold transition shrink-0 cursor-pointer"
+            title="রিটার্নকৃত ডিভাইসের বারকোড বা IMEI স্ক্যান করে খুঁজুন"
+          >
+            <Scan className="w-3.5 h-3.5" />
+            <span>Scan / Filter IMEI</span>
+          </button>
         </div>
       </div>
 
@@ -372,6 +392,23 @@ export const ReturnsView: React.FC<ReturnsViewProps> = ({
         isOpen={showSupplierReturnModal}
         onClose={() => setShowSupplierReturnModal(false)}
       />
+
+      {/* Multi-Barcode / Multi-IMEI Scanner Modal */}
+      {showScannerModal && (
+        <MultiBarcodeScannerModal
+          isOpen={showScannerModal}
+          onClose={() => setShowScannerModal(false)}
+          title="রিটার্ন ভাউচার ও IMEI সার্চ স্ক্যানার"
+          subtitle="রিটার্নকৃত হ্যান্ডসেটের বারকোড বা IMEI বারকোড গান বা ক্যামেরা দিয়ে স্ক্যান করে সংশ্লিষ্ট ভাউচার খুঁজুন"
+          mode="lookup"
+          onConfirm={(_records, tokens) => {
+            if (tokens && tokens.length > 0) {
+              setSearchTerm(tokens[0]);
+            }
+            setShowScannerModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };

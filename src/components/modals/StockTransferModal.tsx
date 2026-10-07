@@ -5,9 +5,13 @@ import {
   ArrowRightLeft,
   Warehouse,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Camera,
+  Barcode
 } from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
+import { IMEIRecord } from '../../types/erp';
+import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 
 interface StockTransferModalProps {
   isOpen: boolean;
@@ -29,6 +33,18 @@ export const StockTransferModal: React.FC<StockTransferModalProps> = ({
   const [selectedImeis, setSelectedImeis] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showMultiScanner, setShowMultiScanner] = useState(false);
+
+  const handleMultiScanConfirm = (validRecords: IMEIRecord[]) => {
+    if (validRecords.length === 0) return;
+    const first = validRecords[0];
+    if (first.productId !== selectedProductId || first.variantId !== selectedVariantId) {
+      setSelectedProductId(first.productId);
+      setSelectedVariantId(first.variantId);
+    }
+    const matchingImeis = validRecords.map(r => r.imei1);
+    setSelectedImeis(prev => Array.from(new Set([...prev, ...matchingImeis])));
+  };
 
   if (!isOpen) return null;
 
@@ -198,9 +214,20 @@ export const StockTransferModal: React.FC<StockTransferModalProps> = ({
               <span className="font-semibold text-slate-700">
                 Select Available IMEIs to Transfer ({availableInSource.length} In Stock in Source)
               </span>
-              <span className="font-bold text-blue-700">
-                {selectedImeis.length} Units Selected
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowMultiScanner(true)}
+                  className="flex items-center gap-1 text-[11px] font-bold text-blue-700 hover:text-blue-800 bg-white px-2.5 py-1 rounded-md border border-blue-200 shadow-xs transition cursor-pointer"
+                  title="Gun বা Camera স্ক্যানার দিয়ে ডিভাইসগুলো স্ক্যান করুন"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Multi-Scan</span>
+                </button>
+                <span className="font-bold text-blue-700">
+                  {selectedImeis.length} Units Selected
+                </span>
+              </div>
             </div>
 
             {availableInSource.length === 0 ? (
@@ -270,6 +297,15 @@ export const StockTransferModal: React.FC<StockTransferModalProps> = ({
           </div>
         </form>
       </div>
+
+      <MultiBarcodeScannerModal
+        isOpen={showMultiScanner}
+        onClose={() => setShowMultiScanner(false)}
+        mode="transfer"
+        targetWarehouseId={sourceWarehouseId}
+        onConfirm={handleMultiScanConfirm}
+        confirmButtonText="ট্রান্সফার তালিকায় যুক্ত করুন"
+      />
     </div>
   );
 };

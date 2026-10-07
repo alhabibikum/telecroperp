@@ -3,6 +3,7 @@ import type {
   Brand,
   Product,
   IMEIRecord,
+  IMEIStatus,
   Warehouse,
   Supplier,
   Customer,
@@ -834,4 +835,75 @@ export const executeSendSmsNotification = (
   enqueueChange('sms_logs', 'INSERT', newSms.id, newSms, `এসএমএস লগ (${sms.recipientPhone})`);
   addAudit(`Dispatched SMS to ${sms.recipientPhone}`, 'SMS Gateway', sms.recipientName);
   return { success: true };
+};
+
+// ---- STOCK ADJUSTMENT FOR IMEIS ----
+export const executeAdjustStockIMEIs = (
+  data: {
+    imeis: string[];
+    newStatus: IMEIStatus;
+    newCondition?: 'Brand New' | 'Open Box' | 'Damaged' | 'Refurbished';
+    newWarehouseId?: string;
+    reason: string;
+  },
+  ctx: MasterDataContextBundle
+): { success: boolean; count?: number; error?: string } => {
+  const { setImeis, imeis, warehouses, currentUserRole, enqueueChange, addAudit } = ctx;
+  if (!data.imeis || data.imeis.length === 0) return { success: false, error: 'No IMEIs provided' };
+
+  const targetWh = data.newWarehouseId ? warehouses.find(w => w.id === data.newWarehouseId) : undefined;
+  const today = todayStr();
+
+  setImeis(prev =>
+    prev.map(i => {
+      if (data.imeis.includes(i.imei1)) {
+        return {
+          ...i,
+          status: data.newStatus,
+          condition: data.newCondition || i.condition,
+          warehouseId: targetWh ? targetWh.id : i.warehouseId,
+          warehouseName: targetWh ? targetWh.name : i.warehouseName,
+          history: [
+            ...i.history,
+            {
+              date: `${today} 12:00`,
+              action: 'Stock Adjustment',
+              description: `Status changed to ${data.newStatus}${data.newCondition ? ` (${data.newCondition})` : ''}: ${data.reason}`,
+              user: currentUserRole
+            }
+          ]
+        };
+      }
+      return i;
+    })
+  );
+
+  data.imeis.forEach(im => {
+    const rec = imeis.find(i => i.imei1 === im);
+    if (rec) {
+      enqueueChange(
+        'imeis',
+        'UPDATE',
+        rec.id,
+        {
+          ...rec,
+          status: data.newStatus,
+          condition: data.newCondition || rec.condition,
+          warehouseId: targetWh ? targetWh.id : rec.warehouseId,
+          warehouseName: targetWh ? targetWh.name : rec.warehouseName
+        },
+        `IMEI স্টক সমন্বয় (${im}) -> ${data.newStatus}`
+      );
+    }
+  });
+
+  addAudit(
+    `Stock Adjustment (${data.imeis.length} units)`,
+    'Inventory',
+    data.newStatus,
+    undefined,
+    `Status set to ${data.newStatus}. Reason: ${data.reason}`
+  );
+
+  return { success: true, count: data.imeis.length };
 };

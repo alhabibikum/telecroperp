@@ -3,6 +3,7 @@ import {
   Brand,
   Product,
   IMEIRecord,
+  IMEIStatus,
   Warehouse,
   Supplier,
   Customer,
@@ -164,7 +165,8 @@ import {
   executeAddBrandIncentiveScheme,
   executeUpdateBrandIncentiveStatus,
   executeBulkImportData,
-  executeSendSmsNotification
+  executeSendSmsNotification,
+  executeAdjustStockIMEIs
 } from './actions/masterDataActions';
 import {
   SystemContextBundle,
@@ -590,6 +592,13 @@ interface ERPContextType {
   deleteCustomerReturn: (id: string) => { success: boolean; error?: string };
   updateSupplierReturnStatus: (id: string, status: SupplierReturn['status']) => { success: boolean; error?: string };
   deleteSupplierReturn: (id: string) => { success: boolean; error?: string };
+  adjustStockIMEIs: (data: {
+    imeis: string[];
+    newStatus: IMEIStatus;
+    newCondition?: 'Brand New' | 'Open Box' | 'Damaged' | 'Refurbished';
+    newWarehouseId?: string;
+    reason: string;
+  }) => { success: boolean; count?: number; error?: string };
 }
 
 const ERPContext = createContext<ERPContextType | null>(null);
@@ -2205,6 +2214,13 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     executeBulkImportData(entityType, rows, masterDataBundle);
 
   const sendSmsNotification = (sms: Omit<SmsLog, 'id' | 'sentAt' | 'status'>) => executeSendSmsNotification(sms, masterDataBundle);
+  const adjustStockIMEIs = (data: {
+    imeis: string[];
+    newStatus: IMEIStatus;
+    newCondition?: 'Brand New' | 'Open Box' | 'Damaged' | 'Refurbished';
+    newWarehouseId?: string;
+    reason: string;
+  }) => executeAdjustStockIMEIs(data, masterDataBundle);
 
   // EMI & Hire-Purchase Operations
   const emiContextBundle: EMIContextBundle = {
@@ -2848,7 +2864,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateCustomerReturnStatus,
         deleteCustomerReturn,
         updateSupplierReturnStatus,
-        deleteSupplierReturn
+        deleteSupplierReturn,
+        adjustStockIMEIs
       }}
     >
       {children}

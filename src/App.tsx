@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ERPProvider, useERP } from './context/ERPContext';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
@@ -45,28 +45,72 @@ import { ApiIntegrationsView } from './components/views/ApiIntegrationsView';
 import { LoginView } from './components/auth/LoginView';
 import { OfflineStatusBanner } from './components/common/OfflineStatusBanner';
 
-// Modals
 import { IMEISearchModal } from './components/modals/IMEISearchModal';
 import { NewSaleModal } from './components/modals/NewSaleModal';
 import { NewPurchaseModal } from './components/modals/NewPurchaseModal';
+import { NewProductModal } from './components/modals/NewProductModal';
 import { DueCollectionModal } from './components/modals/DueCollectionModal';
 import { CustomerReturnModal } from './components/modals/CustomerReturnModal';
 import { StockTransferModal } from './components/modals/StockTransferModal';
 import { InvoicePrintModal } from './components/modals/InvoicePrintModal';
-import { ShieldAlert, ArrowRight } from 'lucide-react';
+import { MultiBarcodeScannerModal } from './components/common/MultiBarcodeScannerModal';
+import { CommandPaletteModal } from './components/common/CommandPaletteModal';
+import { KeyboardShortcutHelpModal } from './components/common/KeyboardShortcutHelpModal';
+import { useToast } from './components/common/ToastNotificationSystem';
+import { ShieldAlert, ArrowRight, ChevronRight } from 'lucide-react';
 
 const ERPAppContent: React.FC = () => {
-  const { isAuthenticated, currentUserRole, currentUser, hasPermission } = useERP();
+  const { isAuthenticated, currentUserRole, currentUser, hasPermission, salesInvoices, triggerManualSync } = useERP();
+  const { showSuccess, showInfo, showError } = useToast();
   const [currentView, setCurrentView] = useState<string>('dashboard');
+
+  // Desktop Full Screen Workspace & Sidebar Behavior (Initially collapsed for maximum workspace)
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(false);
+
+  // View Navigation History
+  const [viewHistory, setViewHistory] = useState<string[]>(['dashboard']);
+  const [historyIndex, setHistoryIndex] = useState(0);
+
+  const handleNavigateView = (view: string) => {
+    setCurrentView(view);
+    setViewHistory(prev => {
+      const updated = prev.slice(0, historyIndex + 1);
+      return [...updated, view];
+    });
+    setHistoryIndex(prev => prev + 1);
+  };
+
+  const handleNavBack = () => {
+    if (historyIndex > 0) {
+      const target = viewHistory[historyIndex - 1];
+      setHistoryIndex(prev => prev - 1);
+      setCurrentView(target);
+      showInfo('পূর্ববর্তী ভিউ', target);
+    }
+  };
+
+  const handleNavForward = () => {
+    if (historyIndex < viewHistory.length - 1) {
+      const target = viewHistory[historyIndex + 1];
+      setHistoryIndex(prev => prev + 1);
+      setCurrentView(target);
+      showInfo('পরবর্তী ভিউ', target);
+    }
+  };
 
   // Modal States
   const [showIMEIModal, setShowIMEIModal] = useState(false);
   const [targetIMEI, setTargetIMEI] = useState<string>('');
 
+  const [showMultiScanner, setShowMultiScanner] = useState(false);
+  const [multiScannerTokens, setMultiScannerTokens] = useState<string[]>([]);
+  const [multiScannerMode, setMultiScannerMode] = useState<any>('lookup');
+
   const [showNewSaleModal, setShowNewSaleModal] = useState(false);
   const [saleModalType, setSaleModalType] = useState<'Wholesale' | 'Retail POS'>('Wholesale');
 
   const [showNewPurchaseModal, setShowNewPurchaseModal] = useState(false);
+  const [showNewProductModal, setShowNewProductModal] = useState(false);
 
   const [showDueCollectionModal, setShowDueCollectionModal] = useState(false);
   const [collectionCustomerId, setCollectionCustomerId] = useState<string | undefined>(undefined);
@@ -77,9 +121,19 @@ const ERPAppContent: React.FC = () => {
   const [showInvoicePrintModal, setShowInvoicePrintModal] = useState(false);
   const [printInvoiceNo, setPrintInvoiceNo] = useState<string>('');
 
+  // Global Command Palette & Shortcut Help
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showShortcutHelp, setShowShortcutHelp] = useState(false);
+
   const handleOpenIMEILookup = (imei?: string) => {
     setTargetIMEI(imei || '');
     setShowIMEIModal(true);
+  };
+
+  const handleOpenMultiScanner = (initialTokens?: string[], mode: any = 'lookup') => {
+    setMultiScannerTokens(initialTokens || []);
+    setMultiScannerMode(mode);
+    setShowMultiScanner(true);
   };
 
   const handleOpenNewSale = (type: 'Wholesale' | 'Retail POS' = 'Wholesale') => {
@@ -97,6 +151,202 @@ const ERPAppContent: React.FC = () => {
     setShowInvoicePrintModal(true);
   };
 
+  // Context-Aware New Entry (Ctrl + N)
+  const handleContextNewEntry = () => {
+    if (currentView === 'wholesale-sales' || currentView === 'retail-pos' || currentView === 'dashboard') {
+      handleOpenNewSale(currentView === 'retail-pos' ? 'Retail POS' : 'Wholesale');
+    } else if (currentView === 'purchases') {
+      setShowNewPurchaseModal(true);
+    } else if (currentView === 'inventory') {
+      setShowNewProductModal(true);
+    } else if (currentView === 'due-collection' || currentView === 'due-ageing') {
+      handleOpenDueCollection();
+    } else if (currentView === 'stock-transfers' || currentView === 'warehouses') {
+      setShowStockTransferModal(true);
+    } else if (currentView === 'returns') {
+      setShowCustomerReturnModal(true);
+    } else if (currentView === 'imei-trace') {
+      handleOpenMultiScanner();
+    } else {
+      setShowCommandPalette(true);
+    }
+  };
+
+  // Current view search focus (Ctrl + F)
+  const focusCurrentSearch = () => {
+    const target = document.querySelector<HTMLInputElement>(
+      'input[data-search-input="true"], #view-search-input, #global-header-search, input[placeholder*="সার্চ"], input[placeholder*="Search"], input[placeholder*="খুঁজুন"], input[type="search"]'
+    );
+    if (target) {
+      target.focus();
+      target.select?.();
+    } else {
+      setShowCommandPalette(true);
+    }
+  };
+
+  // Save active form or modal (Ctrl + S)
+  const handleSaveActive = () => {
+    const activeSubmit = document.querySelector<HTMLButtonElement>(
+      '[role="dialog"] button[type="submit"]:not([disabled]), [role="dialog"] button[data-action="save"]:not([disabled]), form button[type="submit"]:not([disabled])'
+    );
+    if (activeSubmit) {
+      activeSubmit.click();
+    } else {
+      showInfo('কোনো খোলা ফর্ম নেই', 'সেভ করার জন্য কোনো সক্রিয় ফর্ম পাওয়া যায়নি।');
+    }
+  };
+
+  // Safe Data Refresh & Cloud Sync (Ctrl + R)
+  const handleDataRefresh = async () => {
+    try {
+      const res = await triggerManualSync();
+      showSuccess('ডাটাবেজ রিফ্রেশ সম্পন্ন হয়েছে', res?.message || 'সকল তথ্য সফলভাবে ক্লাউডের সাথে সমন্বিত হয়েছে।');
+    } catch (err: any) {
+      showError('রিফ্রেশ ব্যর্থ হয়েছে', err?.message || 'অনুগ্রহ করে নেটওয়ার্ক সংযোগ চেক করুন।');
+    }
+  };
+
+  // Global Keyboard Shortcuts Coordinator
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const isCtrl = e.ctrlKey || e.metaKey;
+      const key = e.key.toLowerCase();
+
+      // 1. Ctrl + K: Command Palette & Menu
+      if (isCtrl && key === 'k') {
+        e.preventDefault();
+        setShowCommandPalette(prev => !prev);
+        return;
+      }
+
+      // 2. Ctrl + F: Search in active view
+      if (isCtrl && key === 'f') {
+        e.preventDefault();
+        focusCurrentSearch();
+        return;
+      }
+
+      // 3. Ctrl + N: Context-Aware New Entry
+      if (isCtrl && key === 'n') {
+        e.preventDefault();
+        handleContextNewEntry();
+        return;
+      }
+
+      // 4. Ctrl + S: Save active modal / form
+      if (isCtrl && key === 's') {
+        e.preventDefault();
+        handleSaveActive();
+        return;
+      }
+
+      // 5. Ctrl + P: Print active
+      if (isCtrl && key === 'p') {
+        e.preventDefault();
+        if (showInvoicePrintModal) {
+          window.print();
+        } else if (currentView === 'reports' || currentView === 'classic-reports' || currentView === 'dynamic-business-report' || currentView === 'barcode-labels') {
+          window.print();
+        } else if (salesInvoices.length > 0) {
+          handlePrintInvoice(salesInvoices[0].invoiceNo);
+        } else {
+          window.print();
+        }
+        return;
+      }
+
+      // 6. Ctrl + Enter: Submit active form
+      if (isCtrl && e.key === 'Enter') {
+        e.preventDefault();
+        const activeSubmit = document.querySelector<HTMLButtonElement>(
+          '[role="dialog"] button[type="submit"]:not([disabled]), [role="dialog"] button[data-action="save"]:not([disabled]), form button[type="submit"]:not([disabled])'
+        );
+        if (activeSubmit) {
+          activeSubmit.click();
+        }
+        return;
+      }
+
+      // 7. Alt + Left / Alt + Right: History navigation
+      if (e.altKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handleNavBack();
+        return;
+      }
+      if (e.altKey && e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNavForward();
+        return;
+      }
+
+      // 8. Ctrl + R: Safe Data Refresh
+      if (isCtrl && key === 'r') {
+        e.preventDefault();
+        handleDataRefresh();
+        return;
+      }
+
+      // 9. Ctrl + / or F1: Keyboard Shortcuts Help
+      if ((isCtrl && e.key === '/') || e.key === 'F1') {
+        e.preventDefault();
+        setShowShortcutHelp(prev => !prev);
+        return;
+      }
+
+      // 10. Ctrl + B: Multi-Barcode Scanner
+      if (isCtrl && key === 'b') {
+        e.preventDefault();
+        handleOpenMultiScanner();
+        return;
+      }
+
+      // 11. Ctrl + [: Toggle Desktop Sidebar
+      if (isCtrl && e.key === '[') {
+        e.preventDefault();
+        setIsSidebarExpanded(prev => !prev);
+        return;
+      }
+
+      // 12. Escape: Top Modal Dismiss
+      if (e.key === 'Escape') {
+        if (showShortcutHelp) {
+          e.preventDefault();
+          setShowShortcutHelp(false);
+        } else if (showCommandPalette) {
+          e.preventDefault();
+          setShowCommandPalette(false);
+        } else if (showMultiScanner) {
+          e.preventDefault();
+          setShowMultiScanner(false);
+        } else if (showIMEIModal) {
+          e.preventDefault();
+          setShowIMEIModal(false);
+        } else if (showInvoicePrintModal) {
+          e.preventDefault();
+          setShowInvoicePrintModal(false);
+        } else if (showStockTransferModal) {
+          e.preventDefault();
+          setShowStockTransferModal(false);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [
+    showCommandPalette,
+    showShortcutHelp,
+    showMultiScanner,
+    showIMEIModal,
+    showInvoicePrintModal,
+    showStockTransferModal,
+    currentView,
+    historyIndex,
+    viewHistory,
+    salesInvoices
+  ]);
+
   if (!isAuthenticated) {
     return (
       <>
@@ -111,16 +361,42 @@ const ERPAppContent: React.FC = () => {
       <OfflineStatusBanner />
       {/* Top Universal Header */}
       <Header
+        isSidebarExpanded={isSidebarExpanded}
+        onToggleSidebar={() => setIsSidebarExpanded(prev => !prev)}
         onOpenNewSale={() => handleOpenNewSale('Wholesale')}
         onOpenNewPurchase={() => setShowNewPurchaseModal(true)}
         onOpenDueCollection={() => handleOpenDueCollection()}
         onOpenIMEILookup={handleOpenIMEILookup}
-        onSelectView={setCurrentView}
+        onOpenMultiScanner={handleOpenMultiScanner}
+        onOpenCommandPalette={() => setShowCommandPalette(true)}
+        onOpenShortcutsHelp={() => setShowShortcutHelp(true)}
+        onSelectView={handleNavigateView}
       />
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Fixed in place */}
-        <Sidebar currentView={currentView} onSelectView={setCurrentView} />
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Left Sidebar */}
+        <Sidebar
+          isExpanded={isSidebarExpanded}
+          onToggleExpand={() => setIsSidebarExpanded(prev => !prev)}
+          currentView={currentView}
+          onSelectView={handleNavigateView}
+        />
+
+        {/* Floating Expand Sidebar Button (">") when sidebar is collapsed */}
+        {!isSidebarExpanded && (
+          <button
+            type="button"
+            onClick={() => setIsSidebarExpanded(true)}
+            className="fixed left-0 top-20 z-40 bg-white/95 hover:bg-blue-600 hover:text-white text-slate-700 border border-slate-300 rounded-r-xl py-3 px-1.5 shadow-lg hover:shadow-xl transition-all flex flex-col items-center gap-1 cursor-pointer group backdrop-blur-xs select-none"
+            title="সাইডবার খুলুন (Expand Sidebar: > / Ctrl + [)"
+            aria-label="Expand Sidebar"
+          >
+            <ChevronRight className="w-4 h-4 text-blue-600 group-hover:text-white transition-colors stroke-[3]" />
+            <span className="text-[9px] font-black uppercase tracking-wider [writing-mode:vertical-lr] text-slate-500 group-hover:text-white transition-colors">
+              মেন্যু
+            </span>
+          </button>
+        )}
 
         {/* Main Content Viewport - Only this scrolls */}
         <main className="flex-1 h-full overflow-y-auto overflow-x-hidden scroll-smooth">
@@ -387,6 +663,45 @@ const ERPAppContent: React.FC = () => {
         isOpen={showInvoicePrintModal}
         onClose={() => setShowInvoicePrintModal(false)}
         invoiceNo={printInvoiceNo}
+      />
+
+      <MultiBarcodeScannerModal
+        isOpen={showMultiScanner}
+        onClose={() => setShowMultiScanner(false)}
+        mode={multiScannerMode}
+        initialTokens={multiScannerTokens}
+        onConfirm={(validRecords, allCleanTokens) => {
+          if (validRecords.length > 0) {
+            handleOpenIMEILookup(validRecords[0].imei1);
+          }
+        }}
+        confirmButtonText="360° বিস্তারিত দেখুন"
+      />
+
+      <NewProductModal
+        isOpen={showNewProductModal}
+        onClose={() => setShowNewProductModal(false)}
+      />
+
+      <CommandPaletteModal
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        onSelectView={handleNavigateView}
+        onOpenNewSale={handleOpenNewSale}
+        onOpenNewPurchase={() => setShowNewPurchaseModal(true)}
+        onOpenDueCollection={handleOpenDueCollection}
+        onOpenIMEILookup={handleOpenIMEILookup}
+        onOpenMultiScanner={() => handleOpenMultiScanner()}
+        onOpenShortcutsHelp={() => setShowShortcutHelp(true)}
+        onPrintInvoice={handlePrintInvoice}
+        onOpenNewProduct={() => setShowNewProductModal(true)}
+        onOpenStockTransfer={() => setShowStockTransferModal(true)}
+        onOpenCustomerReturn={() => setShowCustomerReturnModal(true)}
+      />
+
+      <KeyboardShortcutHelpModal
+        isOpen={showShortcutHelp}
+        onClose={() => setShowShortcutHelp(false)}
       />
     </div>
   );

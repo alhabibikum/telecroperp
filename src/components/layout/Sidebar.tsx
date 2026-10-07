@@ -50,13 +50,15 @@ import {
 interface SidebarProps {
   currentView: string;
   onSelectView: (view: string) => void;
-  collapsed?: boolean;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentView,
   onSelectView,
-  collapsed: initialCollapsed = false
+  isExpanded = false,
+  onToggleExpand
 }) => {
   const {
     settings,
@@ -76,7 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const isBn = settings.language === 'bn';
 
-  const [isCollapsed, setIsCollapsed] = useState(initialCollapsed);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [filterSearch, setFilterSearch] = useState('');
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
@@ -389,43 +391,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      className={`relative z-20 shrink-0 h-full flex flex-col transition-all duration-300 ease-out select-none border-r border-slate-200/80 ${
-        isCollapsed ? 'w-22' : 'w-76 md:w-84'
-      } bg-white/80 backdrop-blur-3xl shadow-[4px_0_35px_rgba(15,23,42,0.04)]`}
+      className={`relative z-20 shrink-0 h-full flex flex-col transition-all duration-300 ease-in-out select-none ${
+        isExpanded
+          ? 'w-76 md:w-84 opacity-100 border-r border-slate-200/80 shadow-[4px_0_35px_rgba(15,23,42,0.06)]'
+          : 'w-0 opacity-0 overflow-hidden border-r-0 pointer-events-none'
+      } bg-white/90 backdrop-blur-3xl`}
     >
       {/* Top Glossy Highlight Sheen */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500/30 via-indigo-500/40 to-teal-500/30 pointer-events-none" />
 
-      {/* Top Header: iOS Spotlight Search & Collapse Toggle */}
+      {/* Top Header: Search & Collapse Button */}
       <div className="p-3.5 border-b border-slate-200/70 flex items-center justify-between gap-2 bg-white/50 backdrop-blur-md">
-        {!isCollapsed && (
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder={isBn ? 'মেন্যু সার্চ করুন...' : 'Search menu...'}
-              value={filterSearch}
-              onChange={(e) => setFilterSearch(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 text-xs font-bold text-slate-800 bg-slate-100/90 hover:bg-slate-100 border border-slate-200/70 rounded-2xl focus:outline-hidden focus:ring-2 focus:ring-blue-600/40 focus:bg-white transition-all shadow-inner"
-            />
-            {filterSearch && (
-              <button
-                onClick={() => setFilterSearch('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-300 hover:bg-slate-400 text-slate-700 flex items-center justify-center text-[10px] font-bold"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        )}
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder={isBn ? 'মেন্যু সার্চ করুন...' : 'Search menu...'}
+            value={filterSearch}
+            onChange={(e) => setFilterSearch(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 text-xs font-bold text-slate-800 bg-slate-100/90 hover:bg-slate-100 border border-slate-200/70 rounded-2xl focus:outline-hidden focus:ring-2 focus:ring-blue-600/40 focus:bg-white transition-all shadow-inner"
+          />
+          {filterSearch && (
+            <button
+              onClick={() => setFilterSearch('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-300 hover:bg-slate-400 text-slate-700 flex items-center justify-center text-[10px] font-bold"
+            >
+              ✕
+            </button>
+          )}
+        </div>
 
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2.5 rounded-2xl text-slate-600 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer shadow-2xs border border-slate-200/60"
-          title={isCollapsed ? 'মেন্যু বড় করুন (Expand Menu)' : 'মেন্যু ছোট করুন (Collapse Menu)'}
-        >
-          {isCollapsed ? <ChevronRight className="w-4 h-4 text-blue-600 stroke-[2.5]" /> : <ChevronLeft className="w-4 h-4 text-slate-700 stroke-[2.5]" />}
-        </button>
+        {onToggleExpand && (
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            className="p-2 rounded-2xl text-slate-600 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer shadow-2xs border border-slate-200/60 shrink-0"
+            title="সাইডবার লুকান (Collapse Sidebar - <)"
+          >
+            <ChevronLeft className="w-5 h-5 text-slate-700 stroke-[2.5]" />
+          </button>
+        )}
       </div>
 
       {/* Quick Launch Action Bar (Widget Dock) when not collapsed */}

@@ -16,10 +16,13 @@ import {
   X,
   Check,
   Clock,
-  ArrowRight
+  ArrowRight,
+  QrCode,
+  Scan
 } from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
 import type { StockTransfer } from '../../types/erp';
+import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 
 interface StockTransfersViewProps {
   onOpenStockTransfer?: () => void;
@@ -53,6 +56,8 @@ export const StockTransfersView: React.FC<StockTransfersViewProps> = ({
   const [transferNotes, setTransferNotes] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [showScannerModal, setShowScannerModal] = useState(false);
+  const [scannerContext, setScannerContext] = useState<'filter' | 'select-transfer'>('filter');
 
   // Available in-stock devices at chosen source warehouse
   const availableSourceImeis = useMemo(() => {
@@ -235,13 +240,31 @@ export const StockTransfersView: React.FC<StockTransfersViewProps> = ({
         <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
           <input
+            id="transfers-search-input"
+            data-search-input="true"
             type="text"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Search by transfer #, IMEI, warehouse, product..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+            placeholder="Search by transfer #, IMEI, warehouse, product (Ctrl+F)..."
+            className="w-full pl-9 pr-14 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
           />
+          <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-slate-200/60 px-1 py-0.5 rounded border border-slate-300/80 pointer-events-none">
+            ^F
+          </kbd>
         </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setScannerContext('filter');
+            setShowScannerModal(true);
+          }}
+          className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer"
+          title="স্ক্যানার দিয়ে হ্যান্ডসেটের ট্রান্সফার চালান খুঁজুন"
+        >
+          <Scan className="w-3.5 h-3.5" />
+          <span>Scan / Filter</span>
+        </button>
 
         <div className="flex items-center gap-2 flex-wrap">
           <select
@@ -440,9 +463,22 @@ export const StockTransfersView: React.FC<StockTransfersViewProps> = ({
                   <label className="font-bold text-slate-700">
                     স্থানান্তরের জন্য ডিভাইস নির্বাচন করুন ({availableSourceImeis.length}টি ইন-স্টক পাওয়া গেছে) *
                   </label>
-                  <span className="font-bold text-blue-700">
-                    নির্বাচিত: {selectedImeis.length}টি
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setScannerContext('select-transfer');
+                        setShowScannerModal(true);
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition cursor-pointer"
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
+                      <span>⚡ Multi-Scan</span>
+                    </button>
+                    <span className="font-bold text-blue-700">
+                      নির্বাচিত: {selectedImeis.length}টি
+                    </span>
+                  </div>
                 </div>
 
                 {availableSourceImeis.length === 0 ? (
@@ -514,6 +550,37 @@ export const StockTransfersView: React.FC<StockTransfersViewProps> = ({
             </form>
           </div>
         </div>
+      )}
+
+      {/* Multi-Barcode / Multi-IMEI Scanner Modal */}
+      {showScannerModal && (
+        <MultiBarcodeScannerModal
+          isOpen={showScannerModal}
+          onClose={() => setShowScannerModal(false)}
+          title={
+            scannerContext === 'filter'
+              ? 'স্টক ট্রান্সফার সার্চ ও ভেরিফিকেশন স্ক্যানার'
+              : 'স্টক ট্রান্সফার ডিভাইস সিলেকশন স্ক্যানার'
+          }
+          subtitle={
+            scannerContext === 'filter'
+              ? 'হ্যান্ডসেটের বারকোড/IMEI স্ক্যান করে সংশ্লিষ্ট চালানের উপস্থিতি যাচাই করুন'
+              : 'স্থানান্তরযোগ্য হ্যান্ডসেটগুলোর বারকোড বা IMEI গান, ক্যামেরা অথবা কিবোর্ড দিয়ে দ্রুত স্ক্যান করুন'
+          }
+          mode={scannerContext === 'filter' ? 'lookup' : 'transfer'}
+          warehouseId={scannerContext === 'select-transfer' ? srcWarehouseId : undefined}
+          onConfirm={(records, tokens) => {
+            if (scannerContext === 'filter') {
+              if (tokens && tokens.length > 0) {
+                setSearchTerm(tokens[0]);
+              }
+            } else {
+              const imeisToAdd = records.length > 0 ? records.map(r => r.imei1) : (tokens || []);
+              setSelectedImeis(prev => Array.from(new Set([...prev, ...imeisToAdd])));
+            }
+            setShowScannerModal(false);
+          }}
+        />
       )}
     </div>
   );

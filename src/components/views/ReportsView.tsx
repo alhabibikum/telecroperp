@@ -14,13 +14,16 @@ import {
   Building,
   Users,
   ShieldCheck,
-  CheckCircle2,
   Calendar,
-  X
+  X,
+  Smartphone,
+  Scan,
+  QrCode
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
+import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 
-type ReportType = 'brand' | 'customer' | 'profit' | 'salesman' | 'financial' | 'inventory';
+type ReportType = 'brand' | 'customer' | 'profit' | 'salesman' | 'financial' | 'inventory' | 'imei-audit';
 
 export const ReportsView: React.FC = () => {
   const {
@@ -43,9 +46,22 @@ export const ReportsView: React.FC = () => {
   const [activeReport, setActiveReport] = useState<ReportType>('financial');
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showScannerModal, setShowScannerModal] = useState(false);
+  const [auditedImeis, setAuditedImeis] = useState<string[]>([]);
 
   const inStockImeis = imeis.filter(i => i.status === 'In Stock');
   const totalStockValuation = inStockImeis.reduce((s, i) => s + i.purchaseCost, 0);
+
+  const auditedRecords = imeis.filter(i =>
+    auditedImeis.includes(i.imei1) ||
+    (i.imei2 && auditedImeis.includes(i.imei2)) ||
+    (i.serialNumber && auditedImeis.includes(i.serialNumber))
+  );
+  const auditedInStock = auditedRecords.filter(i => i.status === 'In Stock');
+  const auditedInStockValuation = auditedInStock.reduce((acc, i) => acc + i.purchaseCost, 0);
+  const auditedSold = auditedRecords.filter(i => i.status === 'Sold');
+  const auditedSoldRevenue = auditedSold.reduce((acc, i) => acc + (i.salesPrice || 0), 0);
+  const auditedDiscrepancy = auditedRecords.filter(i => i.status !== 'In Stock' && i.status !== 'Sold');
 
   // Financial calculations
   const totalGrossSales = salesInvoices.reduce((s, i) => s + i.subTotal, 0);
@@ -150,6 +166,22 @@ export const ReportsView: React.FC = () => {
         const comm = salesInvoices.filter(i => i.salesmanId === sm.id).reduce((acc, i) => acc + (i.commissionEarned || 0), 0);
         rows.push([sm.name, sm.employeeCode, sm.assignedArea, sm.monthlyTarget, sm.currentMonthSales, `${percent}%`, sm.currentMonthCollection, comm]);
       });
+    } else if (activeReport === 'imei-audit') {
+      reportTitle = 'IMEI_Physical_Stock_Audit';
+      headers = ['IMEI 1', 'Serial Number', 'Brand', 'Model', 'Variant', 'Status', 'Warehouse', 'Purchase Cost (BDT)', 'Customer'];
+      auditedRecords.forEach(r => {
+        rows.push([
+          r.imei1,
+          r.serialNumber || 'N/A',
+          r.brandName,
+          r.productName,
+          r.variantDesc,
+          r.status,
+          r.warehouseName,
+          r.purchaseCost,
+          r.customerName || 'N/A'
+        ]);
+      });
     }
 
     // Construct CSV String with UTF-8 BOM
@@ -199,6 +231,15 @@ export const ReportsView: React.FC = () => {
 
         <div className="flex items-center gap-2.5">
           <button
+            onClick={() => setShowScannerModal(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer"
+            title="স্ক্যানার দিয়ে হ্যান্ডসেটের ফিজিক্যাল স্টক অডিট ও ভেরিফিকেশন করুন"
+          >
+            <Scan className="w-4 h-4" />
+            <span>⚡ Multi-IMEI Physical Audit</span>
+          </button>
+
+          <button
             onClick={handleGenericExportCSV}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition shadow-2xs"
             title="Download CSV for Excel / Google Sheets"
@@ -238,6 +279,16 @@ export const ReportsView: React.FC = () => {
         >
           <Layers className="w-3.5 h-3.5" />
           <span>Inventory Valuation</span>
+        </button>
+
+        <button
+          onClick={() => setActiveReport('imei-audit')}
+          className={`px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer ${
+            activeReport === 'imei-audit' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Smartphone className="w-3.5 h-3.5" />
+          <span>IMEI Physical Audit ({auditedImeis.length})</span>
         </button>
 
         <button
@@ -628,6 +679,158 @@ export const ReportsView: React.FC = () => {
       )}
 
       {/* ============================================================== */}
+      {/* REPORT 7: IMEI PHYSICAL AUDIT & VERIFICATION */}
+      {/* ============================================================== */}
+      {activeReport === 'imei-audit' && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs">
+              <div className="text-[10px] uppercase font-bold text-slate-400">Total Scanned Tokens</div>
+              <div className="text-xl font-black text-slate-900 mt-1">{auditedImeis.length} Devices</div>
+              <div className="text-[10px] text-blue-600 mt-0.5">{auditedRecords.length} Recognized in Database</div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs">
+              <div className="text-[10px] uppercase font-bold text-slate-400">Live In-Stock Handsets</div>
+              <div className="text-xl font-black text-emerald-700 mt-1">{auditedInStock.length} Units</div>
+              <div className="text-[10px] text-emerald-600 mt-0.5">Valuation: {formatBDT(auditedInStockValuation)}</div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs">
+              <div className="text-[10px] uppercase font-bold text-slate-400">Sold / Billed Handsets</div>
+              <div className="text-xl font-black text-blue-700 mt-1">{auditedSold.length} Units</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">Revenue: {formatBDT(auditedSoldRevenue)}</div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs">
+              <div className="text-[10px] uppercase font-bold text-slate-400">Damaged / Reserved / Other</div>
+              <div className="text-xl font-black text-amber-700 mt-1">{auditedDiscrepancy.length} Units</div>
+              <div className="text-[10px] text-amber-600 mt-0.5">Non-standard stock status</div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50">
+              <div>
+                <span className="font-bold text-xs uppercase tracking-wider text-slate-700">
+                  Serialized Physical Audit Log & Location Breakdown
+                </span>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  স্ক্যান করা হ্যান্ডসেটের মডেল, ওয়্যারহাউস লোকেশন ও লাইভ স্টক স্ট্যাটাস অডিট
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowScannerModal(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition cursor-pointer"
+                >
+                  <Scan className="w-3.5 h-3.5" />
+                  <span>+ Scan More / Re-scan</span>
+                </button>
+                {auditedImeis.length > 0 && (
+                  <button
+                    onClick={() => setAuditedImeis([])}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-rose-600 rounded-lg text-xs font-bold transition cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Clear</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {auditedImeis.length === 0 ? (
+              <div className="p-12 text-center text-xs text-slate-400 space-y-3">
+                <Smartphone className="w-8 h-8 text-slate-300 mx-auto" />
+                <p>এখনো কোনো হ্যান্ডসেটের বারকোড বা IMEI স্ক্যান করা হয়নি।</p>
+                <button
+                  onClick={() => setShowScannerModal(true)}
+                  className="px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl font-bold cursor-pointer"
+                >
+                  বারকোড গান বা ক্যামেরা দিয়ে স্ক্যান শুরু করুন
+                </button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100/70 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-bold">
+                    <tr>
+                      <th className="p-3">IMEI 1 / Serial</th>
+                      <th className="p-3">Model & Brand</th>
+                      <th className="p-3">Variant</th>
+                      <th className="p-3 text-center">Status</th>
+                      <th className="p-3">Current Location</th>
+                      <th className="p-3 text-right">Cost Price (৳)</th>
+                      <th className="p-3">Customer / Invoice</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {auditedImeis.map(token => {
+                      const rec = imeis.find(i => i.imei1 === token || i.imei2 === token || i.serialNumber === token);
+                      return (
+                        <tr key={token} className="hover:bg-slate-50/70 transition">
+                          <td className="p-3 font-mono font-bold text-blue-700">
+                            <div>{token}</div>
+                            {rec?.serialNumber && <div className="text-[10px] text-slate-400">S/N: {rec.serialNumber}</div>}
+                          </td>
+                          <td className="p-3">
+                            {rec ? (
+                              <>
+                                <span className="font-bold text-slate-900">{rec.productName}</span>
+                                <span className="text-[10px] block text-slate-500">{rec.brandName}</span>
+                              </>
+                            ) : (
+                              <span className="text-rose-600 font-bold">Unrecognized / Not in DB</span>
+                            )}
+                          </td>
+                          <td className="p-3 text-slate-600 font-medium">
+                            {rec ? rec.variantDesc : '—'}
+                          </td>
+                          <td className="p-3 text-center">
+                            {rec ? (
+                              <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                rec.status === 'In Stock' ? 'bg-emerald-100 text-emerald-800' :
+                                rec.status === 'Sold' ? 'bg-blue-100 text-blue-800' :
+                                rec.status === 'Damaged' ? 'bg-rose-100 text-rose-800' :
+                                'bg-amber-100 text-amber-800'
+                              }`}>
+                                {rec.status}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800">
+                                Missing Record
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3 text-slate-700">
+                            {rec ? rec.warehouseName : '—'}
+                          </td>
+                          <td className="p-3 text-right font-bold text-slate-900">
+                            {rec ? formatBDT(rec.purchaseCost) : '—'}
+                          </td>
+                          <td className="p-3 text-slate-600">
+                            {rec?.customerName ? (
+                              <div>
+                                <div className="font-medium">{rec.customerName}</div>
+                                <div className="text-[10px] font-mono text-blue-600">{rec.salesInvoiceNo}</div>
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 italic">Unsold</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
       {/* GENERIC PDF EXPORT / PRINT MODAL */}
       {/* ============================================================== */}
       {showPdfModal && (
@@ -859,6 +1062,23 @@ export const ReportsView: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Multi-Barcode / Multi-IMEI Scanner Modal */}
+      {showScannerModal && (
+        <MultiBarcodeScannerModal
+          isOpen={showScannerModal}
+          onClose={() => setShowScannerModal(false)}
+          title="হ্যান্ডসেট ফিজিক্যাল অডিট স্ক্যানার"
+          subtitle="ওয়্যারহাউস বা আউটলেটের হ্যান্ডসেটের বারকোড বা IMEI বারকোড গান বা ক্যামেরা দিয়ে স্ক্যান করে অডিট রিপোর্ট তৈরি করুন"
+          mode="lookup"
+          onConfirm={(records, tokens) => {
+            const listToAdd = tokens && tokens.length > 0 ? tokens : records.map(r => r.imei1);
+            setAuditedImeis(prev => Array.from(new Set([...prev, ...listToAdd])));
+            setActiveReport('imei-audit');
+            setShowScannerModal(false);
+          }}
+        />
       )}
     </div>
   );

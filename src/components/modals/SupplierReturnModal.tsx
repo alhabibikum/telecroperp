@@ -6,9 +6,12 @@ import {
   RotateCcw,
   AlertTriangle,
   CheckCircle,
-  Building
+  Building,
+  Camera,
+  Barcode
 } from 'lucide-react';
 import { formatBDT } from '../../utils/formatters';
+import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 
 interface SupplierReturnModalProps {
   isOpen: boolean;
@@ -28,6 +31,7 @@ export const SupplierReturnModal: React.FC<SupplierReturnModalProps> = ({
   const [returnReason, setReturnReason] = useState('Factory defect / Dead on Arrival (DOA) credit return');
   const [returnAmount, setReturnAmount] = useState<number>(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showMultiScanner, setShowMultiScanner] = useState(false);
 
   if (!isOpen) return null;
 
@@ -111,7 +115,18 @@ export const SupplierReturnModal: React.FC<SupplierReturnModalProps> = ({
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Select Device IMEI to Return *</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block font-semibold text-slate-700">Select Device IMEI to Return *</label>
+              <button
+                type="button"
+                onClick={() => setShowMultiScanner(true)}
+                className="flex items-center gap-1 text-[11px] font-bold text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-2 py-0.5 rounded border border-rose-200 transition cursor-pointer"
+                title="Camera বা Barcode Gun দিয়ে স্ক্যান করুন"
+              >
+                <Camera className="w-3 h-3" />
+                <span>Multi-Scan</span>
+              </button>
+            </div>
             {supplierImeisInStock.length === 0 ? (
               <div className="text-rose-600 py-2">No units from this supplier currently eligible for return.</div>
             ) : (
@@ -171,6 +186,19 @@ export const SupplierReturnModal: React.FC<SupplierReturnModalProps> = ({
           </div>
         </form>
       </div>
+
+      <MultiBarcodeScannerModal
+        isOpen={showMultiScanner}
+        onClose={() => setShowMultiScanner(false)}
+        mode="return-supplier"
+        supplierId={supplierId}
+        onConfirm={(validRecords) => {
+          if (validRecords.length > 0) {
+            handleImeiSelect(validRecords[0].imei1);
+          }
+        }}
+        confirmButtonText="রিটার্ন আইটেম নির্ধারণ করুন"
+      />
     </div>
   );
 };
