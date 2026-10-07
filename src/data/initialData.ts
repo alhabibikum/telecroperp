@@ -1013,8 +1013,8 @@ export const initialBankAccounts: BankAccount[] = [
     accountName: 'TeleCorp Mobile Distribution & Trade Ltd.',
     accountNumber: '104.120.9876543',
     accountType: 'Current',
-    openingBalance: 5000000,
-    currentBalance: 7420000,
+    openingBalance: 0,
+    currentBalance: 0,
     status: 'Active'
   },
   {
@@ -1024,8 +1024,8 @@ export const initialBankAccounts: BankAccount[] = [
     accountName: 'TeleCorp Mobile Distribution Ltd.',
     accountNumber: '110.220.4499110',
     accountType: 'Current',
-    openingBalance: 3000000,
-    currentBalance: 4680000,
+    openingBalance: 0,
+    currentBalance: 0,
     status: 'Active'
   },
   {
@@ -1035,8 +1035,8 @@ export const initialBankAccounts: BankAccount[] = [
     accountName: 'TeleCorp Mobile Retail',
     accountNumber: '01711-002233',
     accountType: 'MFS Merchant (bKash/Nagad)',
-    openingBalance: 450000,
-    currentBalance: 890000,
+    openingBalance: 0,
+    currentBalance: 0,
     status: 'Active'
   },
   {
@@ -1046,44 +1046,13 @@ export const initialBankAccounts: BankAccount[] = [
     accountName: 'TeleCorp Mobile CTG Operations',
     accountNumber: '150.110.8877665',
     accountType: 'Current',
-    openingBalance: 1200000,
-    currentBalance: 2150000,
+    openingBalance: 0,
+    currentBalance: 0,
     status: 'Active'
   }
 ];
 
-export const initialCashTransactions: CashTransaction[] = [
-  {
-    id: 'cash-1',
-    date: '2026-10-03 10:00',
-    type: 'Cash In',
-    category: 'Due Collection',
-    amount: 150000,
-    referenceNo: 'REC-2026-000091',
-    description: 'Received cash collection from Rongdhanu Telecom via Tanvir Ahmed',
-    performedBy: 'Cashier Farhana'
-  },
-  {
-    id: 'cash-2',
-    date: '2026-10-03 12:30',
-    type: 'Cash Out',
-    category: 'Expense',
-    amount: 18500,
-    referenceNo: 'EXP-2026-000045',
-    description: 'Office tea, snacks, stationery and courier delivery dispatch',
-    performedBy: 'Accounts Masum'
-  },
-  {
-    id: 'cash-3',
-    date: '2026-10-03 17:00',
-    type: 'Cash In',
-    category: 'Customer Sale',
-    amount: 57999,
-    referenceNo: 'SAL-2026-000216',
-    description: 'POS Retail Cash Sale of Vivo V30 5G at Dhanmondi outlet',
-    performedBy: 'Cashier Farhana'
-  }
-];
+export const initialCashTransactions: CashTransaction[] = [];
 
 export const initialExpenseCategories: ExpenseCategory[] = [
   { id: 'expcat-1', name: 'Office Rent & Utilities', description: 'Head office, warehouse & outlet rentals, electricity, internet' },
@@ -1124,8 +1093,8 @@ export const initialExpenses: Expense[] = [
 ];
 
 export const initialCOA: AccountCOA[] = [
-  { code: '1000', name: 'Cash in Hand (Main Vault & Till)', type: 'Asset', nature: 'Debit', balance: 685000, description: 'Physical cash at central office & retail cash registers' },
-  { code: '1010', name: 'Bank Accounts (DBBL, City, BRAC, bKash)', type: 'Asset', nature: 'Debit', balance: 15140000, description: 'Liquid cash balances across commercial banks & MFS' },
+  { code: '1000', name: 'Cash in Hand (Main Vault & Till)', type: 'Asset', nature: 'Debit', balance: 0, description: 'Physical cash at central office & retail cash registers' },
+  { code: '1010', name: 'Bank Accounts (DBBL, City, BRAC, bKash)', type: 'Asset', nature: 'Debit', balance: 0, description: 'Liquid cash balances across commercial banks & MFS' },
   { code: '1020', name: 'Accounts Receivable (Customer Due)', type: 'Asset', nature: 'Debit', balance: 3005000, description: 'Total outstanding balances due from wholesale dealers' },
   { code: '1050', name: 'Merchandise Inventory (Mobile Stock)', type: 'Asset', nature: 'Debit', balance: 22840000, description: 'Valuation of all smartphones & devices across all warehouses' },
   { code: '2000', name: 'Accounts Payable (Supplier Due)', type: 'Liability', nature: 'Credit', balance: 12020000, description: 'Total outstanding payables due to official brand suppliers' },

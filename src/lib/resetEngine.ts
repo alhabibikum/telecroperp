@@ -112,6 +112,10 @@ export const purgeCloudTransactions = async (): Promise<{ success: boolean; mess
     await supabase.from('customers').update({ current_due: 0 }).neq('id', '_never_matches_dummy_');
     await supabase.from('suppliers').update({ current_due: 0 }).neq('id', '_never_matches_dummy_');
 
+    // 4. Reset Bank Accounts and Cash In Hand balances to 0
+    await supabase.from('bank_accounts').update({ current_balance: 0, opening_balance: 0 }).neq('id', '_never_matches_dummy_');
+    await supabase.from('chart_of_accounts').update({ balance: 0 }).in('code', ['1000', '1010']);
+
     return {
       success: true,
       message: 'সুপাবেস ক্লাউডের সমস্ত সেলস, পারচেজ ও ট্রানজ্যাকশন সফলভাবে মুছে ফেলা হয়েছে।'

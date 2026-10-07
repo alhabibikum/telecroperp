@@ -89,8 +89,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const totalStockValuation = inStockUnits.reduce((acc, i) => acc + i.purchaseCost, 0);
 
   // Bank & Cash liquid total (Single Source of Truth)
-  const totalBankBalance = bankAccounts.reduce((acc, b) => acc + b.currentBalance, 0);
-  const openingVaultCash = chartOfAccounts.find(a => a.code === '1000')?.balance ?? 685000;
+  const totalBankBalance = bankAccounts.reduce((acc, b) => acc + (b.currentBalance || 0), 0);
+  const openingVaultCash = chartOfAccounts.find(a => a.code === '1000')?.balance || 0;
   const cashInTotal = cashTransactions.filter(c => c.type === 'Cash In').reduce((acc, c) => acc + c.amount, 0);
   const cashOutTotal = cashTransactions.filter(c => c.type === 'Cash Out').reduce((acc, c) => acc + c.amount, 0);
   const estimatedCashInHand = Math.max(0, openingVaultCash + cashInTotal - cashOutTotal);
@@ -236,6 +236,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       margin
     };
   });
+
+  // Dynamic summary metrics for Weekly Profit & Loss telemetry (Never hardcoded)
+  const totalWeeklyRevenue = dailyProfitLossData.reduce((sum, d) => sum + d.revenue, 0);
+  const totalWeeklyNetProfit = dailyProfitLossData.reduce((sum, d) => sum + d.netProfit, 0);
+  const avgNetMarginVal = totalWeeklyRevenue > 0
+    ? ((totalWeeklyNetProfit / totalWeeklyRevenue) * 100).toFixed(1)
+    : '0.0';
+
+  const positiveProfitDays = [...dailyProfitLossData].filter(d => d.netProfit > 0);
+  const peakDayObj = positiveProfitDays.length > 0
+    ? positiveProfitDays.sort((a, b) => b.netProfit - a.netProfit)[0]
+    : null;
+  const peakProfitDayStr = peakDayObj
+    ? `${peakDayObj.day} (৳${(peakDayObj.netProfit / 100000).toFixed(2)}L)`
+    : '—';
+
+  const estimatedAnnualRoiVal = totalStockValuation > 0 && totalWeeklyNetProfit > 0
+    ? (((totalWeeklyNetProfit * 52) / totalStockValuation) * 100).toFixed(1) + '%'
+    : '0.0%';
 
   // Custom Recharts Tooltip Formatter
   const CustomCurrencyTooltip = ({ active, payload, label }: any) => {
@@ -669,19 +688,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-100 text-xs">
           <div className="p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-100 flex items-center justify-between">
             <span className="text-emerald-800 font-medium">Avg Net Margin</span>
-            <strong className="text-emerald-700 text-sm font-black">10.3%</strong>
+            <strong className="text-emerald-700 text-sm font-black">{totalWeeklyRevenue > 0 ? `${avgNetMarginVal}%` : '0.0%'}</strong>
           </div>
           <div className="p-2.5 rounded-xl bg-blue-50/60 border border-blue-100 flex items-center justify-between">
             <span className="text-blue-800 font-medium">Weekly Net Profit</span>
-            <strong className="text-blue-700 text-sm font-black">৳ 6,89,000</strong>
+            <strong className="text-blue-700 text-sm font-black">{totalWeeklyNetProfit !== 0 ? formatBDT(totalWeeklyNetProfit) : '৳ 0'}</strong>
           </div>
           <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
             <span className="text-slate-600 font-medium">Peak Profit Day</span>
-            <strong className="text-slate-900 text-sm font-black">03 Oct (৳1.52L)</strong>
+            <strong className="text-slate-900 text-sm font-black">{peakProfitDayStr}</strong>
           </div>
           <div className="p-2.5 rounded-xl bg-purple-50/60 border border-purple-100 flex items-center justify-between">
             <span className="text-purple-800 font-medium">Estimated Annual ROI</span>
-            <strong className="text-purple-700 text-sm font-black">34.8%</strong>
+            <strong className="text-purple-700 text-sm font-black">{estimatedAnnualRoiVal}</strong>
           </div>
         </div>
       </div>

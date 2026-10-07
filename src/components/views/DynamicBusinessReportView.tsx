@@ -325,7 +325,7 @@ export const DynamicBusinessReportView: React.FC = () => {
   const totalSupplierPayable = suppliers.reduce((acc, s) => acc + s.currentDue, 0);
 
   // Liquid Cash & Bank Position
-  const openingVaultCash = chartOfAccounts.find(a => a.code === '1000')?.balance ?? 685000;
+  const openingVaultCash = chartOfAccounts.find(a => a.code === '1000')?.balance ?? 0;
   const lifetimeCashIn = cashTransactions.filter(c => c.type === 'Cash In').reduce((acc, c) => acc + c.amount, 0);
   const lifetimeCashOut = cashTransactions.filter(c => c.type === 'Cash Out').reduce((acc, c) => acc + c.amount, 0);
   const currentCashInHand = Math.max(0, openingVaultCash + lifetimeCashIn - lifetimeCashOut);

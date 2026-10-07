@@ -2724,7 +2724,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const resetCashAndBankBalances = () => {
-    setBankAccounts(prev => prev.map(b => ({ ...b, balance: 0, openingBalance: 0 })));
+    setBankAccounts(prev => prev.map(b => ({ ...b, currentBalance: 0, openingBalance: 0 })));
     setCashTransactions([]);
     setBankStatements([]);
     setChartOfAccounts(prev => prev.map(acc => {

@@ -24,7 +24,7 @@ export const DayClosingView: React.FC = () => {
     currentUserRole
   } = useERP();
 
-  const defaultOpening = dayClosings[0]?.actualPhysicalCash ?? (chartOfAccounts.find(a => a.code === '1000')?.balance ?? 685000);
+  const defaultOpening = dayClosings[0]?.actualPhysicalCash ?? (chartOfAccounts.find(a => a.code === '1000')?.balance ?? 0);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [warehouseId, setWarehouseId] = useState(warehouses[0]?.id || '');
   const [cashierName, setCashierName] = useState('Farhana Akhter (Cashier)');

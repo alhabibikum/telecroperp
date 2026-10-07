@@ -77,7 +77,7 @@ export const ReportsView: React.FC = () => {
   const netOperatingProfit = grossProfit - totalExpenses;
   const totalReceivables = customers.reduce((s, c) => s + c.currentDue, 0);
   const totalBankBalance = bankAccounts.reduce((s, b) => s + b.currentBalance, 0);
-  const openingVaultCash = chartOfAccounts.find(a => a.code === '1000')?.balance ?? 685000;
+  const openingVaultCash = chartOfAccounts.find(a => a.code === '1000')?.balance ?? 0;
   const cashInTotal = cashTransactions.filter(c => c.type === 'Cash In').reduce((acc, c) => acc + c.amount, 0);
   const cashOutTotal = cashTransactions.filter(c => c.type === 'Cash Out').reduce((acc, c) => acc + c.amount, 0);
   const totalCashInHand = Math.max(0, openingVaultCash + cashInTotal - cashOutTotal);
