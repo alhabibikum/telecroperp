@@ -21,8 +21,8 @@ import {
 export const LoginView: React.FC = () => {
   const { demoUsers, users, login, loginAsDemoUser } = useERP();
 
-  const [email, setEmail] = useState('admin@telecorp.com');
-  const [password, setPassword] = useState('admin');
+  const [email, setEmail] = useState('mansurazad@gmail.com');
+  const [password, setPassword] = useState('M#112233@a');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,7 +47,11 @@ export const LoginView: React.FC = () => {
     setErrorMessage(null);
     setIsLoading(true);
     setTimeout(() => {
-      const res = loginAsDemoUser('user-admin');
+      const targetUser = users.find(u => u.email.toLowerCase() === 'mansurazad@gmail.com') ||
+        users.find(u => u.id === 'user-admin') ||
+        demoUsers[0] ||
+        users[0];
+      const res = loginAsDemoUser(targetUser.id);
       setIsLoading(false);
       if (res && !res.success) {
         setErrorMessage(res.error || 'প্রবেশ ব্যর্থ হয়েছে।');
@@ -146,10 +150,10 @@ export const LoginView: React.FC = () => {
                     দ্রুত ১-ক্লিক সুপার অ্যাডমিন প্রবেশ
                   </div>
                   <div className="text-sm font-extrabold text-white mt-0.5">
-                    Aminul Islam (Super Admin)
+                    Mansur Azad (Super Admin)
                   </div>
                   <div className="text-[11px] text-blue-100/90 font-medium">
-                    পাসওয়ার্ড ছাড়া সরাসরি সম্পূর্ণ সিস্টেমে ঢুকুন
+                    পাসওয়ার্ড ছাড়া সরাসরি সম্পূর্ণ সিস্টেমে ঢুকুন (mansurazad@gmail.com)
                   </div>
                 </div>
 
@@ -190,7 +194,7 @@ export const LoginView: React.FC = () => {
                       setEmail(e.target.value);
                       setErrorMessage(null);
                     }}
-                    placeholder="admin@telecorp.com"
+                    placeholder="mansurazad@gmail.com"
                     required
                     className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-hidden transition"
                   />

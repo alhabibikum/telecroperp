@@ -147,7 +147,7 @@ export const wipeAllCloudData = async (): Promise<{ success: boolean; message: s
     }
 
     // 3. Wipe non-admin users from app_users
-    await supabase.from('app_users').delete().neq('id', 'user-admin');
+    await supabase.from('app_users').delete().not('id', 'in', '("user-admin","8d510069-b154-440a-aa3e-0999a9c354e1")');
 
     return {
       success: true,
@@ -192,6 +192,7 @@ export const seedCloudDemoData = async (): Promise<{ success: boolean; message: 
       email: u.email,
       name: u.name,
       role: u.role,
+      password: u.password,
       password_hash: u.password,
       phone: u.phone,
       department: u.department,
@@ -297,6 +298,7 @@ export const seedCloudCleanSlate = async (adminUser?: AuthUser): Promise<{ succe
       email: admin.email,
       name: admin.name,
       role: 'Super Admin',
+      password: admin.password || 'M#112233@a',
       password_hash: admin.password || 'admin',
       phone: admin.phone || '+880 1711-002233',
       department: 'Executive Board',
