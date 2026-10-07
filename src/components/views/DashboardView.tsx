@@ -580,7 +580,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       className={`w-full transition-all duration-300 ${
         isFullscreen
           ? 'bg-slate-950 text-slate-100 p-4 sm:p-6 md:p-8 overflow-y-auto fixed inset-0 z-50'
-          : 'p-3 sm:p-5 md:p-6 space-y-5 md:space-y-6 max-w-7xl mx-auto'
+          : 'p-4 sm:p-6 md:p-8 space-y-6 md:space-y-7 max-w-[1700px] w-full mx-auto'
       }`}
     >
       {/* ============================================================== */}

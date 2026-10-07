@@ -133,6 +133,30 @@ const ERPAppContent: React.FC = () => {
 
   const [openViewIds, setOpenViewIds] = useState<string[]>(['dashboard']);
 
+  // Header auto-hide & pin state (Default false on open as requested)
+  const [isHeaderPinned, setIsHeaderPinned] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('telecorp_header_pinned') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleHeaderPin = () => {
+    setIsHeaderPinned(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('telecorp_header_pinned', String(next));
+      } catch {}
+      if (next) {
+        showInfo('হেডার পিন করা হয়েছে', 'হেডারটি এখন সার্বক্ষণিকভাবে স্থায়ী থাকবে।');
+      } else {
+        showInfo('হেডার অটো-হাইড চালু', 'মাউস নিচে নিলে হেডার লুকিয়ে যাবে। মাউস উপরে আনলে পুনরায় দেখাবে।');
+      }
+      return next;
+    });
+  };
+
   const handleOpenViewWindow = (view: string) => {
     setCurrentView(view);
     setOpenViewIds(prev => (prev.includes(view) ? prev : [...prev, view]));
@@ -600,7 +624,7 @@ const ERPAppContent: React.FC = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-slate-100 font-sans text-slate-800 overflow-hidden">
+    <div className="h-screen flex flex-col bg-slate-100 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-100 overflow-hidden relative">
       <OfflineStatusBanner />
       {/* Top Universal Header */}
       <Header
@@ -614,6 +638,8 @@ const ERPAppContent: React.FC = () => {
         onOpenCommandPalette={() => setShowCommandPalette(true)}
         onOpenShortcutsHelp={() => setShowShortcutHelp(true)}
         onSelectView={handleNavigateView}
+        isPinned={isHeaderPinned}
+        onTogglePin={handleToggleHeaderPin}
       />
 
       <div className={`flex-1 flex overflow-hidden relative ${isDesktop ? 'pb-11 sm:pb-12' : ''}`}>

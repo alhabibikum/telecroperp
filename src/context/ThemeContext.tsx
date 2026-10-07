@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 type Theme = 'light' | 'dark';
-type FontSize = 'small' | 'normal' | 'large';
+type FontSize = 'small' | 'normal' | 'large' | 'xlarge';
 
 interface ThemeContextType {
   theme: Theme;
@@ -24,7 +24,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [fontSize, setFontSizeState] = useState<FontSize>(() => {
     try {
       const saved = localStorage.getItem('telecorp_fontsize');
-      if (saved === 'small' || saved === 'normal' || saved === 'large') return saved;
+      if (saved === 'small' || saved === 'normal' || saved === 'large' || saved === 'xlarge') return saved;
     } catch {}
     return 'normal';
   });
@@ -44,11 +44,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       localStorage.setItem('telecorp_fontsize', fontSize);
       if (fontSize === 'small') {
-        document.documentElement.style.fontSize = '14.5px';
+        document.documentElement.style.fontSize = '15px';
       } else if (fontSize === 'large') {
-        document.documentElement.style.fontSize = '17.5px';
+        document.documentElement.style.fontSize = '19px';
+      } else if (fontSize === 'xlarge') {
+        document.documentElement.style.fontSize = '21.5px';
       } else {
-        document.documentElement.style.fontSize = '16px';
+        document.documentElement.style.fontSize = '17px';
       }
     } catch {}
   }, [fontSize]);

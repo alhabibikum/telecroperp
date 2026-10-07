@@ -19,7 +19,10 @@ import {
   Trash2,
   Keyboard,
   Sun,
-  Moon
+  Moon,
+  Pin,
+  PinOff,
+  ChevronDown
 } from 'lucide-react';
 import { Notifications } from './Notifications';
 import { testSupabaseConnection } from '../../lib/supabase';
@@ -36,6 +39,8 @@ interface HeaderProps {
   onOpenCommandPalette?: () => void;
   onOpenShortcutsHelp?: () => void;
   onSelectView: (view: string) => void;
+  isPinned: boolean;
+  onTogglePin: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -44,7 +49,9 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenDueCollection,
   onOpenIMEILookup,
   onOpenShortcutsHelp,
-  onSelectView
+  onSelectView,
+  isPinned,
+  onTogglePin
 }) => {
   const {
     currentUserRole,
@@ -111,8 +118,54 @@ export const Header: React.FC<HeaderProps> = ({
   );
   const totalRealNotifications = unreadAlertsCount + lowStockCount + pendingApprovalsCount;
 
+  const [isHovered, setIsHovered] = useState(false);
+  const isVisible = isPinned || isHovered;
+
   return (
-    <header className="h-16 bg-white/85 backdrop-blur-xl border-b border-slate-200/70 px-3 sm:px-4 md:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+    <>
+      {/* Top Hover Hotzone & Pull Tab when Header is in Auto-Hide mode */}
+      {!isPinned && (
+        <div
+          onMouseEnter={() => setIsHovered(true)}
+          className="fixed top-0 left-0 right-0 h-3 z-40 group cursor-pointer"
+          title="মাউস আনলে হেডার খুলবে • ডাবল ক্লিকে স্থায়ী হবে"
+        >
+          {/* Subtle center indicator */}
+          <div
+            onClick={() => setIsHovered(true)}
+            className={`absolute top-0 left-1/2 -translate-x-1/2 transition-all duration-300 z-40 ${
+              isHovered ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            }`}
+          >
+            <div className="bg-slate-900/90 dark:bg-slate-800/90 hover:bg-blue-600 text-white px-3 py-0.5 rounded-b-xl text-[10px] font-bold shadow-md flex items-center gap-1.5 border-x border-b border-white/20 select-none">
+              <ChevronDown className="w-3 h-3 text-blue-400 group-hover:text-white animate-bounce" />
+              <span>হেডার (মাউস আনুন / ডাবল ক্লিক)</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Header Container */}
+      <header
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => {
+          if (!isPinned) setIsHovered(false);
+        }}
+        onDoubleClick={(e) => {
+          if ((e.target as HTMLElement).closest('button, input, select, a')) return;
+          onTogglePin();
+        }}
+        className={`h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800 px-3 sm:px-4 md:px-6 flex items-center justify-between select-none transition-all duration-300 ease-out ${
+          isPinned
+            ? 'sticky top-0 z-30 shadow-xs'
+            : `fixed top-0 left-0 right-0 z-50 shadow-2xl ${
+                isVisible
+                  ? 'translate-y-0 opacity-100 pointer-events-auto'
+                  : '-translate-y-full opacity-0 pointer-events-none'
+              }`
+        }`}
+        title={isPinned ? 'হেডার পিন করা আছে (ডাবল ক্লিক করলে অটো-হাইড হবে)' : 'হেডার অটো-হাইড মোড (ডাবল ক্লিক করলে পিন হবে)'}
+      >
       {/* Left: Brand info */}
       <div
         className="flex items-center gap-2 sm:gap-3 cursor-pointer shrink-0 select-none"
@@ -277,10 +330,34 @@ export const Header: React.FC<HeaderProps> = ({
           <span>{settings.language === 'en' ? 'বাংলা' : 'EN'}</span>
         </button>
 
+        {/* Header Pin / Auto-Hide Mode Toggle */}
+        <button
+          type="button"
+          onClick={onTogglePin}
+          className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl border transition cursor-pointer shadow-2xs font-bold ${
+            isPinned
+              ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+              : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200/80 dark:border-slate-700 hover:bg-slate-100'
+          }`}
+          title={isPinned ? "হেডার স্থায়ী/পিন করা আছে (ডাবল ক্লিক বা বাটনে চাপলে অটো-হাইড হবে)" : "হেডার অটো-হাইড মোড (ডাবল ক্লিক বা বাটনে চাপলে স্থায়ী হবে)"}
+        >
+          {isPinned ? (
+            <>
+              <Pin className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 rotate-45" />
+              <span className="hidden xl:inline text-[11px]">পিন করা</span>
+            </>
+          ) : (
+            <>
+              <PinOff className="w-3.5 h-3.5 text-slate-500" />
+              <span className="hidden xl:inline text-[11px]">অটো-হাইড</span>
+            </>
+          )}
+        </button>
+
         {/* Dark/Light Mode Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl border border-slate-200/80 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold transition cursor-pointer shadow-2xs"
+          className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold transition cursor-pointer shadow-2xs"
           title={theme === 'dark' ? "লাইট মোডে ফিরুন (Switch to Light Mode)" : "ডার্ক মোড সক্রিয় করুন (Switch to Dark Mode)"}
         >
           {theme === 'dark' ? (
@@ -292,30 +369,38 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         {/* Font Size Scaler */}
-        <div className="hidden md:flex items-center rounded-xl border border-slate-200/80 bg-slate-50 p-0.5 text-[11px] font-black text-slate-600 shadow-2xs">
+        <div className="hidden md:flex items-center rounded-xl border border-slate-200/80 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-0.5 text-[11px] font-black text-slate-600 dark:text-slate-300 shadow-2xs">
           <button
             type="button"
             onClick={() => setFontSize('small')}
-            className={`px-1.5 py-0.5 rounded-lg transition cursor-pointer ${fontSize === 'small' ? 'bg-blue-600 text-white' : 'hover:bg-slate-200 text-slate-700'}`}
-            title="ছোট ফন্ট (Compact text: 90%)"
+            className={`px-1.5 py-0.5 rounded-lg transition cursor-pointer ${fontSize === 'small' ? 'bg-blue-600 text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'}`}
+            title="ছোট ফন্ট (15px)"
           >
             A-
           </button>
           <button
             type="button"
             onClick={() => setFontSize('normal')}
-            className={`px-1.5 py-0.5 rounded-lg transition cursor-pointer ${fontSize === 'normal' ? 'bg-blue-600 text-white' : 'hover:bg-slate-200 text-slate-700'}`}
-            title="স্ট্যান্ডার্ড ফন্ট (Standard text: 100%)"
+            className={`px-1.5 py-0.5 rounded-lg transition cursor-pointer ${fontSize === 'normal' ? 'bg-blue-600 text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'}`}
+            title="স্ট্যান্ডার্ড স্পষ্ট ফন্ট (17px)"
           >
             A
           </button>
           <button
             type="button"
             onClick={() => setFontSize('large')}
-            className={`px-1.5 py-0.5 rounded-lg transition cursor-pointer ${fontSize === 'large' ? 'bg-blue-600 text-white' : 'hover:bg-slate-200 text-slate-700'}`}
-            title="বড় ফন্ট (Enlarged text: 115%)"
+            className={`px-1.5 py-0.5 rounded-lg transition cursor-pointer ${fontSize === 'large' ? 'bg-blue-600 text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'}`}
+            title="বড় ফন্ট (19px)"
           >
             A+
+          </button>
+          <button
+            type="button"
+            onClick={() => setFontSize('xlarge')}
+            className={`px-1.5 py-0.5 rounded-lg transition cursor-pointer ${fontSize === 'xlarge' ? 'bg-blue-600 text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'}`}
+            title="অতিরিক্ত বড় ফন্ট (21.5px)"
+          >
+            A++
           </button>
         </div>
 
@@ -580,5 +665,6 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
       </WindowsModalFrame>
     </header>
+  </>
   );
 };

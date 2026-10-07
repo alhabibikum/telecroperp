@@ -11,12 +11,24 @@
     --ios-red: #be123c;
   }
 
+  html {
+    scroll-behavior: smooth;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
     background-color: var(--ios-bg);
     color: #0f172a;
+    line-height: 1.55;
+    letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Enhanced Readability for Financial and Tabular Data */
+  table, .font-mono, [data-tabular="true"] {
+    font-variant-numeric: tabular-nums;
   }
 }
 
