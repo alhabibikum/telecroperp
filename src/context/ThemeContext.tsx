@@ -44,13 +44,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       localStorage.setItem('telecorp_fontsize', fontSize);
       if (fontSize === 'small') {
-        document.documentElement.style.fontSize = '15px';
+        document.documentElement.style.fontSize = '14px';
       } else if (fontSize === 'large') {
-        document.documentElement.style.fontSize = '19px';
+        document.documentElement.style.fontSize = '17.5px';
       } else if (fontSize === 'xlarge') {
-        document.documentElement.style.fontSize = '21.5px';
+        document.documentElement.style.fontSize = '19px';
       } else {
-        document.documentElement.style.fontSize = '17px';
+        document.documentElement.style.fontSize = '15.5px';
       }
     } catch {}
   }, [fontSize]);

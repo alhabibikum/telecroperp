@@ -57,12 +57,12 @@ export const WindowsWindowFrame: React.FC<WindowsWindowFrameProps> = ({
       className={`h-full flex flex-col transition-all duration-150 transform-gpu ${
         isMaximized
           ? 'w-full'
-          : 'p-1.5 sm:p-2 bg-slate-900/10'
+          : 'p-0.5 sm:p-1 bg-slate-900/10'
       }`}
     >
       <div
-        className={`flex-1 flex flex-col bg-slate-100 overflow-hidden shadow-xl border border-slate-300/80 will-change-transform ${
-          isMaximized ? 'rounded-none' : 'rounded-2xl shadow-2xl'
+        className={`flex-1 flex flex-col bg-slate-100 dark:bg-slate-950 overflow-hidden shadow-xl border border-slate-300/80 dark:border-slate-800 will-change-transform ${
+          isMaximized ? 'rounded-none' : 'rounded-xl shadow-xl'
         } ${className}`}
       >
         {/* Windows OS Titlebar */}

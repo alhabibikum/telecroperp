@@ -81,7 +81,7 @@ export const DueAgeingView: React.FC<DueAgeingViewProps> = ({ onOpenDueCollectio
   const totalOverdue30Plus = customerAgeingData.reduce((acc, c) => acc + c.days31to60 + c.days61to90 + c.days90Plus, 0);
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-2 sm:p-2.5 md:p-3 space-y-2.5 sm:space-y-3 w-full">
       {/* Top Banner */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>

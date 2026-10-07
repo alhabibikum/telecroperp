@@ -579,8 +579,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       ref={dashboardContainerRef}
       className={`w-full transition-all duration-300 ${
         isFullscreen
-          ? 'bg-slate-950 text-slate-100 p-4 sm:p-6 md:p-8 overflow-y-auto fixed inset-0 z-50'
-          : 'p-4 sm:p-6 md:p-8 space-y-6 md:space-y-7 max-w-[1700px] w-full mx-auto'
+          ? 'bg-slate-950 text-slate-100 p-2 sm:p-3 overflow-y-auto fixed inset-0 z-50'
+          : 'p-2 sm:p-2.5 md:p-3 space-y-2.5 sm:space-y-3 w-full'
       }`}
     >
       {/* ============================================================== */}
@@ -588,8 +588,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* ============================================================== */}
       <div className={`rounded-2xl border transition-all ${
         isFullscreen
-          ? 'bg-slate-900 border-slate-800 p-4 sm:p-5 text-white shadow-xl mb-4'
-          : 'bg-white border-slate-200/90 p-4 sm:p-5 shadow-xs'
+          ? 'bg-slate-900 border-slate-800 p-3 sm:p-4 text-white shadow-xl mb-3'
+          : 'bg-white border-slate-200/90 p-3 sm:p-3.5 shadow-xs'
       }`}>
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           {/* Header titles & Live pulse */}

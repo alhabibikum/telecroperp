@@ -54,7 +54,7 @@ export const SalesmanMobileAppView: React.FC = () => {
 
   if (!activeSalesman) {
     return (
-      <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
+      <div className="p-2 sm:p-2.5 md:p-3 space-y-2.5 sm:space-y-3 w-full">
         <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center space-y-4 shadow-xs">
           <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
             <Smartphone className="w-8 h-8" />
@@ -162,7 +162,7 @@ export const SalesmanMobileAppView: React.FC = () => {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
+    <div className="p-2 sm:p-2.5 md:p-3 space-y-2.5 sm:space-y-3 w-full">
       {/* Top Banner with Officer Switcher */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>

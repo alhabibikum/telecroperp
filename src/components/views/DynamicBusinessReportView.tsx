@@ -739,7 +739,7 @@ export const DynamicBusinessReportView: React.FC = () => {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="p-2 sm:p-2.5 md:p-3 space-y-2.5 sm:space-y-3 w-full pb-8">
       {/* ============================================================== */}
       {/* 1. TOP EXECUTIVE HEADER BANNER */}
       {/* ============================================================== */}

@@ -292,7 +292,7 @@ export const EMIInstallmentView: React.FC = () => {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-2 sm:p-2.5 md:p-3 space-y-2.5 sm:space-y-3 w-full">
       {/* Toast Alert */}
       {feedbackToast && (
         <div className={`p-4 rounded-xl flex items-center gap-3 text-xs font-semibold shadow-md border ${
