@@ -20,7 +20,9 @@ import {
   Truck,
   Layers,
   Clock,
-  DollarSign
+  DollarSign,
+  Download,
+  FileText
 } from 'lucide-react';
 import { ERP_SHORTCUTS, ShortcutItem } from '../../utils/keyboardNavigationUtils';
 
@@ -132,13 +134,39 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href="/telecorp_erp_operation_guide.pdf"
+              download="TeleCorp_ERP_Operation_Guide.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold border border-red-200 transition-colors shadow-xs"
+              title="Download Full User Guide in PDF format"
+            >
+              <FileText className="w-3.5 h-3.5 text-red-600" />
+              <span>PDF গাইড</span>
+              <Download className="w-3 h-3 text-red-500" />
+            </a>
+            <a
+              href="/telecorp_erp_operation_guide.docx"
+              download="TeleCorp_ERP_Operation_Guide.docx"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 transition-colors shadow-xs"
+              title="Download Full User Guide in Microsoft Word (.docx) format"
+            >
+              <FileText className="w-3.5 h-3.5 text-blue-600" />
+              <span>Word গাইড</span>
+              <Download className="w-3 h-3 text-blue-500" />
+            </a>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Tab Navigation */}
