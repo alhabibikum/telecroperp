@@ -58,6 +58,55 @@ import {
   PieChart,
   Pie
 } from 'recharts';
+import { ErrorBoundary } from '../common/ErrorBoundary';
+
+const brandColors: Record<string, string> = {
+  Samsung: '#2563eb',
+  Xiaomi: '#ea580c',
+  Apple: '#475569',
+  Vivo: '#4f46e5',
+  Realme: '#eab308',
+  Oppo: '#16a34a',
+  Tecno: '#06b6d4',
+  OnePlus: '#dc2626'
+};
+
+const LiveClock: React.FC = React.memo(() => {
+  const [time, setTime] = useState<string>(() => new Date().toLocaleTimeString('en-US', { hour12: true }));
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(new Date().toLocaleTimeString('en-US', { hour12: true }));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return <span>{time}</span>;
+});
+
+const CustomCurrencyTooltip = React.memo(({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-900/95 backdrop-blur-md text-white p-3 rounded-xl shadow-2xl text-xs space-y-1.5 border border-slate-700/80 font-sans z-50">
+        <div className="font-bold text-slate-300 border-b border-slate-700/80 pb-1">{label}</div>
+        {payload.map((item: any, idx: number) => (
+          <div key={idx} className="flex items-center justify-between gap-4 py-0.5">
+            <span className="flex items-center gap-1.5 text-slate-300">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color || item.fill }} />
+              <span>{item.name}:</span>
+            </span>
+            <strong className="font-mono font-bold text-white">
+              {typeof item.value === 'number' && item.name?.toLowerCase().includes('unit')
+                ? `${item.value} Units`
+                : typeof item.value === 'number' && item.name?.toLowerCase().includes('margin')
+                ? `${item.value}%`
+                : formatBDT(item.value)}
+            </strong>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+});
 
 interface DashboardViewProps {
   onOpenNewSale: () => void;
@@ -101,7 +150,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   // Fullscreen state & handler
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [liveTime, setLiveTime] = useState<string>(new Date().toLocaleTimeString('en-US', { hour12: true }));
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Timeframe filter state
@@ -109,14 +157,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [brandMetric, setBrandMetric] = useState<'units' | 'revenue'>('units');
   const [profitMetric, setProfitMetric] = useState<'all' | 'profitOnly'>('all');
   const [activeChannelTab, setActiveChannelTab] = useState<'all' | 'wholesale' | 'retail'>('all');
-
-  // Keep live time ticking for executive wall display
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setLiveTime(new Date().toLocaleTimeString('en-US', { hour12: true }));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Listen to browser fullscreen change
   useEffect(() => {
@@ -164,11 +204,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const totalPayableDue = suppliers.reduce((acc, s) => acc + s.currentDue, 0);
 
   // Stock valuation: sum of purchaseCost of all 'In Stock' IMEIs
-  const inStockUnits = imeis.filter(i => i.status === 'In Stock');
-  const soldUnits = imeis.filter(i => i.status === 'Sold');
-  const inTransitUnits = imeis.filter(i => i.status === 'Transferred' || i.status === 'Reserved');
-  const rmaDamagedUnits = imeis.filter(i => i.status === 'Warranty' || i.status === 'Lost/Blocked');
-  const totalStockValuation = inStockUnits.reduce((acc, i) => acc + (i.purchaseCost || 0), 0);
+  const inStockUnits = useMemo(() => imeis.filter(i => i.status === 'In Stock'), [imeis]);
+  const soldUnits = useMemo(() => imeis.filter(i => i.status === 'Sold'), [imeis]);
+  const inTransitUnits = useMemo(() => imeis.filter(i => i.status === 'Transferred' || i.status === 'Reserved'), [imeis]);
+  const rmaDamagedUnits = useMemo(() => imeis.filter(i => i.status === 'Warranty' || i.status === 'Lost/Blocked'), [imeis]);
+  const totalStockValuation = useMemo(() => inStockUnits.reduce((acc, i) => acc + (i.purchaseCost || 0), 0), [inStockUnits]);
 
   // Bank & Cash liquid total
   const totalBankBalance = bankAccounts.reduce((acc, b) => acc + (b.currentBalance || 0), 0);
@@ -213,12 +253,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   // ==============================================================
   // FEATURE 3: IMEI STOCK LIFECYCLE & HEALTH DISTRIBUTION (PIE)
   // ==============================================================
-  const stockHealthPieData = [
+  const stockHealthPieData = useMemo(() => [
     { name: isBn ? 'ইন-স্টক (মজুদ)' : 'In Stock', value: inStockUnits.length, color: '#10b981' },
     { name: isBn ? 'বিক্রীত (Sold)' : 'Sold', value: soldUnits.length, color: '#3b82f6' },
     { name: isBn ? 'ট্রানজিটে (In Transit)' : 'In Transit', value: inTransitUnits.length, color: '#f59e0b' },
     { name: isBn ? 'আরএমএ/ক্ষতিগ্রস্ত' : 'RMA / Damaged', value: rmaDamagedUnits.length, color: '#ef4444' }
-  ].filter(d => d.value > 0);
+  ].filter(d => d.value > 0), [isBn, inStockUnits, soldUnits, inTransitUnits, rmaDamagedUnits]);
 
   // Stock aging telemetry
   const nowTs = new Date().getTime();
@@ -390,128 +430,131 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   // ==============================================================
   // TIME-BASED CHART DATA (7 Days & Monthly)
   // ==============================================================
-  const daysList: string[] = [];
-  const today = new Date();
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    daysList.push(d.toISOString().split('T')[0]);
-  }
+  const daysList = useMemo(() => {
+    const list: string[] = [];
+    const today = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      list.push(d.toISOString().split('T')[0]);
+    }
+    return list;
+  }, []);
 
-  const salesTrend7Days = daysList.map(dateStr => {
-    const dayInvoices = salesInvoices.filter(inv => inv.invoiceDate === dateStr);
-    const daySales = dayInvoices.reduce((sum, inv) => sum + inv.grandTotal, 0);
-    const dayUnits = dayInvoices.reduce((sum, inv) => sum + inv.items.reduce((s, it) => s + (it.quantity || 1), 0), 0);
+  const salesTrend7Days = useMemo(() => {
+    return daysList.map(dateStr => {
+      const dayInvoices = salesInvoices.filter(inv => inv.invoiceDate === dateStr);
+      const daySales = dayInvoices.reduce((sum, inv) => sum + inv.grandTotal, 0);
+      const dayUnits = dayInvoices.reduce((sum, inv) => sum + inv.items.reduce((s, it) => s + (it.quantity || 1), 0), 0);
 
-    const invoiceCollections = dayInvoices.reduce((sum, inv) => sum + (inv.paidAmount || 0), 0);
-    const cashCollections = cashTransactions
-      .filter(tx => tx.type === 'Cash In' && tx.date.startsWith(dateStr))
-      .reduce((sum, tx) => sum + tx.amount, 0);
-    const totalCollections = Math.max(invoiceCollections, cashCollections);
+      const invoiceCollections = dayInvoices.reduce((sum, inv) => sum + (inv.paidAmount || 0), 0);
+      const cashCollections = cashTransactions
+        .filter(tx => tx.type === 'Cash In' && tx.date.startsWith(dateStr))
+        .reduce((sum, tx) => sum + tx.amount, 0);
+      const totalCollections = Math.max(invoiceCollections, cashCollections);
 
-    const dObj = new Date(dateStr);
-    const periodLabel = dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+      const dObj = new Date(dateStr);
+      const periodLabel = dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
 
-    return {
-      period: periodLabel,
-      sales: daySales,
-      collections: totalCollections,
-      units: dayUnits
-    };
-  });
+      return {
+        period: periodLabel,
+        sales: daySales,
+        collections: totalCollections,
+        units: dayUnits
+      };
+    });
+  }, [daysList, salesInvoices, cashTransactions]);
 
   // Dynamic Monthly Sales Trend
-  const monthsMap = new Map<string, { sales: number; collections: number; units: number }>();
-  salesInvoices.forEach(inv => {
-    const monthKey = inv.invoiceDate ? inv.invoiceDate.substring(0, 7) : '2026-10';
-    const cur = monthsMap.get(monthKey) || { sales: 0, collections: 0, units: 0 };
-    cur.sales += inv.grandTotal;
-    cur.collections += inv.paidAmount;
-    cur.units += inv.items.reduce((s, it) => s + (it.quantity || 1), 0);
-    monthsMap.set(monthKey, cur);
-  });
-
-  const sortedMonthKeys = Array.from(monthsMap.keys()).sort();
-  const salesTrendMonthly = sortedMonthKeys.length > 0 ? sortedMonthKeys.map(k => {
-    const val = monthsMap.get(k)!;
-    const [y, m] = k.split('-');
-    const mDate = new Date(parseInt(y, 10), parseInt(m, 10) - 1, 1);
-    const mLabel = mDate.toLocaleDateString('en-US', { month: 'short' });
-    return {
-      period: mLabel,
-      sales: val.sales,
-      collections: val.collections,
-      units: val.units
-    };
-  }) : salesTrend7Days;
-
-  const activeSalesTrendData = dashboardTimeframe === 'month' ? salesTrendMonthly : salesTrend7Days;
-
-  // Brand sales data
-  const brandColors: Record<string, string> = {
-    Samsung: '#2563eb',
-    Xiaomi: '#ea580c',
-    Apple: '#475569',
-    Vivo: '#4f46e5',
-    Realme: '#eab308',
-    Oppo: '#16a34a',
-    Tecno: '#06b6d4',
-    OnePlus: '#dc2626'
-  };
-
-  const topBrandData = brands.map(b => {
-    const bImeis = imeis.filter(i => (i.brandName || '').toLowerCase() === b.name.toLowerCase());
-    const inStock = bImeis.filter(i => i.status === 'In Stock').length;
-    const soldImeisCount = bImeis.filter(i => i.status === 'Sold').length;
-
-    let actualRevenue = 0;
-    let actualUnitsSold = 0;
+  const salesTrendMonthly = useMemo(() => {
+    const monthsMap = new Map<string, { sales: number; collections: number; units: number }>();
     salesInvoices.forEach(inv => {
-      inv.items.forEach(it => {
-        const prod = products.find(p => p.id === it.productId);
-        if ((prod && prod.brandName.toLowerCase() === b.name.toLowerCase()) || it.productName.toLowerCase().includes(b.name.toLowerCase())) {
-          actualRevenue += it.totalAmount;
-          actualUnitsSold += it.quantity;
-        }
-      });
+      const monthKey = inv.invoiceDate ? inv.invoiceDate.substring(0, 7) : '2026-10';
+      const cur = monthsMap.get(monthKey) || { sales: 0, collections: 0, units: 0 };
+      cur.sales += inv.grandTotal;
+      cur.collections += inv.paidAmount;
+      cur.units += inv.items.reduce((s, it) => s + (it.quantity || 1), 0);
+      monthsMap.set(monthKey, cur);
     });
 
-    const totalSold = Math.max(soldImeisCount, actualUnitsSold);
+    const sortedMonthKeys = Array.from(monthsMap.keys()).sort();
+    return sortedMonthKeys.length > 0 ? sortedMonthKeys.map(k => {
+      const val = monthsMap.get(k)!;
+      const [y, m] = k.split('-');
+      const mDate = new Date(parseInt(y, 10), parseInt(m, 10) - 1, 1);
+      const mLabel = mDate.toLocaleDateString('en-US', { month: 'short' });
+      return {
+        period: mLabel,
+        sales: val.sales,
+        collections: val.collections,
+        units: val.units
+      };
+    }) : salesTrend7Days;
+  }, [salesInvoices, salesTrend7Days]);
 
-    return {
-      name: b.name,
-      unitsSold: totalSold,
-      inStockUnits: inStock,
-      revenue: actualRevenue,
-      color: brandColors[b.name] || '#3b82f6'
-    };
-  }).sort((a, b) => brandMetric === 'units' ? b.unitsSold - a.unitsSold : b.revenue - a.revenue);
+  const activeSalesTrendData = useMemo(() => {
+    return dashboardTimeframe === 'month' ? salesTrendMonthly : salesTrend7Days;
+  }, [dashboardTimeframe, salesTrendMonthly, salesTrend7Days]);
+
+  const topBrandData = useMemo(() => {
+    return brands.map(b => {
+      const bImeis = imeis.filter(i => (i.brandName || '').toLowerCase() === b.name.toLowerCase());
+      const inStock = bImeis.filter(i => i.status === 'In Stock').length;
+      const soldImeisCount = bImeis.filter(i => i.status === 'Sold').length;
+
+      let actualRevenue = 0;
+      let actualUnitsSold = 0;
+      salesInvoices.forEach(inv => {
+        inv.items.forEach(it => {
+          const prod = products.find(p => p.id === it.productId);
+          if ((prod && prod.brandName.toLowerCase() === b.name.toLowerCase()) || it.productName.toLowerCase().includes(b.name.toLowerCase())) {
+            actualRevenue += it.totalAmount;
+            actualUnitsSold += it.quantity;
+          }
+        });
+      });
+
+      const totalSold = Math.max(soldImeisCount, actualUnitsSold);
+
+      return {
+        name: b.name,
+        unitsSold: totalSold,
+        inStockUnits: inStock,
+        revenue: actualRevenue,
+        color: brandColors[b.name] || '#3b82f6'
+      };
+    }).sort((a, b) => brandMetric === 'units' ? b.unitsSold - a.unitsSold : b.revenue - a.revenue);
+  }, [brands, imeis, salesInvoices, products, brandMetric]);
+
+  const top5BrandData = useMemo(() => topBrandData.slice(0, 5), [topBrandData]);
 
   // Profit/Loss Telemetry Data
-  const dailyProfitLossData = daysList.map(dateStr => {
-    const dayInvoices = salesInvoices.filter(inv => inv.invoiceDate === dateStr);
-    const revenue = dayInvoices.reduce((sum, inv) => sum + inv.grandTotal, 0);
-    const cogs = dayInvoices.reduce((sum, inv) => sum + inv.items.reduce((s, it) => s + ((it.unitCost || 0) * (it.quantity || 1)), 0), 0);
-    const dayExpenses = expenses
-      .filter(e => e.date.startsWith(dateStr))
-      .reduce((sum, e) => sum + e.amount, 0);
-    const grossProfit = revenue - cogs;
-    const netProfit = grossProfit - dayExpenses;
-    const margin = revenue > 0 ? Number(((netProfit / revenue) * 100).toFixed(1)) : 0;
+  const dailyProfitLossData = useMemo(() => {
+    return daysList.map(dateStr => {
+      const dayInvoices = salesInvoices.filter(inv => inv.invoiceDate === dateStr);
+      const revenue = dayInvoices.reduce((sum, inv) => sum + inv.grandTotal, 0);
+      const cogs = dayInvoices.reduce((sum, inv) => sum + inv.items.reduce((s, it) => s + ((it.unitCost || 0) * (it.quantity || 1)), 0), 0);
+      const dayExpenses = expenses
+        .filter(e => e.date.startsWith(dateStr))
+        .reduce((sum, e) => sum + e.amount, 0);
+      const grossProfit = revenue - cogs;
+      const netProfit = grossProfit - dayExpenses;
+      const margin = revenue > 0 ? Number(((netProfit / revenue) * 100).toFixed(1)) : 0;
 
-    const dObj = new Date(dateStr);
-    const dayLabel = dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+      const dObj = new Date(dateStr);
+      const dayLabel = dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
 
-    return {
-      day: dayLabel,
-      revenue,
-      cogs,
-      expenses: dayExpenses,
-      grossProfit,
-      netProfit,
-      margin
-    };
-  });
+      return {
+        day: dayLabel,
+        revenue,
+        cogs,
+        expenses: dayExpenses,
+        grossProfit,
+        netProfit,
+        margin
+      };
+    });
+  }, [daysList, salesInvoices, expenses]);
 
   const totalWeeklyRevenue = dailyProfitLossData.reduce((sum, d) => sum + d.revenue, 0);
   const totalWeeklyNetProfit = dailyProfitLossData.reduce((sum, d) => sum + d.netProfit, 0);
@@ -530,33 +573,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const estimatedAnnualRoiVal = totalStockValuation > 0 && totalWeeklyNetProfit > 0
     ? (((totalWeeklyNetProfit * 52) / totalStockValuation) * 100).toFixed(1) + '%'
     : '0.0%';
-
-  // Custom Tooltip
-  const CustomCurrencyTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-slate-900/95 backdrop-blur-md text-white p-3 rounded-xl shadow-2xl text-xs space-y-1.5 border border-slate-700/80 font-sans z-50">
-          <div className="font-bold text-slate-300 border-b border-slate-700/80 pb-1">{label}</div>
-          {payload.map((item: any, idx: number) => (
-            <div key={idx} className="flex items-center justify-between gap-4 py-0.5">
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color || item.fill }} />
-                <span>{item.name}:</span>
-              </span>
-              <strong className="font-mono font-bold text-white">
-                {typeof item.value === 'number' && item.name.toLowerCase().includes('unit')
-                  ? `${item.value} Units`
-                  : typeof item.value === 'number' && item.name.toLowerCase().includes('margin')
-                  ? `${item.value}%`
-                  : formatBDT(item.value)}
-              </strong>
-            </div>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div
@@ -599,7 +615,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
                 <span className="flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5 text-blue-500" />
-                  {liveTime}
+                  <LiveClock />
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-1 font-medium">
@@ -958,32 +974,34 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
 
-          <div className="h-64 sm:h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={activeSalesTrendData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0.0} />
-                  </linearGradient>
-                  <linearGradient id="colGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="period" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-                <YAxis
-                  stroke="#94a3b8"
-                  tick={{ fontSize: 11 }}
-                  tickFormatter={(val) => `৳${(val / 1000).toFixed(0)}k`}
-                />
-                <Tooltip content={<CustomCurrencyTooltip />} />
-                <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: 11, paddingBottom: 10 }} />
-                <Area type="monotone" dataKey="sales" name="Gross Billed Sales" stroke="#2563eb" strokeWidth={2.5} fillOpacity={1} fill="url(#salesGrad)" />
-                <Area type="monotone" dataKey="collections" name="Payment Collections" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colGrad)" />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="h-64 sm:h-72 w-full min-w-0">
+            <ErrorBoundary fallback={<div className="h-full flex items-center justify-center text-xs text-slate-400">গ্রাফ লোড হতে সমস্যা হয়েছে</div>}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <AreaChart data={activeSalesTrendData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0.0} />
+                    </linearGradient>
+                    <linearGradient id="colGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="period" stroke="#94a3b8" tick={{ fontSize: 11 }} />
+                  <YAxis
+                    stroke="#94a3b8"
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(val) => `৳${(val / 1000).toFixed(0)}k`}
+                  />
+                  <Tooltip content={<CustomCurrencyTooltip />} />
+                  <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: 11, paddingBottom: 10 }} />
+                  <Area type="monotone" dataKey="sales" name="Gross Billed Sales" stroke="#2563eb" strokeWidth={2.5} fillOpacity={1} fill="url(#salesGrad)" />
+                  <Area type="monotone" dataKey="collections" name="Payment Collections" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </ErrorBoundary>
           </div>
 
           <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-center text-xs">
@@ -1039,25 +1057,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
 
-          <div className="h-64 sm:h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topBrandData.slice(0, 5)} layout="vertical" margin={{ top: 5, right: 15, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                <XAxis
-                  type="number"
-                  stroke="#94a3b8"
-                  tick={{ fontSize: 10 }}
-                  tickFormatter={(val) => brandMetric === 'revenue' ? `৳${(val / 1000000).toFixed(1)}M` : `${val}`}
-                />
-                <YAxis type="category" dataKey="name" stroke="#64748b" tick={{ fontSize: 11, fontWeight: 700 }} width={60} />
-                <Tooltip content={<CustomCurrencyTooltip />} />
-                <Bar dataKey={brandMetric === 'units' ? 'unitsSold' : 'revenue'} name={brandMetric === 'units' ? 'Units Sold' : 'Total Revenue'} radius={[0, 8, 8, 0]} barSize={18}>
-                  {topBrandData.slice(0, 5).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="h-64 sm:h-72 w-full min-w-0">
+            <ErrorBoundary fallback={<div className="h-full flex items-center justify-center text-xs text-slate-400">গ্রাফ লোড হতে সমস্যা হয়েছে</div>}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <BarChart data={top5BrandData} layout="vertical" margin={{ top: 5, right: 15, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                  <XAxis
+                    type="number"
+                    stroke="#94a3b8"
+                    tick={{ fontSize: 10 }}
+                    tickFormatter={(val) => brandMetric === 'revenue' ? `৳${(val / 1000000).toFixed(1)}M` : `${val}`}
+                  />
+                  <YAxis type="category" dataKey="name" stroke="#64748b" tick={{ fontSize: 11, fontWeight: 700 }} width={60} />
+                  <Tooltip content={<CustomCurrencyTooltip />} />
+                  <Bar dataKey={brandMetric === 'units' ? 'unitsSold' : 'revenue'} name={brandMetric === 'units' ? 'Units Sold' : 'Total Revenue'} radius={[0, 8, 8, 0]} barSize={18}>
+                    {top5BrandData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </ErrorBoundary>
           </div>
 
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
@@ -1099,23 +1119,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
             {/* Donut Chart */}
-            <div className="sm:col-span-6 h-48 sm:h-56 w-full flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={stockHealthPieData}
-                    innerRadius={45}
-                    outerRadius={70}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {stockHealthPieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomCurrencyTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="sm:col-span-6 h-48 sm:h-56 w-full min-w-0 flex items-center justify-center">
+              <ErrorBoundary fallback={<div className="h-full flex items-center justify-center text-xs text-slate-400">গ্রাফ লোড হতে সমস্যা হয়েছে</div>}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                  <PieChart>
+                    <Pie
+                      data={stockHealthPieData}
+                      innerRadius={45}
+                      outerRadius={70}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {stockHealthPieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomCurrencyTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </ErrorBoundary>
             </div>
 
             {/* Stock Ageing Indicators */}
@@ -1599,28 +1621,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        <div className="h-64 sm:h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={dailyProfitLossData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis dataKey="day" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-              <YAxis yAxisId="left" stroke="#94a3b8" tick={{ fontSize: 11 }} tickFormatter={(val) => `৳${(val / 1000).toFixed(0)}k`} />
-              <YAxis yAxisId="right" orientation="right" stroke="#10b981" tick={{ fontSize: 11 }} tickFormatter={(val) => `${val}%`} />
-              <Tooltip content={<CustomCurrencyTooltip />} />
-              <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 11, paddingBottom: 10 }} />
+        <div className="h-64 sm:h-72 w-full min-w-0">
+          <ErrorBoundary fallback={<div className="h-full flex items-center justify-center text-xs text-slate-400">গ্রাফ লোড হতে সমস্যা হয়েছে</div>}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+              <ComposedChart data={dailyProfitLossData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="day" stroke="#94a3b8" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="left" stroke="#94a3b8" tick={{ fontSize: 11 }} tickFormatter={(val) => `৳${(val / 1000).toFixed(0)}k`} />
+                <YAxis yAxisId="right" orientation="right" stroke="#10b981" tick={{ fontSize: 11 }} tickFormatter={(val) => `${val}%`} />
+                <Tooltip content={<CustomCurrencyTooltip />} />
+                <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 11, paddingBottom: 10 }} />
 
-              {profitMetric === 'all' && (
-                <>
-                  <Bar yAxisId="left" dataKey="revenue" name="Daily Revenue" fill="#93c5fd" radius={[6, 6, 0, 0]} barSize={16} />
-                  <Bar yAxisId="left" dataKey="cogs" name="COGS Cost" fill="#cbd5e1" radius={[6, 6, 0, 0]} barSize={16} />
-                  <Bar yAxisId="left" dataKey="expenses" name="Operating Expenses" fill="#fca5a5" radius={[6, 6, 0, 0]} barSize={16} />
-                </>
-              )}
+                {profitMetric === 'all' && (
+                  <>
+                    <Bar yAxisId="left" dataKey="revenue" name="Daily Revenue" fill="#93c5fd" radius={[6, 6, 0, 0]} barSize={16} />
+                    <Bar yAxisId="left" dataKey="cogs" name="COGS Cost" fill="#cbd5e1" radius={[6, 6, 0, 0]} barSize={16} />
+                    <Bar yAxisId="left" dataKey="expenses" name="Operating Expenses" fill="#fca5a5" radius={[6, 6, 0, 0]} barSize={16} />
+                  </>
+                )}
 
-              <Bar yAxisId="left" dataKey="netProfit" name="Net Profit" fill="#10b981" radius={[6, 6, 0, 0]} barSize={18} />
-              <Line yAxisId="right" type="monotone" dataKey="margin" name="Margin %" stroke="#059669" strokeWidth={3} dot={{ r: 4 }} />
-            </ComposedChart>
-          </ResponsiveContainer>
+                <Bar yAxisId="left" dataKey="netProfit" name="Net Profit" fill="#10b981" radius={[6, 6, 0, 0]} barSize={18} />
+                <Line yAxisId="right" type="monotone" dataKey="margin" name="Margin %" stroke="#059669" strokeWidth={3} dot={{ r: 4 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </ErrorBoundary>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">

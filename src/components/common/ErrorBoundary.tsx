@@ -4,6 +4,7 @@ import { AlertTriangle, RefreshCw, LayoutDashboard } from 'lucide-react';
 interface Props {
   children: ReactNode;
   fallbackTitle?: string;
+  fallback?: ReactNode;
   onReset?: () => void;
 }
 
@@ -37,6 +38,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
       return (
         <div className="h-full w-full min-h-[350px] flex items-center justify-center p-6 bg-slate-900/5 backdrop-blur-xs select-none">
           <div className="max-w-md w-full bg-white/95 backdrop-blur-2xl rounded-3xl border border-rose-200 shadow-2xl p-6 sm:p-8 text-center space-y-4 animate-in fade-in zoom-in-95 duration-150">
