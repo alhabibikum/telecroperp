@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Enable class-based dark mode variant for Tailwind CSS v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --ios-bg: #f4f6fa;
@@ -9,6 +12,14 @@
     --ios-blue: #1d4ed8;
     --ios-amber: #d97706;
     --ios-red: #be123c;
+    color-scheme: light;
+  }
+
+  .dark, [data-theme="dark"] {
+    --ios-bg: #090d16;
+    --ios-card-bg: rgba(15, 23, 42, 0.92);
+    --ios-glass-border: rgba(51, 65, 85, 0.7);
+    color-scheme: dark;
   }
 
   html {
@@ -24,11 +35,45 @@
     letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .dark body,
+  html.dark body {
+    background-color: #090d16;
+    color: #f1f5f9;
   }
 
   /* Enhanced Readability for Financial and Tabular Data */
   table, .font-mono, [data-tabular="true"] {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Universal Dark Mode Fallback Overrides for Unstyled Elements */
+  html.dark .bg-white:not([data-theme-ignore="true"]) {
+    background-color: #0f172a !important;
+    color: #f1f5f9;
+  }
+  html.dark .bg-slate-50:not([data-theme-ignore="true"]) {
+    background-color: #1e293b !important;
+  }
+  html.dark .bg-slate-100:not([data-theme-ignore="true"]) {
+    background-color: #0b0f19 !important;
+  }
+  html.dark .border-slate-200:not([data-theme-ignore="true"]) {
+    border-color: #334155 !important;
+  }
+  html.dark .border-slate-100:not([data-theme-ignore="true"]) {
+    border-color: #1e293b !important;
+  }
+  html.dark .text-slate-900:not([data-theme-ignore="true"]),
+  html.dark .text-slate-800:not([data-theme-ignore="true"]),
+  html.dark .text-slate-700:not([data-theme-ignore="true"]) {
+    color: #f8fafc !important;
+  }
+  html.dark .text-slate-600:not([data-theme-ignore="true"]),
+  html.dark .text-slate-500:not([data-theme-ignore="true"]) {
+    color: #94a3b8 !important;
   }
 }
 

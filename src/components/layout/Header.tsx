@@ -11,7 +11,6 @@ import {
   CheckCircle,
   X,
   Globe,
-  LogOut,
   Wifi,
   WifiOff,
   RefreshCw,
@@ -19,10 +18,7 @@ import {
   Trash2,
   Keyboard,
   Sun,
-  Moon,
-  Pin,
-  PinOff,
-  ChevronDown
+  Moon
 } from 'lucide-react';
 import { Notifications } from './Notifications';
 import { testSupabaseConnection } from '../../lib/supabase';
@@ -39,8 +35,6 @@ interface HeaderProps {
   onOpenCommandPalette?: () => void;
   onOpenShortcutsHelp?: () => void;
   onSelectView: (view: string) => void;
-  isPinned: boolean;
-  onTogglePin: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -49,18 +43,11 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenDueCollection,
   onOpenIMEILookup,
   onOpenShortcutsHelp,
-  onSelectView,
-  isPinned,
-  onTogglePin
+  onSelectView
 }) => {
   const {
     currentUserRole,
-    currentUser,
-    logout,
-    users,
-    demoUsers,
     hasPermission,
-    loginAsDemoUser,
     alerts,
     imeis,
     products,
@@ -118,54 +105,8 @@ export const Header: React.FC<HeaderProps> = ({
   );
   const totalRealNotifications = unreadAlertsCount + lowStockCount + pendingApprovalsCount;
 
-  const [isHovered, setIsHovered] = useState(false);
-  const isVisible = isPinned || isHovered;
-
   return (
-    <>
-      {/* Top Hover Hotzone & Pull Tab when Header is in Auto-Hide mode */}
-      {!isPinned && (
-        <div
-          onMouseEnter={() => setIsHovered(true)}
-          className="fixed top-0 left-0 right-0 h-3 z-40 group cursor-pointer"
-          title="মাউস আনলে হেডার খুলবে • ডাবল ক্লিকে স্থায়ী হবে"
-        >
-          {/* Subtle center indicator */}
-          <div
-            onClick={() => setIsHovered(true)}
-            className={`absolute top-0 left-1/2 -translate-x-1/2 transition-all duration-300 z-40 ${
-              isHovered ? 'opacity-0 pointer-events-none' : 'opacity-100'
-            }`}
-          >
-            <div className="bg-slate-900/90 dark:bg-slate-800/90 hover:bg-blue-600 text-white px-3 py-0.5 rounded-b-xl text-[10px] font-bold shadow-md flex items-center gap-1.5 border-x border-b border-white/20 select-none">
-              <ChevronDown className="w-3 h-3 text-blue-400 group-hover:text-white animate-bounce" />
-              <span>হেডার (মাউস আনুন / ডাবল ক্লিক)</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Header Container */}
-      <header
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => {
-          if (!isPinned) setIsHovered(false);
-        }}
-        onDoubleClick={(e) => {
-          if ((e.target as HTMLElement).closest('button, input, select, a')) return;
-          onTogglePin();
-        }}
-        className={`h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800 px-3 sm:px-4 md:px-6 flex items-center justify-between select-none transition-all duration-300 ease-out ${
-          isPinned
-            ? 'sticky top-0 z-30 shadow-xs'
-            : `fixed top-0 left-0 right-0 z-50 shadow-2xl ${
-                isVisible
-                  ? 'translate-y-0 opacity-100 pointer-events-auto'
-                  : '-translate-y-full opacity-0 pointer-events-none'
-              }`
-        }`}
-        title={isPinned ? 'হেডার পিন করা আছে (ডাবল ক্লিক করলে অটো-হাইড হবে)' : 'হেডার অটো-হাইড মোড (ডাবল ক্লিক করলে পিন হবে)'}
-      >
+    <header className="h-14 sm:h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800 px-3 sm:px-4 md:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs select-none transition-colors duration-200">
       {/* Left: Brand info */}
       <div
         className="flex items-center gap-2 sm:gap-3 cursor-pointer shrink-0 select-none"
@@ -330,29 +271,6 @@ export const Header: React.FC<HeaderProps> = ({
           <span>{settings.language === 'en' ? 'বাংলা' : 'EN'}</span>
         </button>
 
-        {/* Header Pin / Auto-Hide Mode Toggle */}
-        <button
-          type="button"
-          onClick={onTogglePin}
-          className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl border transition cursor-pointer shadow-2xs font-bold ${
-            isPinned
-              ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
-              : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200/80 dark:border-slate-700 hover:bg-slate-100'
-          }`}
-          title={isPinned ? "হেডার স্থায়ী/পিন করা আছে (ডাবল ক্লিক বা বাটনে চাপলে অটো-হাইড হবে)" : "হেডার অটো-হাইড মোড (ডাবল ক্লিক বা বাটনে চাপলে স্থায়ী হবে)"}
-        >
-          {isPinned ? (
-            <>
-              <Pin className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 rotate-45" />
-              <span className="hidden xl:inline text-[11px]">পিন করা</span>
-            </>
-          ) : (
-            <>
-              <PinOff className="w-3.5 h-3.5 text-slate-500" />
-              <span className="hidden xl:inline text-[11px]">অটো-হাইড</span>
-            </>
-          )}
-        </button>
 
         {/* Dark/Light Mode Theme Toggle */}
         <button
@@ -404,47 +322,6 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </div>
 
-        {/* User Profile & Logout */}
-        <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200">
-          <div className="text-right hidden md:block">
-            <div className="text-xs font-black text-slate-800 leading-tight">
-              {currentUser?.name || currentUserRole}
-            </div>
-            {['Super Admin', 'Owner', 'General Manager'].includes(currentUserRole) ? (
-              <select
-                value={currentUser?.id || ''}
-                onChange={(e) => loginAsDemoUser(e.target.value)}
-                className="text-[11px] text-blue-600 font-extrabold bg-transparent focus:outline-hidden cursor-pointer hover:underline"
-                title="Quick Switch Active Operator"
-              >
-                {(users.length > 0 ? users : demoUsers).map(u => (
-                  <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
-                ))}
-              </select>
-            ) : (
-              <div className="text-[10px] text-slate-500 font-bold truncate max-w-32">
-                {currentUser?.department?.split('/')[0] || currentUser?.role}
-              </div>
-            )}
-          </div>
-
-          <div
-            className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-slate-900 to-slate-700 text-white flex items-center justify-center font-bold text-base shadow-sm ring-2 ring-blue-500/20"
-            title={`${currentUser?.name || 'Operator'} (${currentUserRole})`}
-          >
-            {currentUser?.avatar || '👨‍💼'}
-          </div>
-
-          {/* Prominent High-Contrast Red Logout Button */}
-          <button
-            onClick={() => logout()}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 active:scale-95 text-white rounded-xl text-xs font-extrabold transition shadow-sm border border-rose-500 cursor-pointer"
-            title="Sign Out / Logout (সিস্টেম থেকে লগআউট করুন)"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">লগআউট</span>
-          </button>
-        </div>
       </div>
 
       {/* Network & Cloud Sync Diagnostic Modal (Windows Sub-Window) */}
@@ -665,6 +542,5 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
       </WindowsModalFrame>
     </header>
-  </>
   );
 };
