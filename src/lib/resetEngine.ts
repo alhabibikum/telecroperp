@@ -30,7 +30,10 @@ import {
   initialBrandIncentives,
   initialDeliveryChallans,
   initialPriceDropClaims,
-  initialSmsLogs
+  initialSmsLogs,
+  initialMoneyReceipts,
+  initialEMIPlans,
+  initialCommissionDisbursements
 } from '../data/initialData';
 import { demoUsers } from '../context/ERPContext';
 import { AuthUser } from '../types/erp';
@@ -49,6 +52,8 @@ export const TRANSACTION_TABLES = [
   'stock_transfers',
   'sales_invoices',
   'purchase_invoices',
+  'emi_plans',
+  'commission_disbursements',
   'money_receipts',
   'bank_statements',
   'bank_transactions',
@@ -248,6 +253,9 @@ export const seedCloudDemoData = async (): Promise<{ success: boolean; message: 
     await insertBatch('delivery_challans', initialDeliveryChallans);
     await insertBatch('price_drop_claims', initialPriceDropClaims);
     await insertBatch('sms_logs', initialSmsLogs);
+    await insertBatch('money_receipts', initialMoneyReceipts);
+    await insertBatch('emi_plans', initialEMIPlans);
+    await insertBatch('commission_disbursements', initialCommissionDisbursements);
 
     return {
       success: true,

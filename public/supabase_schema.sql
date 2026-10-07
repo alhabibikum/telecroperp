@@ -33,6 +33,8 @@ DROP TABLE IF EXISTS cash_transactions CASCADE;
 DROP TABLE IF EXISTS bank_statements CASCADE;
 DROP TABLE IF EXISTS bank_transactions CASCADE;
 DROP TABLE IF EXISTS bank_accounts CASCADE;
+DROP TABLE IF EXISTS emi_plans CASCADE;
+DROP TABLE IF EXISTS commission_disbursements CASCADE;
 DROP TABLE IF EXISTS money_receipts CASCADE;
 DROP TABLE IF EXISTS supplier_returns CASCADE;
 DROP TABLE IF EXISTS customer_returns CASCADE;
@@ -401,15 +403,82 @@ CREATE TABLE money_receipts (
     date DATE NOT NULL DEFAULT CURRENT_DATE,
     customer_id TEXT NOT NULL REFERENCES customers(id),
     customer_name TEXT NOT NULL,
+    customer_phone TEXT,
+    shop_name TEXT,
+    area TEXT,
     amount NUMERIC(15, 2) NOT NULL,
-    payment_method TEXT NOT NULL CHECK (payment_method IN ('Cash', 'Bank Transfer', 'Cheque', 'bKash', 'Nagad', 'Rocket', 'POS Card', 'Other')),
+    discount_waiver NUMERIC(15, 2) DEFAULT 0.00,
+    payment_method TEXT NOT NULL,
+    bank_account_id TEXT,
+    bank_name TEXT,
+    transaction_ref TEXT,
+    collector_salesman_id TEXT,
+    collector_salesman_name TEXT,
+    reference_invoice TEXT,
+    notes TEXT,
+    status TEXT NOT NULL DEFAULT 'Confirmed' CHECK (status IN ('Confirmed', 'Voided')),
+    allocations JSONB DEFAULT '[]'::jsonb,
+    created_by TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- =========================================================================
+-- 10B. EMI & HIRE-PURCHASE FINANCING PLANS
+-- =========================================================================
+CREATE TABLE emi_plans (
+    id TEXT PRIMARY KEY,
+    plan_no TEXT UNIQUE NOT NULL,
+    customer_id TEXT NOT NULL REFERENCES customers(id),
+    customer_name TEXT NOT NULL,
+    customer_mobile TEXT NOT NULL,
+    customer_address TEXT,
+    product_id TEXT NOT NULL REFERENCES products(id),
+    product_name TEXT NOT NULL,
+    variant_desc TEXT,
+    imei TEXT NOT NULL,
+    invoice_no TEXT,
+    warehouse_id TEXT,
+    warehouse_name TEXT,
+    total_price NUMERIC(15, 2) NOT NULL,
+    down_payment NUMERIC(15, 2) NOT NULL,
+    financed_amount NUMERIC(15, 2) NOT NULL,
+    interest_rate NUMERIC(5, 2) DEFAULT 0.00,
+    tenure_months INTEGER NOT NULL,
+    monthly_installment NUMERIC(15, 2) NOT NULL,
+    start_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Completed', 'Defaulted', 'Cancelled')),
+    guarantor JSONB DEFAULT '{}'::jsonb,
+    documents JSONB DEFAULT '{}'::jsonb,
+    installments JSONB DEFAULT '[]'::jsonb,
+    total_paid NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
+    total_remaining NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
+    overdue_count INTEGER NOT NULL DEFAULT 0,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- =========================================================================
+-- 10C. SALESMAN COMMISSION DISBURSEMENTS
+-- =========================================================================
+CREATE TABLE commission_disbursements (
+    id TEXT PRIMARY KEY,
+    disbursement_no TEXT UNIQUE NOT NULL,
+    salesman_id TEXT NOT NULL REFERENCES salesmen(id),
+    salesman_name TEXT NOT NULL,
+    month TEXT NOT NULL,
+    date DATE NOT NULL DEFAULT CURRENT_DATE,
+    sales_amount NUMERIC(15, 2) DEFAULT 0.00,
+    collection_amount NUMERIC(15, 2) DEFAULT 0.00,
+    sales_commission NUMERIC(15, 2) DEFAULT 0.00,
+    collection_commission NUMERIC(15, 2) DEFAULT 0.00,
+    bonus_amount NUMERIC(15, 2) DEFAULT 0.00,
+    deduction_amount NUMERIC(15, 2) DEFAULT 0.00,
+    net_payable NUMERIC(15, 2) NOT NULL,
+    payment_method TEXT NOT NULL DEFAULT 'Cash',
     bank_account_id TEXT,
     reference_no TEXT,
-    discount_allowed NUMERIC(15, 2) DEFAULT 0.00,
-    collector_salesman_id TEXT,
-    allocations JSONB DEFAULT '[]'::jsonb,
-    notes TEXT,
-    created_by TEXT,
+    status TEXT NOT NULL DEFAULT 'Paid' CHECK (status IN ('Approved', 'Paid')),
+    paid_at TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -803,6 +872,8 @@ ALTER TABLE purchase_invoices DISABLE ROW LEVEL SECURITY;
 ALTER TABLE stock_transfers DISABLE ROW LEVEL SECURITY;
 ALTER TABLE customer_returns DISABLE ROW LEVEL SECURITY;
 ALTER TABLE supplier_returns DISABLE ROW LEVEL SECURITY;
+ALTER TABLE emi_plans DISABLE ROW LEVEL SECURITY;
+ALTER TABLE commission_disbursements DISABLE ROW LEVEL SECURITY;
 ALTER TABLE money_receipts DISABLE ROW LEVEL SECURITY;
 ALTER TABLE bank_accounts DISABLE ROW LEVEL SECURITY;
 ALTER TABLE bank_transactions DISABLE ROW LEVEL SECURITY;
@@ -1059,9 +1130,21 @@ INSERT INTO supplier_returns (id, return_no, date, supplier_id, supplier_name, p
 ('sret-001', 'SRET-2026-0004', '2026-10-01', 'sup-1', 'Fair Electronics Ltd (Samsung Official)', 'PINV-2026-0089', 'prod-1', 'Galaxy S24 Ultra 5G', '12GB/256GB - Titanium Black', '358921008899029', 'Minor cosmetic carton scratch on shipment receipt', 162000.00, 'Sent to Brand');
 
 -- DUE COLLECTIONS / MONEY RECEIPTS
-INSERT INTO money_receipts (id, receipt_no, date, customer_id, customer_name, amount, payment_method, bank_account_id, reference_no, discount_allowed, collector_salesman_id, allocations, notes, created_by) VALUES
-('mr-001', 'MR-2026-0031', '2026-10-02', 'cust-1', 'Popular Telecom', 50000.00, 'Bank Transfer', 'bank-1', 'BRAC-TXN-88192', 0.00, 'sm-1', '[{"invoiceId":"inv-001","invoiceNo":"INV-2026-0042","invoiceDate":"2026-10-01","originalDue":90000,"allocatedAmount":50000,"remainingDue":40000}]'::jsonb, 'Due payment against INV-2026-0042', 'Md. Rafiqul Islam'),
-('mr-002', 'MR-2026-0032', '2026-10-03', 'cust-2', 'Trust Mobile World', 63600.00, 'Bank Transfer', 'bank-2', 'CITY-TXN-99012', 0.00, 'sm-3', '[{"invoiceId":"inv-002","invoiceNo":"INV-2026-0043","invoiceDate":"2026-10-02","originalDue":63600,"allocatedAmount":63600,"remainingDue":0}]'::jsonb, 'Full settlement against INV-2026-0043', 'Kamrul Ahsan');
+INSERT INTO money_receipts (id, receipt_no, date, customer_id, customer_name, customer_phone, shop_name, area, amount, discount_waiver, payment_method, bank_account_id, bank_name, transaction_ref, collector_salesman_id, collector_salesman_name, reference_invoice, notes, status, allocations, created_by) VALUES
+('mr-2026-001', 'MR-2026-0001', '2026-09-20', 'cust-1', 'Al-Haj Nurul Islam', '+880 1711-234567', 'Rongdhanu Telecom & Gadget', 'Mirpur-10, Dhaka', 100000.00, 0.00, 'Bank Transfer', 'bank-1', 'Dutch-Bangla Bank Limited (DBBL)', 'FT-998811', 'sm-1', 'Tanvir Ahmed', 'SAL-2026-000210', 'Advance installment payment against wholesale invoice SAL-2026-000210', 'Confirmed', '[]'::jsonb, 'Md. Rafiqul Islam'),
+('mr-2026-002', 'MR-2026-0002', '2026-09-25', 'cust-2', 'Hazi Mohammad Yunus', '+880 1819-765432', 'Bismillah Mobile Care & Wholesale', 'Chawkbazar, Chittagong', 200000.00, 0.00, 'Cheque', NULL, 'City Bank Ltd', 'CQ-667788', 'sm-3', 'Ariful Islam', 'SAL-2026-000201', 'Full due clearance cheque received', 'Confirmed', '[]'::jsonb, 'Kamrul Ahsan'),
+('mr-2026-003', 'MR-2026-0003', '2026-10-02', 'cust-3', 'Engr. Shamim Reza', '+880 1912-345678', 'Digital Touch Electronics', 'Zindabazar, Sylhet', 75000.00, 2500.00, 'bKash', NULL, 'bKash Merchant', 'BK-890123', 'sm-2', 'Kamrul Ahsan', 'SAL-2026-000215', 'Partial payment with cash prompt payment waiver discount', 'Confirmed', '[]'::jsonb, 'Shabbir Ahmed');
+
+-- EMI PLANS
+INSERT INTO emi_plans (id, plan_no, customer_id, customer_name, customer_mobile, customer_address, product_id, product_name, variant_desc, imei, invoice_no, warehouse_id, warehouse_name, total_price, down_payment, financed_amount, interest_rate, tenure_months, monthly_installment, start_date, status, guarantor, documents, installments, total_paid, total_remaining, overdue_count, notes) VALUES
+('emi-plan-001', 'EMI-2026-0101', 'cust-1', 'Al-Haj Nurul Islam', '+880 1711-234567', 'Shop #12, Rongdhanu Plaza, Mirpur-10, Dhaka', 'prod-1', 'Galaxy S24 Ultra 5G', '12GB/512GB - Titanium Gray', '358921008899011', 'SAL-2026-000210', 'wh-1', 'Motijheel Central Warehouse', 178000.00, 58000.00, 120000.00, 0.00, 6, 20000.00, '2026-09-15', 'Active', '{"name":"Hazi Abdur Rahim","mobile":"+880 1819-112233","relation":"Brother","nidNo":"19822619482711","address":"Mirpur-10, Dhaka","occupation":"Businessman"}'::jsonb, '{"securityChequeNo":"CQ-DBBL-998822","bankName":"DBBL Mirpur Branch"}'::jsonb, '[{"installmentNo":1,"dueDate":"2026-10-15","amount":20000,"paidAmount":20000,"paidDate":"2026-10-14","lateFee":0,"status":"Paid","paymentMethod":"bKash","receiptNo":"RCP-EMI-001"},{"installmentNo":2,"dueDate":"2026-11-15","amount":20000,"paidAmount":0,"lateFee":0,"status":"Pending"},{"installmentNo":3,"dueDate":"2026-12-15","amount":20000,"paidAmount":0,"lateFee":0,"status":"Pending"},{"installmentNo":4,"dueDate":"2027-01-15","amount":20000,"paidAmount":0,"lateFee":0,"status":"Pending"},{"installmentNo":5,"dueDate":"2027-02-15","amount":20000,"paidAmount":0,"lateFee":0,"status":"Pending"},{"installmentNo":6,"dueDate":"2027-03-15","amount":20000,"paidAmount":0,"lateFee":0,"status":"Pending"}]'::jsonb, 78000.00, 100000.00, 0, 'First installment received on time via bKash'),
+('emi-plan-002', 'EMI-2026-0102', 'cust-3', 'Engr. Shamim Reza', '+880 1912-345678', 'Zindabazar, Sylhet', 'prod-3', 'Redmi Note 13 Pro+ 5G', '12GB/512GB - Midnight Black', '864201048200103', 'SAL-2026-000215', 'wh-1', 'Motijheel Central Warehouse', 52000.00, 16000.00, 36000.00, 0.00, 4, 9000.00, '2026-08-01', 'Active', '{"name":"Mawlana Faiz Ahmed","mobile":"+880 1712-445566","relation":"Uncle / Guardian","nidNo":"19782619485732","address":"Zindabazar, Sylhet","occupation":"Senior Advocate"}'::jsonb, '{"securityChequeNo":"CQ-CITY-448102","bankName":"City Bank Ltd"}'::jsonb, '[{"installmentNo":1,"dueDate":"2026-09-01","amount":9000,"paidAmount":9000,"paidDate":"2026-08-30","lateFee":0,"status":"Paid","paymentMethod":"Cash","receiptNo":"RCP-EMI-003"},{"installmentNo":2,"dueDate":"2026-10-01","amount":9000,"paidAmount":0,"lateFee":500,"status":"Overdue"},{"installmentNo":3,"dueDate":"2026-11-01","amount":9000,"paidAmount":0,"lateFee":0,"status":"Pending"},{"installmentNo":4,"dueDate":"2026-12-01","amount":9000,"paidAmount":0,"lateFee":0,"status":"Pending"}]'::jsonb, 25000.00, 27000.00, 1, 'Late fee applied for October installment after 5 days grace period.');
+
+-- COMMISSION DISBURSEMENTS
+INSERT INTO commission_disbursements (id, disbursement_no, salesman_id, salesman_name, month, date, sales_amount, collection_amount, sales_commission, collection_commission, bonus_amount, deduction_amount, net_payable, payment_method, bank_account_id, reference_no, status, paid_at) VALUES
+('cd-2026-09-01', 'COM-202609-001', 'sm-1', 'Tanvir Ahmed', '2026-09', '2026-10-02', 1850000.00, 1420000.00, 27750.00, 7100.00, 5000.00, 0.00, 39850.00, 'Bank Transfer', 'bank-1', 'BRAC-SAL-COM-09', 'Paid', '2026-10-02 14:30'),
+('cd-2026-09-02', 'COM-202609-002', 'sm-2', 'Kamrul Ahsan', '2026-09', '2026-10-02', 1240000.00, 980000.00, 14880.00, 4900.00, 2000.00, 0.00, 21780.00, 'Bank Transfer', 'bank-1', 'BRAC-SAL-COM-10', 'Paid', '2026-10-02 14:45'),
+('cd-2026-09-03', 'COM-202609-003', 'sm-3', 'Ariful Islam', '2026-09', '2026-10-03', 2100000.00, 1650000.00, 31500.00, 8250.00, 6000.00, 0.00, 45750.00, 'Cash', NULL, 'CSH-VOUCH-9921', 'Paid', '2026-10-03 11:15');
 
 -- EXPENSES
 INSERT INTO expenses (id, expense_no, date, category_id, category_name, amount, payment_method, bank_account_id, description, recipient_name, voucher_ref, approved_by) VALUES

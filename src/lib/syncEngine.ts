@@ -336,6 +336,18 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         reconciled: Boolean(data.reconciled)
       };
 
+    case 'bank_statements':
+      return {
+        id: data.id,
+        date: data.date || new Date().toISOString().split('T')[0],
+        description: data.description || '',
+        reference_no: data.referenceNo || data.reference_no || null,
+        debit: data.debit ?? 0,
+        credit: data.credit ?? 0,
+        matched_system_txn_id: data.matchedSystemTxnId || data.matched_system_txn_id || null,
+        status: data.status || 'Unmatched'
+      };
+
     case 'cash_transactions':
       return {
         id: data.id,
@@ -466,15 +478,76 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         date: data.date || new Date().toISOString().split('T')[0],
         customer_id: data.customerId || data.customer_id,
         customer_name: data.customerName || data.customer_name,
+        customer_phone: data.customerPhone || data.customer_phone || null,
+        shop_name: data.shopName || data.shop_name || null,
+        area: data.area || null,
         amount: data.amount ?? 0,
+        discount_waiver: data.discountWaiver ?? data.discount_waiver ?? data.discountAllowed ?? data.discount_allowed ?? 0,
+        payment_method: data.paymentMethod || data.payment_method || 'Cash',
+        bank_account_id: data.bankAccountId || data.bank_account_id || null,
+        bank_name: data.bankName || data.bank_name || null,
+        transaction_ref: data.transactionRef || data.transaction_ref || data.referenceNo || data.reference_no || null,
+        collector_salesman_id: data.collectorSalesmanId || data.collector_salesman_id || null,
+        collector_salesman_name: data.collectorSalesmanName || data.collector_salesman_name || null,
+        reference_invoice: data.referenceInvoice || data.reference_invoice || null,
+        notes: data.notes || '',
+        status: data.status || 'Confirmed',
+        allocations: data.allocations || [],
+        created_by: data.createdBy || data.created_by || null
+      };
+
+    case 'emi_plans':
+      return {
+        id: data.id,
+        plan_no: data.planNo || data.plan_no,
+        customer_id: data.customerId || data.customer_id,
+        customer_name: data.customerName || data.customer_name,
+        customer_mobile: data.customerMobile || data.customer_mobile,
+        customer_address: data.customerAddress || data.customer_address || null,
+        product_id: data.productId || data.product_id,
+        product_name: data.productName || data.product_name,
+        variant_desc: data.variantDesc || data.variant_desc || '',
+        imei: data.imei,
+        invoice_no: data.invoiceNo || data.invoice_no || null,
+        warehouse_id: data.warehouseId || data.warehouse_id || 'wh-1',
+        warehouse_name: data.warehouseName || data.warehouse_name || 'Main Warehouse',
+        total_price: data.totalPrice ?? data.total_price ?? 0,
+        down_payment: data.downPayment ?? data.down_payment ?? 0,
+        financed_amount: data.financedAmount ?? data.financed_amount ?? 0,
+        interest_rate: data.interestRate ?? data.interest_rate ?? 0,
+        tenure_months: data.tenureMonths ?? data.tenure_months ?? 6,
+        monthly_installment: data.monthlyInstallment ?? data.monthly_installment ?? 0,
+        start_date: data.startDate || data.start_date || new Date().toISOString().split('T')[0],
+        status: data.status || 'Active',
+        guarantor: data.guarantor || {},
+        documents: data.documents || {},
+        installments: data.installments || [],
+        total_paid: data.totalPaid ?? data.total_paid ?? 0,
+        total_remaining: data.totalRemaining ?? data.total_remaining ?? 0,
+        overdue_count: data.overdueCount ?? data.overdue_count ?? 0,
+        notes: data.notes || ''
+      };
+
+    case 'commission_disbursements':
+      return {
+        id: data.id,
+        disbursement_no: data.disbursementNo || data.disbursement_no,
+        salesman_id: data.salesmanId || data.salesman_id,
+        salesman_name: data.salesmanName || data.salesman_name,
+        month: data.month,
+        date: data.date || new Date().toISOString().split('T')[0],
+        sales_amount: data.salesAmount ?? data.sales_amount ?? 0,
+        collection_amount: data.collectionAmount ?? data.collection_amount ?? 0,
+        sales_commission: data.salesCommission ?? data.sales_commission ?? 0,
+        collection_commission: data.collectionCommission ?? data.collection_commission ?? 0,
+        bonus_amount: data.bonusAmount ?? data.bonus_amount ?? 0,
+        deduction_amount: data.deductionAmount ?? data.deduction_amount ?? 0,
+        net_payable: data.netPayable ?? data.net_payable ?? 0,
         payment_method: data.paymentMethod || data.payment_method || 'Cash',
         bank_account_id: data.bankAccountId || data.bank_account_id || null,
         reference_no: data.referenceNo || data.reference_no || null,
-        discount_allowed: data.discountAllowed ?? data.discount_allowed ?? 0,
-        collector_salesman_id: data.collectorSalesmanId || data.collector_salesman_id || null,
-        allocations: data.allocations || [],
-        notes: data.notes || '',
-        created_by: data.createdBy || data.created_by || null
+        status: data.status || 'Paid',
+        paid_at: data.paidAt || data.paid_at || null
       };
 
     case 'warranty_claims':

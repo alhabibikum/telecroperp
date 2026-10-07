@@ -1432,6 +1432,127 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           smsUnits: Number(s.sms_units || 1)
         })));
       }
+
+      // 30. Sync Money Receipts
+      const { data: mrData } = await supabase.from('money_receipts').select('*');
+      if (mrData && mrData.length > 0) {
+        setMoneyReceipts(mrData.map((m: any) => ({
+          id: m.id,
+          receiptNo: m.receipt_no,
+          date: m.date,
+          customerId: m.customer_id,
+          customerName: m.customer_name,
+          customerPhone: m.customer_phone || '',
+          shopName: m.shop_name || '',
+          area: m.area || '',
+          amount: Number(m.amount || 0),
+          discountWaiver: Number(m.discount_waiver || m.discount_allowed || 0),
+          paymentMethod: m.payment_method || 'Cash',
+          bankAccountId: m.bank_account_id || undefined,
+          bankName: m.bank_name || undefined,
+          transactionRef: m.transaction_ref || m.reference_no || undefined,
+          collectorSalesmanId: m.collector_salesman_id || undefined,
+          collectorSalesmanName: m.collector_salesman_name || undefined,
+          referenceInvoice: m.reference_invoice || undefined,
+          notes: m.notes || undefined,
+          status: m.status || 'Confirmed',
+          createdAt: m.created_at || m.date
+        })));
+      }
+
+      // 31. Sync EMI Plans
+      const { data: emiData } = await supabase.from('emi_plans').select('*');
+      if (emiData && emiData.length > 0) {
+        setEmiPlans(emiData.map((e: any) => ({
+          id: e.id,
+          planNo: e.plan_no,
+          customerId: e.customer_id,
+          customerName: e.customer_name,
+          customerMobile: e.customer_mobile,
+          customerAddress: e.customer_address || undefined,
+          productId: e.product_id,
+          productName: e.product_name,
+          variantDesc: e.variant_desc || '',
+          imei: e.imei,
+          invoiceNo: e.invoice_no || undefined,
+          warehouseId: e.warehouse_id || 'wh-1',
+          warehouseName: e.warehouse_name || 'Main Warehouse',
+          totalPrice: Number(e.total_price || 0),
+          downPayment: Number(e.down_payment || 0),
+          financedAmount: Number(e.financed_amount || 0),
+          interestRate: Number(e.interest_rate || 0),
+          tenureMonths: Number(e.tenure_months || 6),
+          monthlyInstallment: Number(e.monthly_installment || 0),
+          startDate: e.start_date,
+          status: e.status || 'Active',
+          guarantor: e.guarantor || { name: '', mobile: '', relation: '', nidNo: '', address: '' },
+          documents: e.documents || {},
+          installments: e.installments || [],
+          totalPaid: Number(e.total_paid || 0),
+          totalRemaining: Number(e.total_remaining || 0),
+          overdueCount: Number(e.overdue_count || 0),
+          notes: e.notes || undefined,
+          createdAt: e.created_at || e.start_date
+        })));
+      }
+
+      // 32. Sync Commission Disbursements
+      const { data: comData } = await supabase.from('commission_disbursements').select('*');
+      if (comData && comData.length > 0) {
+        setCommissionDisbursements(comData.map((c: any) => ({
+          id: c.id,
+          disbursementNo: c.disbursement_no,
+          salesmanId: c.salesman_id,
+          salesmanName: c.salesman_name,
+          month: c.month,
+          date: c.date,
+          salesAmount: Number(c.sales_amount || 0),
+          collectionAmount: Number(c.collection_amount || 0),
+          salesCommission: Number(c.sales_commission || 0),
+          collectionCommission: Number(c.collection_commission || 0),
+          bonusAmount: Number(c.bonus_amount || 0),
+          deductionAmount: Number(c.deduction_amount || 0),
+          netPayable: Number(c.net_payable || 0),
+          paymentMethod: c.payment_method || 'Cash',
+          bankAccountId: c.bank_account_id || undefined,
+          referenceNo: c.reference_no || undefined,
+          status: c.status || 'Paid',
+          paidAt: c.paid_at || undefined
+        })));
+      }
+
+      // 33. Sync Journal Entries
+      const { data: jvData } = await supabase.from('journal_entries').select('*');
+      if (jvData && jvData.length > 0) {
+        setJournalEntries(jvData.map((j: any) => ({
+          id: j.id,
+          voucherNo: j.voucher_no,
+          date: j.date,
+          voucherType: j.voucher_type || 'Journal Voucher',
+          referenceNo: j.reference_no || '',
+          description: j.description || '',
+          lines: j.lines || [],
+          totalDebit: Number(j.total_debit || 0),
+          totalCredit: Number(j.total_credit || 0),
+          createdBy: j.created_by || '',
+          createdAt: j.created_at || j.date
+        })));
+      }
+
+      // 34. Sync Bank Statements
+      const { data: stData } = await supabase.from('bank_statements').select('*');
+      if (stData && stData.length > 0) {
+        setBankStatements(stData.map((b: any) => ({
+          id: b.id,
+          date: b.date,
+          description: b.description || '',
+          referenceNo: b.reference_no || '',
+          debit: Number(b.debit || 0),
+          credit: Number(b.credit || 0),
+          matchedSystemTxnId: b.matched_system_txn_id || undefined,
+          status: b.status || 'Unmatched'
+        })));
+      }
     } catch (err) {
       console.warn('Failed to sync entities from Supabase on init:', err);
     } finally {
@@ -2141,6 +2262,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setCommissionDisbursements(prev => [newRecord, ...prev]);
+    enqueueChange('commission_disbursements', 'INSERT', newRecord.id, newRecord, `কমিশন প্রদান (${disbursementNo}) - ${data.salesmanName}`);
 
     setSalesmen(prev =>
       prev.map(s =>
