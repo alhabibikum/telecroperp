@@ -100,10 +100,10 @@ export const WindowsModalFrame: React.FC<WindowsModalFrameProps> = ({
       {/* Main Window Box */}
       <div
         onClick={e => e.stopPropagation()}
-        className={`relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-[0_25px_70px_-15px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.2)] flex flex-col border border-slate-300/80 transition-all duration-150 transform-gpu will-change-transform overflow-hidden ${
+        className={`relative bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-slate-100 backdrop-blur-2xl rounded-2xl shadow-[0_25px_70px_-15px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.2)] flex flex-col border border-slate-300/80 dark:border-slate-800 transition-all duration-150 transform-gpu will-change-transform overflow-hidden ${
           isLocalMaximized
             ? 'w-[99vw] h-[calc(100vh-55px)] max-w-none max-h-none rounded-none'
-            : `w-full ${maxWidth} max-h-[90vh]`
+            : `w-full ${maxWidth} max-h-[92vh] sm:max-h-[88vh]`
         } ${shakeNotice ? 'ring-4 ring-amber-400 ring-offset-2 animate-bounce-subtle' : ''}`}
       >
         {/* Windows Titlebar */}
@@ -180,7 +180,7 @@ export const WindowsModalFrame: React.FC<WindowsModalFrameProps> = ({
         </div>
 
         {/* Window Content */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden text-slate-800 flex flex-col bg-slate-50/50">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden text-slate-800 dark:text-slate-100 flex flex-col bg-slate-50/50 dark:bg-slate-950/60">
           {children}
         </div>
       </div>

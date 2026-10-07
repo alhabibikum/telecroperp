@@ -200,10 +200,31 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
+          {onOpenMultiScanner && (
+            <button
+              onClick={() => onOpenMultiScanner()}
+              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-xs transition cursor-pointer"
+              title="Multi Barcode & IMEI Scanner (Ctrl+B)"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span className="hidden xl:inline">Multi-Scan</span>
+            </button>
+          )}
+
+          {onOpenCommandPalette && (
+            <button
+              onClick={onOpenCommandPalette}
+              className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 transition cursor-pointer"
+              title="Global Command Palette (Ctrl+K)"
+            >
+              <Search className="w-4 h-4" />
+            </button>
+          )}
+
           {onOpenShortcutsHelp && (
             <button
               onClick={onOpenShortcutsHelp}
-              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 transition cursor-pointer"
               title="Keyboard Shortcuts & Operations Help (Ctrl+/)"
             >
               <Keyboard className="w-4 h-4" />
@@ -370,216 +391,246 @@ export const Header: React.FC<HeaderProps> = ({
         onClose={() => setShowNetworkModal(false)}
         onSkip={() => setShowNetworkModal(false)}
         modalId="modal-network-status"
-        title="নেটওয়ার্ক ও ডেটা সিঙ্ক স্ট্যাটাস"
-        subtitle="TeleCorp ERP অফলাইন ও অনলাইন হাইব্রিড ডায়াগনস্টিক"
+        title="নেটওয়ার্ক ও ক্লাউড ডেটা সিঙ্ক ডায়াগনস্টিক"
+        subtitle="TeleCorp ERP অফলাইন-অনলাইন হাইব্রিড ইঞ্জিন"
         icon={isOnline ? <Wifi className="w-4 h-4 text-emerald-400" /> : <WifiOff className="w-4 h-4 text-amber-400" />}
-        maxWidth="max-w-xl"
+        maxWidth="max-w-3xl"
       >
-
-            {/* Modal Body - Scrollable & Responsive */}
-            <div className="p-4 sm:p-6 space-y-3.5 sm:space-y-4 text-xs flex-1 overflow-y-auto overscroll-contain">
-              {/* Status Indicator Card */}
-              <div className={`p-3.5 sm:p-4 rounded-2xl border flex items-center justify-between gap-3 ${
-                isOnline
-                  ? 'bg-emerald-50/50 border-emerald-200/80 text-emerald-900'
-                  : 'bg-amber-50/60 border-amber-200 text-amber-900'
-              }`}>
-                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                  <span className={`w-3.5 h-3.5 rounded-full shrink-0 ${
-                    isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+        {/* Modal Scrollable Body */}
+        <div className="p-4 sm:p-5 md:p-6 space-y-4 text-xs flex-1 min-h-0 overflow-y-auto overscroll-contain select-text">
+          {/* Main Status Hero Card */}
+          <div className={`p-4 rounded-2xl border transition-all ${
+            isOnline
+              ? 'bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-emerald-50/90 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-950/40 border-emerald-200/90 dark:border-emerald-800/80 text-emerald-950 dark:text-emerald-100 shadow-xs'
+              : 'bg-gradient-to-r from-amber-50/90 via-orange-50/70 to-amber-50/90 dark:from-amber-950/40 dark:via-orange-950/30 dark:to-amber-950/40 border-amber-200/90 dark:border-amber-800/80 text-amber-950 dark:text-amber-100 shadow-xs'
+          }`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start sm:items-center gap-3 min-w-0">
+                <span className="relative flex h-4 w-4 shrink-0 mt-0.5 sm:mt-0">
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                    isOnline ? 'bg-emerald-400' : 'bg-amber-400'
                   }`} />
-                  <div className="min-w-0">
-                    <div className="font-black text-xs sm:text-sm truncate">
-                      {isOnline ? 'ডিভাইস বর্তমানে অনলাইন (Online)' : 'ডিভাইস বর্তমানে অফলাইন (Offline)'}
-                    </div>
-                    <div className="text-[10px] sm:text-[11px] opacity-80 mt-0.5 leading-snug">
-                      {isOnline
-                        ? 'ইন্টারনেট সক্রিয়। ক্লাউড ডেটাবেস এবং সার্ভিস সচল।'
-                        : 'ইন্টারনেট সংযোগ বিচ্ছিন্ন। সফটওয়্যারটি লোকাল ক্যাশে সম্পূর্ণ সচল রয়েছে।'}
-                    </div>
-                  </div>
-                </div>
-                <span className={`px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider shrink-0 ${
-                  isOnline ? 'bg-emerald-200/70 text-emerald-800' : 'bg-amber-200 text-amber-800'
-                }`}>
-                  {isOnline ? 'Connected' : 'Local Only'}
+                  <span className={`relative inline-flex rounded-full h-4 w-4 ${
+                    isOnline ? 'bg-emerald-500' : 'bg-amber-500'
+                  }`} />
                 </span>
-              </div>
-
-              {/* Feature Highlights */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 pt-0.5">
-                <div className="p-3 sm:p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-1">
-                  <div className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
-                    <Database className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                    <span>লোকাল পারসিস্টেন্স</span>
+                <div className="min-w-0">
+                  <div className="font-black text-sm sm:text-base tracking-tight truncate flex items-center gap-2">
+                    <span>{isOnline ? 'ডিভাইস বর্তমানে অনলাইন (Online Active)' : 'ডিভাইস বর্তমানে অফলাইন (Offline Mode)'}</span>
                   </div>
-                  <p className="text-[10px] sm:text-[11px] text-slate-500 leading-relaxed">
-                    ব্রাউজার স্টোরেজে সমস্ত ইনভয়েস, স্টক, আইএমইআই ও কালেকশন স্বয়ংক্রিয়ভাবে সংরক্ষিত হয়।
-                  </p>
-                </div>
-
-                <div className="p-3 sm:p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-1">
-                  <div className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
-                    <CheckCircle className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-                    <span>PWA অফলাইন সাপোর্ট</span>
-                  </div>
-                  <p className="text-[10px] sm:text-[11px] text-slate-500 leading-relaxed">
-                    সার্ভিস ওয়ার্কার ক্যাশের কারণে ইন্টারনেট ছাড়াও অ্যাপ চালু হয় এবং দ্রুত রেসপন্স করে।
+                  <p className="text-[11px] sm:text-xs opacity-85 mt-0.5 leading-snug">
+                    {isOnline
+                      ? 'ইন্টারনেট এবং ক্লাউড ডেটাবেস সক্রিয় রয়েছে। সমস্ত ডেটা রিয়েল-টাইমে ক্লাউডে সিঙ্ক হচ্ছে।'
+                      : 'ইন্টারনেট বিচ্ছিন্ন থাকলেও কোনো সমস্যা নেই! লোকাল ক্যাশে সফটওয়্যার সম্পূর্ণ সচল রয়েছে।'}
                   </p>
                 </div>
               </div>
 
-              {/* Offline Sync Queue Card */}
-              <div className="p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 bg-slate-50/70 space-y-2.5 sm:space-y-3">
-                <div className="flex items-center justify-between">
+              <span className={`self-start sm:self-auto px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 border ${
+                isOnline
+                  ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700'
+                  : 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-700'
+              }`}>
+                {isOnline ? '● ক্লাউড কানেক্টেড' : '○ লোকাল মোড'}
+              </span>
+            </div>
+          </div>
+
+          {/* 2-Column Responsive Grid for Diagnostics and Queue */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
+            {/* Left Card: Supabase Cloud Ping Diagnostic */}
+            <div className="p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/80 shadow-xs flex flex-col justify-between space-y-3">
+              <div>
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2">
-                    <Database className="w-4 h-4 text-indigo-600" />
-                    <span className="font-extrabold text-slate-800 text-xs sm:text-sm">
-                      অফলাইন সিঙ্ক কিউ (Sync Queue)
+                    <Database className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span className="font-black text-slate-800 dark:text-slate-100 text-xs sm:text-sm">
+                      ক্লাউড কানেকশন টেস্ট
                     </span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                    pendingSyncCount > 0
-                      ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                      : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                  }`}>
-                    {pendingSyncCount > 0 ? `${pendingSyncCount}টি পেন্ডিং` : 'সব সিঙ্কড'}
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold font-mono">
+                    Supabase DB
                   </span>
                 </div>
 
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  {pendingSyncCount > 0
-                    ? 'অফলাইনে করা পরিবর্তনগুলো ব্রাউজার কিউতে জমা রয়েছে। ইন্টারনেট ফিরলে এগুলো স্বয়ংক্রিয়ভাবে ক্লাউডে আপলোড হবে।'
-                    : 'বর্তমানে কোনো পেন্ডিং অফলাইন পরিবর্তন নেই। সকল নতুন তথ্য, এডিট ও ডিলিট ক্লাউডে আপডেট করা আছে।'}
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-2 leading-relaxed">
+                  সরাসরি সেন্ট্রাল ক্লাউড সার্ভারের সাথে লেটেন্সি ও সংযোগ পরীক্ষা করতে পিং টেস্ট রান করুন।
                 </p>
 
-                {/* Queue Items List Preview */}
-                {pendingSyncCount > 0 && (
-                  <div className="max-h-32 overflow-y-auto space-y-1.5 p-2 bg-white rounded-xl border border-slate-200 text-[11px]">
-                    {syncQueue.slice(0, 6).map((q) => (
-                      <div key={q.id} className="flex items-center justify-between py-1 px-1.5 border-b border-slate-100 last:border-0">
-                        <div className="flex items-center gap-1.5 truncate max-w-[260px] sm:max-w-[280px]">
-                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                            q.action === 'INSERT' ? 'bg-emerald-100 text-emerald-800' :
-                            q.action === 'DELETE' ? 'bg-rose-100 text-rose-800' :
-                            'bg-blue-100 text-blue-800'
-                          }`}>
-                            {q.action}
-                          </span>
-                          <span className="text-slate-800 font-medium truncate">{q.description}</span>
-                        </div>
-                        <span className="text-[9px] text-slate-400 font-mono shrink-0">
-                          {q.timestamp.split('T')[1]?.substring(0, 5) || 'Now'}
-                        </span>
-                      </div>
-                    ))}
-                    {pendingSyncCount > 6 && (
-                      <div className="text-[10px] text-slate-400 text-center pt-1 font-semibold">
-                        + আরও {pendingSyncCount - 6}টি পরিবর্তন কিউতে আছে...
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Manual Sync Trigger Button & Clear Queue */}
-                <div className="pt-1 flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      onClick={handleTriggerSync}
-                      disabled={isSyncing || (!isOnline && pendingSyncCount > 0)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 disabled:opacity-50 text-white rounded-xl font-extrabold text-xs shadow-xs transition cursor-pointer"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                      <span>{isSyncing ? 'ক্লাউডে সিঙ্ক হচ্ছে...' : 'এখনই ক্লাউডে সিঙ্ক করুন'}</span>
-                    </button>
-
-                    {pendingSyncCount > 0 && (
-                      <button
-                        onClick={() => {
-                          if (confirm('আপনি কি নিশ্চিত যে অফলাইন সিঙ্ক কিউ-এর সমস্ত পেন্ডিং রেকর্ড মুছে ফেলতে চান?')) {
-                            clearOfflineSyncQueue();
-                            setManualSyncMsg('অফলাইন সিঙ্ক কিউ সফলভাবে খালি করা হয়েছে।');
-                          }
-                        }}
-                        className="flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-bold text-xs transition cursor-pointer"
-                        title="পেন্ডিং কিউ মুছে ফেলুন"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>কিউ মুছুন</span>
-                      </button>
-                    )}
-                  </div>
-
-                  <span className="text-[10px] text-slate-400 font-medium">
-                    অটো-সিঙ্ক: সক্রিয়
-                  </span>
-                </div>
-
-                {manualSyncMsg && (
-                  <div className="p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-[11px] font-medium animate-in fade-in">
-                    {manualSyncMsg}
-                  </div>
-                )}
-              </div>
-
-              {/* Supabase Ping Test */}
-              <div className="pt-2 border-t border-slate-100">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-slate-700 text-xs">
-                    ক্লাউড সংযোগ পরীক্ষা (Supabase Ping):
-                  </span>
-                  <button
-                    onClick={handleTestPing}
-                    disabled={testingPing}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-bold text-xs transition shadow-xs cursor-pointer"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${testingPing ? 'animate-spin' : ''}`} />
-                    <span>{testingPing ? 'চেক হচ্ছে...' : 'পিং টেস্ট করুন'}</span>
-                  </button>
-                </div>
-
                 {pingResult && (
-                  <div className={`p-3 rounded-xl border text-[11px] font-medium mt-2 flex items-start gap-2 ${
+                  <div className={`p-3 rounded-xl border text-[11px] font-medium mt-3 flex items-start gap-2.5 transition-all animate-in fade-in ${
                     pingResult.success
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                      : 'bg-rose-50 border-rose-200 text-rose-800'
+                      ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/80 text-emerald-900 dark:text-emerald-200'
+                      : 'bg-rose-50/80 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/80 text-rose-900 dark:text-rose-200'
                   }`}>
                     {pingResult.success ? (
-                      <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                     ) : (
-                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                      <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
                     )}
-                    <div>
-                      <div>{pingResult.message}</div>
+                    <div className="min-w-0">
+                      <div className="font-bold leading-snug">{pingResult.message}</div>
                       {pingResult.latencyMs && (
-                        <div className="text-[10px] text-emerald-600 font-mono mt-0.5 font-bold">
-                          রেসপন্স টাইম: {pingResult.latencyMs} ms
+                        <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-mono mt-1 font-black flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                          <span>রেসপন্স টাইম: {pingResult.latencyMs} ms (চমৎকার)</span>
                         </div>
                       )}
                     </div>
                   </div>
                 )}
               </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleTestPing}
+                  disabled={testingPing}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 active:scale-98 disabled:opacity-50 text-white rounded-xl font-bold text-xs transition shadow-xs cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${testingPing ? 'animate-spin' : ''}`} />
+                  <span>{testingPing ? 'কানেকশন টেস্ট হচ্ছে...' : 'এখনই পিং টেস্ট করুন'}</span>
+                </button>
+              </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="p-3.5 sm:p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
-              <button
-                onClick={() => {
-                  setShowNetworkModal(false);
-                  onSelectView('settings');
-                }}
-                className="text-xs font-bold text-blue-600 hover:underline cursor-pointer"
-              >
-                ক্লাউড ডাটাবেজ সেটিংস দেখুন &rarr;
-              </button>
-              <button
-                onClick={() => setShowNetworkModal(false)}
-                className="px-4 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition cursor-pointer shadow-xs"
-              >
-                ঠিক আছে
-              </button>
+            {/* Right Card: Offline Sync Engine & Queue */}
+            <div className="p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/80 shadow-xs flex flex-col justify-between space-y-3">
+              <div>
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className={`w-4 h-4 text-indigo-600 dark:text-indigo-400 ${isSyncing ? 'animate-spin' : ''}`} />
+                    <span className="font-black text-slate-800 dark:text-slate-100 text-xs sm:text-sm">
+                      অফলাইন সিঙ্ক কিউ (Sync Queue)
+                    </span>
+                  </div>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
+                    pendingSyncCount > 0
+                      ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                      : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                  }`}>
+                    {pendingSyncCount > 0 ? `${pendingSyncCount}টি বাকি` : 'সব সিঙ্কড'}
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-2 leading-relaxed">
+                  {pendingSyncCount > 0
+                    ? 'অফলাইনে করা ডাটা এন্ট্রিগুলো ব্রাউজারে সুরক্ষিত আছে। ইন্টারনেট সচল হলে ক্লাউডে অটো-আপলোড হবে।'
+                    : 'কোনো পেন্ডিং রেকর্ড নেই। লোকাল ডেটা ও ক্লাউড ডেটাবেস ১০০% সমন্বিত আছে।'}
+                </p>
+
+                {/* Queue Items List Preview */}
+                {pendingSyncCount > 0 && (
+                  <div className="mt-2.5 max-h-28 overflow-y-auto space-y-1.5 p-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700 text-[11px]">
+                    {syncQueue.slice(0, 5).map((q) => (
+                      <div key={q.id} className="flex items-center justify-between py-1 px-1.5 border-b border-slate-200/50 dark:border-slate-700/50 last:border-0">
+                        <div className="flex items-center gap-1.5 truncate max-w-[200px] sm:max-w-[240px]">
+                          <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                            q.action === 'INSERT' ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300' :
+                            q.action === 'DELETE' ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-800 dark:text-rose-300' :
+                            'bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300'
+                          }`}>
+                            {q.action}
+                          </span>
+                          <span className="text-slate-800 dark:text-slate-200 font-medium truncate">{q.description}</span>
+                        </div>
+                        <span className="text-[9px] text-slate-400 font-mono shrink-0">
+                          {q.timestamp.split('T')[1]?.substring(0, 5) || 'Now'}
+                        </span>
+                      </div>
+                    ))}
+                    {pendingSyncCount > 5 && (
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 text-center pt-1 font-bold">
+                        + আরও {pendingSyncCount - 5}টি রেকর্ড রয়েছে...
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {manualSyncMsg && (
+                  <div className="mt-2.5 p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-200 text-[11px] font-bold animate-in fade-in">
+                    {manualSyncMsg}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleTriggerSync}
+                  disabled={isSyncing || (!isOnline && pendingSyncCount > 0)}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 active:scale-98 disabled:opacity-50 text-white rounded-xl font-bold text-xs shadow-xs transition cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <span>{isSyncing ? 'সিঙ্ক হচ্ছে...' : 'এখনই ক্লাউডে সিঙ্ক করুন'}</span>
+                </button>
+
+                {pendingSyncCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm('আপনি কি নিশ্চিত যে অফলাইন সিঙ্ক কিউ-এর সমস্ত পেন্ডিং রেকর্ড মুছে ফেলতে চান?')) {
+                        clearOfflineSyncQueue();
+                        setManualSyncMsg('অফলাইন সিঙ্ক কিউ সফলভাবে খালি করা হয়েছে।');
+                      }
+                    }}
+                    className="flex items-center justify-center gap-1 px-3 py-2 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 rounded-xl font-bold text-xs transition cursor-pointer"
+                    title="পেন্ডিং কিউ মুছে ফেলুন"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">মুছুন</span>
+                  </button>
+                )}
+              </div>
             </div>
+          </div>
+
+          {/* Architecture Features Pill Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            <div className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 flex items-start gap-2.5">
+              <Database className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">অফলাইন পারসিস্টেন্স</span>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-snug mt-0.5">
+                  ইনভয়েস, ক্রয় ও বিক্রয় ব্রাউজারের লোকাল স্টোরেজে স্বয়ংক্রিয়ভাবে সেভ হয়।
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 flex items-start gap-2.5">
+              <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">PWA ক্যাশ অপ্টিমাইজড</span>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-snug mt-0.5">
+                  সার্ভিস ওয়ার্কার ক্যাশের কারণে ইন্টারনেট স্পিড স্লো হলেও সিস্টেম ল্যাগ করে না।
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Footer - Always Visible & Responsive */}
+        <div className="p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              setShowNetworkModal(false);
+              onSelectView('settings');
+            }}
+            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer flex items-center gap-1"
+          >
+            <span>ক্লাউড ডাটাবেজ সেটিংস</span>
+            <span>&rarr;</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowNetworkModal(false)}
+            className="px-5 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-black rounded-xl hover:bg-slate-800 dark:hover:bg-white transition cursor-pointer shadow-xs active:scale-95"
+          >
+            ঠিক আছে
+          </button>
+        </div>
       </WindowsModalFrame>
     </>
   );
