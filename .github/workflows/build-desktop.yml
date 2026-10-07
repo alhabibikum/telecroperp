@@ -1,0 +1,62 @@
+name: Build Desktop Application (.exe)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Web Frontend
+        run: npm run build
+
+      - name: Build Tauri Desktop (.exe / .msi)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: ./src-tauri
+          tagName: v__VERSION__
+          releaseName: 'TeleCorp ERP Desktop v__VERSION__'
+          releaseBody: 'Automated release of TeleCorp ERP Windows Desktop application (.exe installer and standalone binary).'
+          releaseDraft: false
+          prerelease: false
+
+      - name: Upload Windows Executable Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TeleCorp-ERP-Windows-Setup
+          path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/telecorp_erp.exe
+            src-tauri/target/release/*.exe
+          if-no-files-found: warn
