@@ -777,10 +777,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
           {/* Card 1: Today's Billed Sales vs Daily Target */}
-          <div className="bg-slate-800/90 p-4 sm:p-5 rounded-xl border border-slate-700/70 space-y-3">
+          <div
+            onClick={() => onSelectView('wholesale-sales')}
+            className="bg-slate-800/90 hover:bg-slate-800 p-4 sm:p-5 rounded-xl border border-slate-700/70 hover:border-blue-500/60 space-y-3 cursor-pointer transition-all group shadow-xs"
+            title="পাইকারি বিক্রয় ও ইনভয়েস দেখতে ক্লিক করুন"
+          >
             <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-              <span>{isBn ? 'আজকের মোট সেলস' : "Today's Billed Sales"}</span>
-              <Target className="w-4 h-4 text-blue-400" />
+              <span className="group-hover:text-blue-300 transition-colors">{isBn ? 'আজকের মোট সেলস' : "Today's Billed Sales"}</span>
+              <Target className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
               {formatBDT(todaySalesRevenue)}
@@ -800,10 +804,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           {/* Card 2: Today's Cash & Bank Inflow */}
-          <div className="bg-slate-800/90 p-4 sm:p-5 rounded-xl border border-slate-700/70 space-y-3">
+          <div
+            onClick={() => onSelectView('cash-bank')}
+            className="bg-slate-800/90 hover:bg-slate-800 p-4 sm:p-5 rounded-xl border border-slate-700/70 hover:border-emerald-500/60 space-y-3 cursor-pointer transition-all group shadow-xs"
+            title="ক্যাশ ও ব্যাংক লেজার দেখতে ক্লিক করুন"
+          >
             <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-              <span>{isBn ? 'আজকের ক্যাশ ও ব্যাংক ইন-ফ্লো' : "Today's Inflow Liquidity"}</span>
-              <DollarSign className="w-4 h-4 text-emerald-400" />
+              <span className="group-hover:text-emerald-300 transition-colors">{isBn ? 'আজকের ক্যাশ ও ব্যাংক ইন-ফ্লো' : "Today's Inflow Liquidity"}</span>
+              <DollarSign className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono tracking-tight">
               {formatBDT(todayTotalLiquidity)}
@@ -815,10 +823,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           {/* Card 3: Handset Units Dispatched vs Procured */}
-          <div className="bg-slate-800/90 p-4 sm:p-5 rounded-xl border border-slate-700/70 space-y-3">
+          <div
+            onClick={() => onSelectView('inventory')}
+            className="bg-slate-800/90 hover:bg-slate-800 p-4 sm:p-5 rounded-xl border border-slate-700/70 hover:border-amber-500/60 space-y-3 cursor-pointer transition-all group shadow-xs"
+            title="ইনভেন্টরি ও হ্যান্ডসেট স্টক দেখতে ক্লিক করুন"
+          >
             <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-              <span>{isBn ? 'আজকের হ্যান্ডসেট ডেলিভারি / ক্রয়' : "Handsets Sold / Inflow"}</span>
-              <Smartphone className="w-4 h-4 text-amber-400" />
+              <span className="group-hover:text-amber-300 transition-colors">{isBn ? 'আজকের হ্যান্ডসেট ডেলিভারি / ক্রয়' : "Handsets Sold / Inflow"}</span>
+              <Smartphone className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
               {todayUnitsSold} <span className="text-xs font-semibold text-slate-400">Units Sold</span>
@@ -832,10 +844,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           {/* Card 4: Field Force & Active Billing Orders */}
-          <div className="bg-slate-800/90 p-4 sm:p-5 rounded-xl border border-slate-700/70 space-y-3">
+          <div
+            onClick={() => onSelectView('salesmen')}
+            className="bg-slate-800/90 hover:bg-slate-800 p-4 sm:p-5 rounded-xl border border-slate-700/70 hover:border-purple-500/60 space-y-3 cursor-pointer transition-all group shadow-xs"
+            title="সেলসম্যান ও ফিল্ড স্টাফ দেখতে ক্লিক করুন"
+          >
             <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-              <span>{isBn ? 'সক্রিয় সেলস প্রতিনিধি ও অর্ডার' : 'Active Reps & Open Invoices'}</span>
-              <Users className="w-4 h-4 text-purple-400" />
+              <span className="group-hover:text-purple-300 transition-colors">{isBn ? 'সক্রিয় সেলস প্রতিনিধি ও অর্ডার' : 'Active Reps & Open Invoices'}</span>
+              <Users className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
               {activeSalesmenCount} <span className="text-xs font-semibold text-slate-400">Reps On-Field</span>
@@ -843,7 +859,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
               <span>Due Invoices: <b className="text-amber-400">{openInvoicesCount}</b></span>
               <button
-                onClick={() => onSelectView('wholesale-sales')}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectView('wholesale-sales');
+                }}
                 className="text-purple-400 hover:text-purple-300 font-bold hover:underline cursor-pointer"
               >
                 Inspect →
@@ -858,12 +878,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* ============================================================== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
         {/* Stock Valuation */}
-        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md transition-all duration-200">
+        <div
+          onClick={() => onSelectView('inventory')}
+          className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-blue-500/60 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group"
+          title="ইনভেন্টরি ও স্টক লেজার পেজ খুলতে ক্লিক করুন"
+        >
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider">
+            <span className="text-xs font-bold uppercase tracking-wider group-hover:text-blue-600 transition-colors">
               {isBn ? 'বর্তমান স্টক ভ্যালুয়েশন' : 'Current Stock Valuation'}
             </span>
-            <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+            <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
               <Layers className="w-5 h-5" />
             </div>
           </div>
@@ -872,22 +896,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
             <span>In-Stock: <b className="text-slate-800 dark:text-slate-200">{inStockUnits.length} Units</b></span>
-            <button
-              onClick={() => onSelectView('inventory')}
-              className="text-blue-600 dark:text-blue-400 hover:underline font-bold text-xs cursor-pointer"
-            >
+            <span className="text-blue-600 dark:text-blue-400 group-hover:underline font-bold text-xs flex items-center gap-1">
               View Stock →
-            </button>
+            </span>
           </div>
         </div>
 
         {/* Customer Accounts Receivable */}
-        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md transition-all duration-200">
+        <div
+          onClick={() => onSelectView('due-ageing')}
+          className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-amber-500/60 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group"
+          title="বকেয়া এইজিং রিপোর্ট ও রিকভারি পেজ খুলতে ক্লিক করুন"
+        >
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider">
+            <span className="text-xs font-bold uppercase tracking-wider group-hover:text-amber-600 transition-colors">
               {isBn ? 'কাস্টমার বকেয়া (রিসিভেবল)' : 'Total Customer Due (AR)'}
             </span>
-            <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+            <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
               <CreditCard className="w-5 h-5" />
             </div>
           </div>
@@ -896,22 +921,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
             <span>Due Shops: <b className="text-slate-800 dark:text-slate-200">{customers.filter(c => c.currentDue > 0).length}</b></span>
-            <button
-              onClick={() => onSelectView('due-ageing')}
-              className="text-amber-600 dark:text-amber-400 hover:underline font-bold text-xs cursor-pointer"
-            >
+            <span className="text-amber-600 dark:text-amber-400 group-hover:underline font-bold text-xs flex items-center gap-1">
               Ageing Report →
-            </button>
+            </span>
           </div>
         </div>
 
         {/* Net Operating Profit */}
-        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md transition-all duration-200">
+        <div
+          onClick={() => onSelectView('accounting')}
+          className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-emerald-500/60 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group"
+          title="অ্যাকাউন্টিং ও পিএন্ডএল রিপোর্ট খুলতে ক্লিক করুন"
+        >
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider">
+            <span className="text-xs font-bold uppercase tracking-wider group-hover:text-emerald-600 transition-colors">
               {isBn ? 'মোট নেট প্রফিট (Estimated)' : 'Net Operating Profit'}
             </span>
-            <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+            <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
               <TrendingUp className="w-5 h-5" />
             </div>
           </div>
@@ -920,22 +946,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
             <span>Gross: <b className="text-slate-800 dark:text-slate-200">{formatBDT(estimatedGrossProfit)}</b></span>
-            <button
-              onClick={() => onSelectView('accounting')}
-              className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold text-xs cursor-pointer"
-            >
+            <span className="text-emerald-600 dark:text-emerald-400 group-hover:underline font-bold text-xs flex items-center gap-1">
               P&L Statement →
-            </button>
+            </span>
           </div>
         </div>
 
         {/* Liquid Cash & Bank */}
-        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md transition-all duration-200">
+        <div
+          onClick={() => onSelectView('cash-bank')}
+          className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-purple-500/60 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group"
+          title="ক্যাশ ও ব্যাংক হিসাব খাতা খুলতে ক্লিক করুন"
+        >
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider">
+            <span className="text-xs font-bold uppercase tracking-wider group-hover:text-purple-600 transition-colors">
               {isBn ? 'মোট লিকুইড ক্যাশ ও ব্যাংক' : 'Total Cash & Bank'}
             </span>
-            <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400">
+            <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform">
               <DollarSign className="w-5 h-5" />
             </div>
           </div>
@@ -944,12 +971,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
             <span>Bank: <b className="text-slate-800 dark:text-slate-200">{formatBDT(totalBankBalance)}</b></span>
-            <button
-              onClick={() => onSelectView('cash-bank')}
-              className="text-purple-600 dark:text-purple-400 hover:underline font-bold text-xs cursor-pointer"
-            >
+            <span className="text-purple-600 dark:text-purple-400 group-hover:underline font-bold text-xs flex items-center gap-1">
               Cash Book →
-            </button>
+            </span>
           </div>
         </div>
       </div>
@@ -1326,7 +1350,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 Regional revenue distribution & collection recovery rate
               </p>
             </div>
-            <button onClick={() => onSelectView('dealers')} className="text-xs text-purple-600 hover:underline font-semibold shrink-0">
+            <button onClick={() => onSelectView('customers')} className="text-xs text-purple-600 hover:underline font-semibold shrink-0">
               Dealers →
             </button>
           </div>
@@ -1498,7 +1522,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 Device replacement claims & brand failure rates
               </p>
             </div>
-            <button onClick={() => onSelectView('warranty')} className="text-xs text-cyan-600 hover:underline font-semibold shrink-0">
+            <button onClick={() => onSelectView('warranty-service')} className="text-xs text-cyan-600 hover:underline font-semibold shrink-0">
               Warranty Claims →
             </button>
           </div>

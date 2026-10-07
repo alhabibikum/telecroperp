@@ -6,26 +6,9 @@ interface FullScreenSkipButtonProps {
   onSkip: () => void;
 }
 
-export const FullScreenSkipButton: React.FC<FullScreenSkipButtonProps> = ({
-  isVisible,
-  onSkip
-}) => {
-  const [progress, setProgress] = useState(0);
-  const [isHolding, setIsHolding] = useState(false);
-  const holdIntervalRef = useRef<any>(null);
-  const startTimeRef = useRef<number>(0);
-  const HOLD_DURATION = 850; // ms to complete skip
-
-  // Cleanup on unmount or visibility change
-  useEffect(() => {
-    return () => {
-      if (holdIntervalRef.current) {
-        clearInterval(holdIntervalRef.current);
-      }
-    };
-  }, []);
-
-  if (!isVisible) return null;
+export const FullScreenSkipButton: React.FC<FullScreenSkipButtonProps> = () => {
+  return null;
+};
 
   const startHold = () => {
     setIsHolding(true);

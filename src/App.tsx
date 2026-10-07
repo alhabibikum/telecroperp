@@ -56,7 +56,6 @@ import { InvoicePrintModal } from './components/modals/InvoicePrintModal';
 import { MultiBarcodeScannerModal } from './components/common/MultiBarcodeScannerModal';
 import { CommandPaletteModal } from './components/common/CommandPaletteModal';
 import { KeyboardShortcutHelpModal } from './components/common/KeyboardShortcutHelpModal';
-import { FullScreenSkipButton } from './components/common/FullScreenSkipButton';
 import { useToast } from './components/common/ToastNotificationSystem';
 import { ShieldAlert, ArrowRight } from 'lucide-react';
 import { WindowManagerProvider, useWindowManager } from './context/WindowManagerContext';
@@ -613,7 +612,7 @@ const ERPAppContent: React.FC = () => {
             onOpenNewPurchase={() => setShowNewPurchaseModal(true)}
             onOpenDueCollection={() => handleOpenDueCollection()}
             onOpenIMEILookup={handleOpenIMEILookup}
-            onSelectView={setCurrentView}
+            onSelectView={handleNavigateView}
             onPrintInvoice={handlePrintInvoice}
           />
         );
@@ -648,7 +647,7 @@ const ERPAppContent: React.FC = () => {
           <InventoryView
             onOpenStockTransfer={() => setShowStockTransferModal(true)}
             onOpenIMEILookup={handleOpenIMEILookup}
-            onSelectView={setCurrentView}
+            onSelectView={handleNavigateView}
           />
         );
       case 'barcode-labels':
@@ -709,7 +708,7 @@ const ERPAppContent: React.FC = () => {
       case 'api-integrations':
         return <ApiIntegrationsView />;
       case 'alert-center':
-        return <AlertCenterView onSelectView={setCurrentView} />;
+        return <AlertCenterView onSelectView={handleNavigateView} />;
       case 'audit-logs':
         return <AuditLogsView />;
       case 'settings':
@@ -735,7 +734,6 @@ const ERPAppContent: React.FC = () => {
   return (
     <div className="h-screen flex flex-col bg-slate-100 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-100 overflow-hidden relative">
       <OfflineStatusBanner />
-      <FullScreenSkipButton isVisible={isFullscreen} onSkip={exitFullScreenMode} />
       {/* Top Universal Header */}
       <Header
         isSidebarExpanded={isSidebarExpanded}
@@ -838,11 +836,11 @@ const ERPAppContent: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    if (hasPermission(currentUserRole, 'dashboard')) setCurrentView('dashboard');
-                    else if (hasPermission(currentUserRole, 'salesman-app')) setCurrentView('salesman-app');
-                    else if (hasPermission(currentUserRole, 'retail-pos')) setCurrentView('retail-pos');
-                    else if (hasPermission(currentUserRole, 'inventory')) setCurrentView('inventory');
-                    else setCurrentView('imei-trace');
+                    if (hasPermission(currentUserRole, 'dashboard')) handleNavigateView('dashboard');
+                    else if (hasPermission(currentUserRole, 'salesman-app')) handleNavigateView('salesman-app');
+                    else if (hasPermission(currentUserRole, 'retail-pos')) handleNavigateView('retail-pos');
+                    else if (hasPermission(currentUserRole, 'inventory')) handleNavigateView('inventory');
+                    else handleNavigateView('imei-trace');
                   }}
                   className="w-full py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-2xl font-black text-xs shadow-md shadow-blue-500/20 transition cursor-pointer flex items-center justify-center gap-2"
                 >
@@ -898,7 +896,7 @@ const ERPAppContent: React.FC = () => {
         isOpen={showNewPurchaseModal}
         onClose={() => setShowNewPurchaseModal(false)}
         onSuccessPurchase={(purNo) => {
-          setCurrentView('purchases');
+          handleNavigateView('purchases');
         }}
       />
 
@@ -907,7 +905,7 @@ const ERPAppContent: React.FC = () => {
         onClose={() => setShowDueCollectionModal(false)}
         initialCustomerId={collectionCustomerId}
         onSuccessCollection={() => {
-          setCurrentView('due-ageing');
+          handleNavigateView('due-ageing');
         }}
       />
 
@@ -915,7 +913,7 @@ const ERPAppContent: React.FC = () => {
         isOpen={showCustomerReturnModal}
         onClose={() => setShowCustomerReturnModal(false)}
         onSuccessReturn={() => {
-          setCurrentView('returns');
+          handleNavigateView('returns');
         }}
       />
 
@@ -923,7 +921,7 @@ const ERPAppContent: React.FC = () => {
         isOpen={showStockTransferModal}
         onClose={() => setShowStockTransferModal(false)}
         onSuccessTransfer={() => {
-          setCurrentView('stock-transfers');
+          handleNavigateView('stock-transfers');
         }}
       />
 
