@@ -158,27 +158,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [profitMetric, setProfitMetric] = useState<'all' | 'profitOnly'>('all');
   const [activeChannelTab, setActiveChannelTab] = useState<'all' | 'wholesale' | 'retail'>('all');
 
-  // Listen to browser fullscreen change
+  // Listen to browser fullscreen change specifically for this dashboard container
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      setIsFullscreen(document.fullscreenElement === dashboardContainerRef.current);
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
   const toggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-      if (dashboardContainerRef.current?.requestFullscreen) {
-        dashboardContainerRef.current.requestFullscreen().catch(() => {
-          document.documentElement.requestFullscreen().catch(() => {});
-        });
-      } else {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
-    } else {
+    if (document.fullscreenElement === dashboardContainerRef.current) {
       if (document.exitFullscreen) {
         document.exitFullscreen().catch(() => {});
+      }
+    } else {
+      if (dashboardContainerRef.current?.requestFullscreen) {
+        dashboardContainerRef.current.requestFullscreen().catch(() => {});
       }
     }
   };
@@ -577,41 +573,42 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div
       ref={dashboardContainerRef}
-      className={`w-full transition-all duration-300 ${
+      className={`w-full min-h-full pb-20 transition-colors duration-200 overflow-y-auto ${
         isFullscreen
-          ? 'bg-slate-950 text-slate-100 p-2 sm:p-3 overflow-y-auto fixed inset-0 z-50'
-          : 'p-2 sm:p-2.5 md:p-3 space-y-2.5 sm:space-y-3 w-full'
+          ? 'bg-slate-950 text-slate-100 p-4 sm:p-6 lg:p-8 fixed inset-0 z-50'
+          : 'p-3 sm:p-5 md:p-6 lg:p-8 bg-slate-50/60 dark:bg-slate-950/60 text-slate-800 dark:text-slate-100'
       }`}
     >
-      {/* ============================================================== */}
-      {/* FEATURE 1: EXECUTIVE COMMAND BAR & FULLSCREEN TOOLBAR          */}
-      {/* ============================================================== */}
-      <div className={`rounded-2xl border transition-all ${
-        isFullscreen
-          ? 'bg-slate-900 border-slate-800 p-3 sm:p-4 text-white shadow-xl mb-3'
-          : 'bg-white border-slate-200/90 p-3 sm:p-3.5 shadow-xs'
-      }`}>
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          {/* Header titles & Live pulse */}
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
-              <Compass className="w-6 h-6 animate-spin-slow" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white">
-                  {isBn ? 'টেলিকর্প এক্সিকিউটিভ ড্যাশবোর্ড' : 'TeleCorp Executive Mission Control'}
-                </h1>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                  Live Sync
-                </span>
-                {isFullscreen && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                    Wall Display Mode
-                  </span>
-                )}
+      <div className="max-w-[1720px] mx-auto space-y-5 sm:space-y-6 lg:space-y-8">
+        {/* ============================================================== */}
+        {/* FEATURE 1: EXECUTIVE COMMAND BAR & FULLSCREEN TOOLBAR          */}
+        {/* ============================================================== */}
+        <div className={`rounded-2xl border transition-all ${
+          isFullscreen
+            ? 'bg-slate-900 border-slate-800 p-4 sm:p-5 text-white shadow-xl'
+            : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-xs'
+        }`}>
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            {/* Header titles & Live pulse */}
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
+                <Compass className="w-6 h-6 animate-spin-slow" />
               </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                    {isBn ? 'টেলিকর্প এক্সিকিউটিভ ড্যাশবোর্ড' : 'TeleCorp Executive Mission Control'}
+                  </h1>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                    Live Sync
+                  </span>
+                  {isFullscreen && (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                      Wall Display Mode
+                    </span>
+                  )}
+                </div>
               <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
                 <span className="flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5 text-blue-500" />
@@ -685,54 +682,54 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Quick Action Navigation Buttons Toolbar (Touch-friendly & fully responsive) */}
-        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 overflow-x-auto scrollbar-none flex items-center gap-2 pb-1 sm:pb-0">
+        <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-2 sm:gap-2.5">
           <button
             onClick={onOpenNewSale}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs shrink-0 transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/50 font-bold text-xs transition cursor-pointer shadow-2xs"
           >
-            <ShoppingBag className="w-3.5 h-3.5" />
+            <ShoppingBag className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
             <span>+ {isBn ? 'রিটেইল POS' : 'Retail POS'}</span>
           </button>
           <button
             onClick={() => onSelectView('wholesale-sales')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold text-xs shrink-0 transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/50 font-bold text-xs transition cursor-pointer shadow-2xs"
           >
-            <Building2 className="w-3.5 h-3.5" />
+            <Building2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
             <span>+ {isBn ? 'হোলসেল ইনভয়েস' : 'Wholesale Sale'}</span>
           </button>
           <button
             onClick={onOpenNewPurchase}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs shrink-0 transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50 font-bold text-xs transition cursor-pointer shadow-2xs"
           >
-            <PackageCheck className="w-3.5 h-3.5" />
+            <PackageCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>+ {isBn ? 'পারচেজ GRN' : 'New Purchase GRN'}</span>
           </button>
           <button
             onClick={onOpenDueCollection}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 font-bold text-xs shrink-0 transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/50 font-bold text-xs transition cursor-pointer shadow-2xs"
           >
-            <CreditCard className="w-3.5 h-3.5" />
+            <CreditCard className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
             <span>+ {isBn ? 'বকেয়া আদায়' : 'Due Collection'}</span>
           </button>
           <button
             onClick={() => onOpenIMEILookup()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 font-bold text-xs shrink-0 transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/60 dark:border-slate-700 font-bold text-xs transition cursor-pointer shadow-2xs"
           >
-            <Search className="w-3.5 h-3.5" />
+            <Search className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
             <span>{isBn ? 'IMEI ট্র্যাকার' : 'IMEI Tracker'}</span>
           </button>
           <button
             onClick={() => onSelectView('day-closing')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 font-bold text-xs shrink-0 transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/50 font-bold text-xs transition cursor-pointer shadow-2xs"
           >
-            <Calendar className="w-3.5 h-3.5" />
+            <Calendar className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
             <span>{isBn ? 'ডে ক্লোজিং' : 'Day Closing'}</span>
           </button>
           <button
             onClick={() => onSelectView('cash-bank')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-50 text-cyan-700 hover:bg-cyan-100 font-bold text-xs shrink-0 transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-50 dark:bg-cyan-950/50 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200/60 dark:border-cyan-800/50 font-bold text-xs transition cursor-pointer shadow-2xs"
           >
-            <Wallet className="w-3.5 h-3.5" />
+            <Wallet className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
             <span>{isBn ? 'ক্যাশ ও ব্যাংক খতিয়ান' : 'Cash & Bank Ledger'}</span>
           </button>
         </div>
@@ -760,37 +757,40 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       )}
 
       {/* ============================================================== */}
+      {/* ============================================================== */}
       {/* FEATURE 2: TODAY'S REAL-TIME OPERATIONAL PULSE BAROMETER       */}
       {/* ============================================================== */}
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-4 sm:p-5 rounded-2xl shadow-md border border-slate-700/80">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700/60 pb-3 mb-4">
-          <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-emerald-400" />
-            <h2 className="font-extrabold text-sm sm:text-base text-white">
+      <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white p-5 sm:p-6 rounded-2xl shadow-lg border border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3.5 mb-5">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <Activity className="w-4 h-4 text-emerald-400" />
+            </div>
+            <h2 className="font-extrabold text-sm sm:text-base text-white tracking-tight">
               {isBn ? 'আজকের ব্যবসায়িক পালস ও লক্ষ্যমাত্রা (Daily Operational Pulse)' : "Today's Operational Pulse & Sales Target"}
             </h2>
           </div>
-          <span className="text-[11px] text-slate-400 font-mono">
+          <span className="text-[11px] text-slate-400 font-mono bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/60">
             Date: {todayStr} • Dynamic Telemetry
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
           {/* Card 1: Today's Billed Sales vs Daily Target */}
-          <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700/60 space-y-2">
-            <div className="flex items-center justify-between text-xs text-slate-400">
+          <div className="bg-slate-800/90 p-4 sm:p-5 rounded-xl border border-slate-700/70 space-y-3">
+            <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
               <span>{isBn ? 'আজকের মোট সেলস' : "Today's Billed Sales"}</span>
               <Target className="w-4 h-4 text-blue-400" />
             </div>
-            <div className="text-lg sm:text-xl font-black text-white font-mono">
+            <div className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
               {formatBDT(todaySalesRevenue)}
             </div>
-            <div>
-              <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-[11px] text-slate-400">
                 <span>{isBn ? 'দৈনিক টার্গেট' : 'Target'}: {formatBDT(defaultDailyTarget)}</span>
                 <span className="font-bold text-blue-400">{todayTargetAchievementPct}%</span>
               </div>
-              <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-slate-700/80 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-blue-500 rounded-full transition-all duration-500"
                   style={{ width: `${Math.min(100, todayTargetAchievementPct)}%` }}
@@ -800,51 +800,51 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           {/* Card 2: Today's Cash & Bank Inflow */}
-          <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700/60 space-y-2">
-            <div className="flex items-center justify-between text-xs text-slate-400">
+          <div className="bg-slate-800/90 p-4 sm:p-5 rounded-xl border border-slate-700/70 space-y-3">
+            <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
               <span>{isBn ? 'আজকের ক্যাশ ও ব্যাংক ইন-ফ্লো' : "Today's Inflow Liquidity"}</span>
               <DollarSign className="w-4 h-4 text-emerald-400" />
             </div>
-            <div className="text-lg sm:text-xl font-black text-emerald-400 font-mono">
+            <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono tracking-tight">
               {formatBDT(todayTotalLiquidity)}
             </div>
-            <div className="text-[11px] text-slate-400 flex items-center justify-between">
+            <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
               <span>From Invoices: {formatBDT(todayPaidCollections)}</span>
-              <span className="text-emerald-400 font-semibold">100% Verified</span>
+              <span className="text-emerald-400 font-bold px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">100% Verified</span>
             </div>
           </div>
 
           {/* Card 3: Handset Units Dispatched vs Procured */}
-          <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700/60 space-y-2">
-            <div className="flex items-center justify-between text-xs text-slate-400">
+          <div className="bg-slate-800/90 p-4 sm:p-5 rounded-xl border border-slate-700/70 space-y-3">
+            <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
               <span>{isBn ? 'আজকের হ্যান্ডসেট ডেলিভারি / ক্রয়' : "Handsets Sold / Inflow"}</span>
               <Smartphone className="w-4 h-4 text-amber-400" />
             </div>
-            <div className="text-lg sm:text-xl font-black text-white font-mono">
-              {todayUnitsSold} <span className="text-xs font-normal text-slate-400">Units Sold</span>
+            <div className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
+              {todayUnitsSold} <span className="text-xs font-semibold text-slate-400">Units Sold</span>
             </div>
-            <div className="text-[11px] text-slate-400 flex items-center justify-between">
-              <span>Procured: <b>{todayUnitsPurchased} Units</b></span>
-              <span className={todayUnitsSold >= todayUnitsPurchased ? 'text-emerald-400 font-semibold' : 'text-amber-400'}>
+            <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
+              <span>Procured: <b className="text-slate-200">{todayUnitsPurchased} Units</b></span>
+              <span className={`font-bold px-1.5 py-0.5 rounded-md ${todayUnitsSold >= todayUnitsPurchased ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
                 Net: {todayUnitsSold - todayUnitsPurchased >= 0 ? `+${todayUnitsSold - todayUnitsPurchased}` : todayUnitsSold - todayUnitsPurchased}
               </span>
             </div>
           </div>
 
           {/* Card 4: Field Force & Active Billing Orders */}
-          <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700/60 space-y-2">
-            <div className="flex items-center justify-between text-xs text-slate-400">
+          <div className="bg-slate-800/90 p-4 sm:p-5 rounded-xl border border-slate-700/70 space-y-3">
+            <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
               <span>{isBn ? 'সক্রিয় সেলস প্রতিনিধি ও অর্ডার' : 'Active Reps & Open Invoices'}</span>
               <Users className="w-4 h-4 text-purple-400" />
             </div>
-            <div className="text-lg sm:text-xl font-black text-white font-mono">
-              {activeSalesmenCount} <span className="text-xs font-normal text-slate-400">Reps On-Field</span>
+            <div className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
+              {activeSalesmenCount} <span className="text-xs font-semibold text-slate-400">Reps On-Field</span>
             </div>
-            <div className="text-[11px] text-slate-400 flex items-center justify-between">
+            <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
               <span>Due Invoices: <b className="text-amber-400">{openInvoicesCount}</b></span>
               <button
                 onClick={() => onSelectView('wholesale-sales')}
-                className="text-purple-400 hover:underline font-semibold"
+                className="text-purple-400 hover:text-purple-300 font-bold hover:underline cursor-pointer"
               >
                 Inspect →
               </button>
@@ -856,25 +856,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* ============================================================== */}
       {/* 4 CORE EXECUTIVE FINANCIAL KPI CARDS                          */}
       {/* ============================================================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 md:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
         {/* Stock Valuation */}
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-sm transition">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">
+        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md transition-all duration-200">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-3">
+            <span className="text-xs font-bold uppercase tracking-wider">
               {isBn ? 'বর্তমান স্টক ভ্যালুয়েশন' : 'Current Stock Valuation'}
             </span>
-            <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
-              <Layers className="w-4 h-4" />
+            <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+              <Layers className="w-5 h-5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight font-mono">
+          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight font-mono">
             {formatBDT(totalStockValuation)}
           </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center justify-between">
-            <span>In-Stock: <b>{inStockUnits.length} Units</b></span>
+          <div className="text-xs text-slate-500 dark:text-slate-400 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+            <span>In-Stock: <b className="text-slate-800 dark:text-slate-200">{inStockUnits.length} Units</b></span>
             <button
               onClick={() => onSelectView('inventory')}
-              className="text-blue-600 dark:text-blue-400 hover:underline font-bold text-[11px]"
+              className="text-blue-600 dark:text-blue-400 hover:underline font-bold text-xs cursor-pointer"
             >
               View Stock →
             </button>
@@ -882,23 +882,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Customer Accounts Receivable */}
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-sm transition">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">
+        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md transition-all duration-200">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-3">
+            <span className="text-xs font-bold uppercase tracking-wider">
               {isBn ? 'কাস্টমার বকেয়া (রিসিভেবল)' : 'Total Customer Due (AR)'}
             </span>
-            <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
-              <CreditCard className="w-4 h-4" />
+            <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+              <CreditCard className="w-5 h-5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 tracking-tight font-mono">
+          <div className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight font-mono">
             {formatBDT(totalReceivableDue)}
           </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center justify-between">
-            <span>Due Shops: <b>{customers.filter(c => c.currentDue > 0).length}</b></span>
+          <div className="text-xs text-slate-500 dark:text-slate-400 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+            <span>Due Shops: <b className="text-slate-800 dark:text-slate-200">{customers.filter(c => c.currentDue > 0).length}</b></span>
             <button
               onClick={() => onSelectView('due-ageing')}
-              className="text-amber-600 dark:text-amber-400 hover:underline font-bold text-[11px]"
+              className="text-amber-600 dark:text-amber-400 hover:underline font-bold text-xs cursor-pointer"
             >
               Ageing Report →
             </button>
@@ -906,23 +906,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Net Operating Profit */}
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-sm transition">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">
+        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md transition-all duration-200">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-3">
+            <span className="text-xs font-bold uppercase tracking-wider">
               {isBn ? 'মোট নেট প্রফিট (Estimated)' : 'Net Operating Profit'}
             </span>
-            <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
-              <TrendingUp className="w-4 h-4" />
+            <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+              <TrendingUp className="w-5 h-5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight font-mono">
+          <div className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight font-mono">
             {formatBDT(estimatedNetProfit)}
           </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center justify-between">
-            <span>Gross: {formatBDT(estimatedGrossProfit)}</span>
+          <div className="text-xs text-slate-500 dark:text-slate-400 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+            <span>Gross: <b className="text-slate-800 dark:text-slate-200">{formatBDT(estimatedGrossProfit)}</b></span>
             <button
               onClick={() => onSelectView('accounting')}
-              className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold text-[11px]"
+              className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold text-xs cursor-pointer"
             >
               P&L Statement →
             </button>
@@ -930,23 +930,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Liquid Cash & Bank */}
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-sm transition">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">
+        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md transition-all duration-200">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-3">
+            <span className="text-xs font-bold uppercase tracking-wider">
               {isBn ? 'মোট লিকুইড ক্যাশ ও ব্যাংক' : 'Total Cash & Bank'}
             </span>
-            <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400">
-              <DollarSign className="w-4 h-4" />
+            <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400">
+              <DollarSign className="w-5 h-5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 tracking-tight font-mono">
+          <div className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400 tracking-tight font-mono">
             {formatBDT(totalBankBalance + estimatedCashInHand)}
           </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center justify-between">
-            <span>Bank: {formatBDT(totalBankBalance)}</span>
+          <div className="text-xs text-slate-500 dark:text-slate-400 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+            <span>Bank: <b className="text-slate-800 dark:text-slate-200">{formatBDT(totalBankBalance)}</b></span>
             <button
               onClick={() => onSelectView('cash-bank')}
-              className="text-purple-600 dark:text-purple-400 hover:underline font-bold text-[11px]"
+              className="text-purple-600 dark:text-purple-400 hover:underline font-bold text-xs cursor-pointer"
             >
               Cash Book →
             </button>
@@ -957,13 +957,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* ============================================================== */}
       {/* SECTION: REAL-TIME CHARTS (AREA + TOP BRANDS)                  */}
       {/* ============================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 sm:gap-6">
         {/* CHART 1: Real-Time Sales & Collection Trends */}
-        <div className="lg:col-span-8 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="xl:col-span-8 bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3.5">
             <div>
               <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-blue-600" />
+                <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white">
                   {isBn ? 'সেলস ও কালেকশন গতিধারা' : 'Real-Time Sales & Collection Trends'}
                 </h3>
@@ -974,7 +974,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
 
-          <div className="h-64 sm:h-72 w-full min-w-0">
+          <div className="h-72 sm:h-80 w-full min-w-0">
             <ErrorBoundary fallback={<div className="h-full flex items-center justify-center text-xs text-slate-400">গ্রাফ লোড হতে সমস্যা হয়েছে</div>}>
               <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <AreaChart data={activeSalesTrendData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
@@ -1004,22 +1004,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </ErrorBoundary>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-center text-xs">
-            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60">
+          <div className="grid grid-cols-3 gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 text-center text-xs">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
               <span className="text-[10px] text-slate-400 uppercase font-semibold">Total Period Sales</span>
-              <div className="font-extrabold text-blue-600 dark:text-blue-400 mt-0.5 font-mono">
+              <div className="font-extrabold text-blue-600 dark:text-blue-400 mt-0.5 font-mono text-sm sm:text-base">
                 {formatBDT(activeSalesTrendData.reduce((s, i) => s + i.sales, 0))}
               </div>
             </div>
-            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
               <span className="text-[10px] text-slate-400 uppercase font-semibold">Total Collections</span>
-              <div className="font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5 font-mono">
+              <div className="font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5 font-mono text-sm sm:text-base">
                 {formatBDT(activeSalesTrendData.reduce((s, i) => s + i.collections, 0))}
               </div>
             </div>
-            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
               <span className="text-[10px] text-slate-400 uppercase font-semibold">Handsets Invoiced</span>
-              <div className="font-extrabold text-slate-900 dark:text-white mt-0.5 font-mono">
+              <div className="font-extrabold text-slate-900 dark:text-white mt-0.5 font-mono text-sm sm:text-base">
                 {activeSalesTrendData.reduce((s, i) => s + i.units, 0)} Units
               </div>
             </div>
@@ -1027,7 +1027,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* CHART 2: TOP-SELLING PRODUCT BRANDS */}
-        <div className="lg:col-span-4 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="xl:col-span-4 bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div>
               <div className="flex items-center gap-2">
@@ -1094,10 +1094,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* ============================================================== */}
       {/* FEATURE 3 & 4: IMEI STOCK HEALTH (DONUT) & WHOLESALE VS RETAIL */}
       {/* ============================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
         {/* FEATURE 3: IMEI Stock Lifecycle Donut Chart */}
-        <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5">
             <div>
               <div className="flex items-center gap-2">
                 <PieIcon className="w-4 h-4 text-emerald-600" />
@@ -1170,8 +1170,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* FEATURE 4: B2B Wholesale vs B2C POS Retail Split */}
-        <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5">
             <div>
               <div className="flex items-center gap-2">
                 <ShoppingBag className="w-4 h-4 text-indigo-600" />
@@ -1250,10 +1250,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* ============================================================== */}
       {/* FEATURE 5 & 6: SUPPLIER RADAR & TERRITORY DEALER MATRIX        */}
       {/* ============================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
         {/* FEATURE 5: Supplier Payables & Procurement Pipeline Radar */}
-        <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5">
             <div>
               <div className="flex items-center gap-2">
                 <Truck className="w-4 h-4 text-blue-600" />
@@ -1313,8 +1313,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* FEATURE 6: Territory & Area-wise Dealer Performance */}
-        <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5">
             <div>
               <div className="flex items-center gap-2">
                 <Compass className="w-4 h-4 text-purple-600" />
@@ -1371,10 +1371,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* ============================================================== */}
       {/* FEATURE 7 & 8: SALES REPS LEADERBOARD & CATEGORY MARGIN MATRIX */}
       {/* ============================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 sm:gap-6">
         {/* FEATURE 7: Sales Reps Leaderboard */}
-        <div className="lg:col-span-7 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="xl:col-span-7 bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5">
             <div>
               <div className="flex items-center gap-2">
                 <Award className="w-4 h-4 text-amber-500" />
@@ -1670,8 +1670,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* ============================================================== */}
       {/* MULTI-BRAND LINEUP & STOCK DISTRIBUTION GRID                    */}
       {/* ============================================================== */}
-      <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               {isBn ? 'মাল্টি-ব্র্যান্ড স্টক ও পারফরম্যান্স' : 'Multi-Brand Lineup & Stock Distribution'}
@@ -1680,12 +1680,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               Live device stock counts and authorized dealership channels
             </p>
           </div>
-          <button onClick={() => onSelectView('brands')} className="text-xs text-blue-600 hover:underline font-semibold">
+          <button onClick={() => onSelectView('brands')} className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer">
             Manage Brands →
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4">
           {brands.map(brand => {
             const brandImeis = imeis.filter(i => (i.brandName || '').toLowerCase() === brand.name.toLowerCase());
             const brandInStock = brandImeis.filter(i => i.status === 'In Stock').length;
@@ -1695,14 +1695,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div
                 key={brand.id}
                 onClick={() => onSelectView('inventory')}
-                className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-blue-50/60 hover:border-blue-300 cursor-pointer transition text-center group"
+                className="p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 hover:bg-blue-50/80 dark:hover:bg-blue-950/40 hover:border-blue-400 dark:hover:border-blue-700 hover:-translate-y-0.5 cursor-pointer transition-all duration-200 text-center group shadow-2xs"
               >
-                <div className="text-2xl mb-1">{brand.logo}</div>
-                <div className="font-bold text-xs text-slate-800 dark:text-slate-200 group-hover:text-blue-600">{brand.name}</div>
-                <div className="text-[11px] text-slate-500 mt-1 font-mono">
-                  <span className="font-bold text-emerald-600">{brandInStock}</span> in stock
+                <div className="text-2xl mb-1.5">{brand.logo}</div>
+                <div className="font-bold text-xs text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{brand.name}</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-mono">
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{brandInStock}</span> in stock
                 </div>
-                <div className="text-[10px] text-slate-400">
+                <div className="text-[10px] text-slate-400 dark:text-slate-500">
                   {brandSold} sold
                 </div>
               </div>
@@ -1714,9 +1714,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* ============================================================== */}
       {/* RECENT SALES & HIGH OUTSTANDING DEALERS                         */}
       {/* ============================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 sm:gap-6">
         {/* Left: Recent Invoices */}
-        <div className="lg:col-span-7 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="xl:col-span-7 bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
@@ -1775,7 +1775,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Right: Dealers with High Outstanding */}
-        <div className="lg:col-span-5 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="xl:col-span-5 bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
@@ -1831,6 +1831,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               })}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
