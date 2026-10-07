@@ -9,7 +9,6 @@ import {
   CreditCard,
   AlertTriangle,
   CheckCircle,
-  X,
   Globe,
   Wifi,
   WifiOff,
@@ -18,7 +17,10 @@ import {
   Trash2,
   Keyboard,
   Sun,
-  Moon
+  Moon,
+  Menu,
+  Maximize,
+  Minimize
 } from 'lucide-react';
 import { Notifications } from './Notifications';
 import { testSupabaseConnection } from '../../lib/supabase';
@@ -35,15 +37,23 @@ interface HeaderProps {
   onOpenCommandPalette?: () => void;
   onOpenShortcutsHelp?: () => void;
   onSelectView: (view: string) => void;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
+  isSidebarExpanded,
+  onToggleSidebar,
   onOpenNewSale,
   onOpenNewPurchase,
   onOpenDueCollection,
   onOpenIMEILookup,
+  onOpenMultiScanner,
+  onOpenCommandPalette,
   onOpenShortcutsHelp,
-  onSelectView
+  onSelectView,
+  isFullscreen,
+  onToggleFullscreen
 }) => {
   const {
     currentUserRole,
@@ -106,12 +116,24 @@ export const Header: React.FC<HeaderProps> = ({
   const totalRealNotifications = unreadAlertsCount + lowStockCount + pendingApprovalsCount;
 
   return (
-    <header className="h-14 sm:h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800 px-3 sm:px-4 md:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs select-none transition-colors duration-200">
-      {/* Left: Brand info */}
-      <div
-        className="flex items-center gap-2 sm:gap-3 cursor-pointer shrink-0 select-none"
-        onClick={() => onSelectView('dashboard')}
-      >
+    <>
+      <header className="h-14 sm:h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800 px-3 sm:px-4 md:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs select-none transition-colors duration-200">
+        {/* Left: Brand info & Sidebar Toggle */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 select-none">
+          {onToggleSidebar && (
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              className="p-1.5 sm:p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              title={isSidebarExpanded ? "সাইডবার লুকান (Collapse Sidebar: Ctrl+[)" : "সাইডবার খুলুন (Expand Sidebar: Ctrl+[)"}
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          )}
+          <div
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer"
+            onClick={() => onSelectView('dashboard')}
+          >
         <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-teal-500 via-emerald-500 to-blue-600 flex items-center justify-center text-white shadow-[0_4px_14px_rgba(20,184,166,0.3)] font-black text-lg sm:text-xl shrink-0 transition-transform hover:scale-105 active:scale-95">
           <svg viewBox="0 0 24 24" className="w-5 h-5 sm:w-6 sm:h-6 fill-current" xmlns="http://www.w3.org/2000/svg">
             <path d="M4 4h9a7 7 0 0 1 7 7 7 7 0 0 1-7 7H9v2H4V4zm5 10h4a3 3 0 0 0 3-3 3 3 0 0 0-3-3H9v6z" />
@@ -126,6 +148,7 @@ export const Header: React.FC<HeaderProps> = ({
           <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium hidden md:block truncate">
             Multi-Brand Smartphone & Dealer Distribution
           </p>
+          </div>
         </div>
       </div>
 
@@ -264,12 +287,29 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Language Switch */}
         <button
           onClick={() => updateSettings({ language: settings.language === 'en' ? 'bn' : 'en' })}
-          className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl border border-slate-200/80 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold transition cursor-pointer shadow-2xs"
+          className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold transition cursor-pointer shadow-2xs"
           title="Switch Language (English / বাংলা)"
         >
-          <Globe className="w-3.5 h-3.5 text-blue-600" />
+          <Globe className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
           <span>{settings.language === 'en' ? 'বাংলা' : 'EN'}</span>
         </button>
+
+        {/* Fullscreen Desktop F11 Toggle */}
+        {onToggleFullscreen && (
+          <button
+            type="button"
+            onClick={onToggleFullscreen}
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold transition cursor-pointer shadow-2xs"
+            title={isFullscreen ? "ফুলস্ক্রিন মোড বন্ধ করুন (Exit Fullscreen F11 • স্কিপ চেপে রাখুন)" : "পুরো ডেক্সটপ ফুলস্ক্রিন করুন (Enter Fullscreen F11)"}
+          >
+            {isFullscreen ? (
+              <Minimize className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            ) : (
+              <Maximize className="w-3.5 h-3.5 text-slate-700 dark:text-slate-200" />
+            )}
+            <span className="hidden sm:inline">{isFullscreen ? 'উইন্ডো' : 'ফুলস্ক্রিন'}</span>
+          </button>
+        )}
 
 
         {/* Dark/Light Mode Theme Toggle */}
@@ -321,8 +361,8 @@ export const Header: React.FC<HeaderProps> = ({
             A++
           </button>
         </div>
-
       </div>
+    </header>
 
       {/* Network & Cloud Sync Diagnostic Modal (Windows Sub-Window) */}
       <WindowsModalFrame
@@ -541,6 +581,6 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
       </WindowsModalFrame>
-    </header>
+    </>
   );
 };

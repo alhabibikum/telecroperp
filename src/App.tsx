@@ -56,6 +56,7 @@ import { InvoicePrintModal } from './components/modals/InvoicePrintModal';
 import { MultiBarcodeScannerModal } from './components/common/MultiBarcodeScannerModal';
 import { CommandPaletteModal } from './components/common/CommandPaletteModal';
 import { KeyboardShortcutHelpModal } from './components/common/KeyboardShortcutHelpModal';
+import { FullScreenSkipButton } from './components/common/FullScreenSkipButton';
 import { useToast } from './components/common/ToastNotificationSystem';
 import { ShieldAlert, ArrowRight, ChevronRight } from 'lucide-react';
 import { WindowManagerProvider, useWindowManager } from './context/WindowManagerContext';
@@ -132,6 +133,67 @@ const ERPAppContent: React.FC = () => {
   });
 
   const [openViewIds, setOpenViewIds] = useState<string[]>(['dashboard']);
+
+  // Desktop Fullscreen F11 State & Auto-Launch
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(() => {
+    return typeof document !== 'undefined' && !!document.fullscreenElement;
+  });
+
+  const enterFullScreenMode = async () => {
+    try {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch {}
+  };
+
+  const exitFullScreenMode = async () => {
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        await document.exitFullscreen();
+        showInfo('ফুলস্ক্রিন স্কিপ করা হয়েছে', 'স্বাভাবিক উইন্ডো মোডে ফিরে আসা হয়েছে।');
+      }
+    } catch {}
+  };
+
+  const handleToggleFullscreen = () => {
+    if (document.fullscreenElement) {
+      exitFullScreenMode();
+    } else {
+      enterFullScreenMode();
+    }
+  };
+
+  // Synchronize fullscreen state changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  // Automatic Fullscreen on Launch and First User Gesture
+  useEffect(() => {
+    enterFullScreenMode();
+
+    const onFirstUserGesture = () => {
+      enterFullScreenMode();
+      window.removeEventListener('click', onFirstUserGesture);
+      window.removeEventListener('keydown', onFirstUserGesture);
+      window.removeEventListener('pointerdown', onFirstUserGesture);
+    };
+
+    window.addEventListener('click', onFirstUserGesture, { once: true });
+    window.addEventListener('keydown', onFirstUserGesture, { once: true });
+    window.addEventListener('pointerdown', onFirstUserGesture, { once: true });
+
+    return () => {
+      window.removeEventListener('click', onFirstUserGesture);
+      window.removeEventListener('keydown', onFirstUserGesture);
+      window.removeEventListener('pointerdown', onFirstUserGesture);
+    };
+  }, []);
 
 
   const handleOpenViewWindow = (view: string) => {
@@ -419,14 +481,21 @@ const ERPAppContent: React.FC = () => {
         return;
       }
 
-      // 10. Ctrl + B: Multi-Barcode Scanner
+      // 10. F11: Toggle Desktop Fullscreen
+      if (e.key === 'F11') {
+        e.preventDefault();
+        handleToggleFullscreen();
+        return;
+      }
+
+      // 11. Ctrl + B: Multi-Barcode Scanner
       if (isCtrl && key === 'b') {
         e.preventDefault();
         handleOpenMultiScanner();
         return;
       }
 
-      // 11. Ctrl + [: Toggle Desktop Sidebar
+      // 12. Ctrl + [: Toggle Desktop Sidebar
       if (isCtrl && e.key === '[') {
         e.preventDefault();
         setIsSidebarExpanded(prev => !prev);
@@ -603,6 +672,7 @@ const ERPAppContent: React.FC = () => {
   return (
     <div className="h-screen flex flex-col bg-slate-100 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-100 overflow-hidden relative">
       <OfflineStatusBanner />
+      <FullScreenSkipButton isVisible={isFullscreen} onSkip={exitFullScreenMode} />
       {/* Top Universal Header */}
       <Header
         isSidebarExpanded={isSidebarExpanded}
@@ -615,6 +685,8 @@ const ERPAppContent: React.FC = () => {
         onOpenCommandPalette={() => setShowCommandPalette(true)}
         onOpenShortcutsHelp={() => setShowShortcutHelp(true)}
         onSelectView={handleNavigateView}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={handleToggleFullscreen}
       />
 
       <div className={`flex-1 flex overflow-hidden relative ${isDesktop ? 'pb-11 sm:pb-12' : ''}`}>
