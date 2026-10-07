@@ -64,6 +64,7 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { WindowsWindowFrame } from './components/common/WindowsWindowFrame';
 import { WindowsTaskbar } from './components/layout/WindowsTaskbar';
 import { DesktopView } from './components/views/DesktopView';
+import { useAppZoom } from './hooks/useAppZoom';
 
 const VIEW_CONFIG: Record<string, { title: string; subtitle: string; icon: string }> = {
   'dashboard': { title: 'ড্যাশবোর্ড (Dashboard)', subtitle: 'ব্যবসার সার্বিক ওভারভিউ ও বিশ্লেষণ', icon: '📊' },
@@ -110,6 +111,7 @@ const VIEW_CONFIG: Record<string, { title: string; subtitle: string; icon: strin
 const ERPAppContent: React.FC = () => {
   const { isAuthenticated, currentUserRole, currentUser, hasPermission, salesInvoices, triggerManualSync } = useERP();
   const { showSuccess, showInfo, showError } = useToast();
+  const { zoomLevel, showZoomIndicator } = useAppZoom();
   const {
     isDesktop,
     registerWindow,
@@ -734,6 +736,15 @@ const ERPAppContent: React.FC = () => {
   return (
     <div className="h-screen flex flex-col bg-slate-100 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-100 overflow-hidden relative">
       <OfflineStatusBanner />
+      {/* Zoom Level Indicator HUD (auto-fades, no buttons) */}
+      {showZoomIndicator && (
+        <div className="fixed top-16 right-6 z-50 pointer-events-none animate-in fade-in zoom-in-95 duration-200">
+          <div className="px-3.5 py-1.5 rounded-full bg-slate-900/95 text-white border border-slate-700/80 shadow-2xl backdrop-blur-md flex items-center gap-2 text-xs font-bold font-mono">
+            <span className="text-sky-400">🔍</span>
+            <span>জুম: {Math.round(zoomLevel * 100)}%</span>
+          </div>
+        </div>
+      )}
       {/* Top Universal Header */}
       <Header
         isSidebarExpanded={isSidebarExpanded}
@@ -750,7 +761,7 @@ const ERPAppContent: React.FC = () => {
         onTogglePin={handleToggleHeaderPin}
       />
 
-      <div className={`flex-1 flex overflow-hidden relative ${isDesktop ? 'pb-11 sm:pb-12' : ''}`}>
+      <div className={`flex-1 flex overflow-hidden relative ${isDesktop ? 'pb-14' : ''}`}>
         {/* Left Sidebar */}
         <Sidebar
           isExpanded={isSidebarExpanded}

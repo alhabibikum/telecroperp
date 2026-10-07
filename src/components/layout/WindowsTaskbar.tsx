@@ -246,37 +246,37 @@ export const WindowsTaskbar: React.FC<WindowsTaskbarProps> = ({
       )}
 
       {/* Persistent Windows Taskbar Dock */}
-      <footer className="hidden lg:flex fixed bottom-0 left-0 right-0 h-11 sm:h-12 bg-slate-950/95 backdrop-blur-3xl border-t border-slate-800 text-white z-50 items-center justify-between px-2 sm:px-3 select-none shadow-[0_-10px_30px_rgba(0,0,0,0.5)] transform-gpu">
+      <footer className="hidden lg:flex fixed bottom-0 left-0 right-0 h-14 sm:h-[56px] bg-slate-950/95 backdrop-blur-3xl border-t border-slate-800 text-white z-50 items-center justify-between px-2.5 sm:px-4 select-none shadow-[0_-10px_30px_rgba(0,0,0,0.5)] transform-gpu">
         {/* Left Section: Start Button & Open Windows */}
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-1 min-w-0 overflow-x-auto no-scrollbar py-1">
           {/* Start Menu Button (Windows 11 Style) */}
           <button
             type="button"
             onClick={() => setShowStartMenu(prev => !prev)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-black text-xs transition cursor-pointer shrink-0 shadow-sm ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition cursor-pointer shrink-0 shadow-sm ${
               showStartMenu
                 ? 'bg-blue-600 text-white ring-2 ring-blue-400'
-                : 'bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                : 'bg-slate-800/90 hover:bg-slate-700 text-slate-100 border border-slate-700'
             }`}
             title="উইন্ডোজ স্টার্ট মেনু (Windows Start Menu)"
           >
             {/* Windows 4-Square Logo */}
-            <div className="grid grid-cols-2 gap-0.5 w-3.5 h-3.5">
+            <div className="grid grid-cols-2 gap-0.5 w-4 h-4">
               <span className="bg-sky-400 rounded-[1px]" />
               <span className="bg-blue-500 rounded-[1px]" />
               <span className="bg-cyan-400 rounded-[1px]" />
               <span className="bg-indigo-400 rounded-[1px]" />
             </div>
-            <span className="tracking-tight">স্টার্ট</span>
+            <span className="tracking-tight font-extrabold">স্টার্ট</span>
           </button>
 
           {/* Separator */}
-          <div className="w-[1px] h-5 bg-slate-800 shrink-0" />
+          <div className="w-[1px] h-6 bg-slate-800 shrink-0" />
 
           {/* Open Windows Tabs */}
-          <div className="flex items-center gap-1 min-w-0 overflow-x-auto no-scrollbar py-1">
+          <div className="flex items-center gap-1.5 min-w-0 overflow-x-auto no-scrollbar py-1">
             {windows.length === 0 ? (
-              <span className="text-[11px] text-slate-500 px-2 font-medium italic truncate">
+              <span className="text-xs text-slate-500 px-2 font-medium italic truncate">
                 কোনো উইন্ডো খোলা নেই • স্টার্ট বা ডেস্কটপ থেকে খুলুন
               </span>
             ) : (
@@ -287,12 +287,12 @@ export const WindowsTaskbar: React.FC<WindowsTaskbarProps> = ({
                 return (
                   <div
                     key={win.id}
-                    className={`group relative flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 max-w-[190px] border ${
+                    className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-xl transition cursor-pointer shrink-0 max-w-[220px] sm:max-w-[270px] border select-none ${
                       isActive
-                        ? 'bg-blue-600/40 border-blue-500 text-white shadow-inner'
+                        ? 'bg-blue-600/50 border-blue-400 text-white shadow-md'
                         : isMin
-                        ? 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-                        : 'bg-slate-800/80 border-slate-700/80 text-slate-200 hover:bg-slate-700'
+                        ? 'bg-slate-900/95 border-amber-500/50 text-amber-200 hover:text-white hover:bg-slate-800 hover:border-amber-400 shadow-inner'
+                        : 'bg-slate-800/90 border-slate-700/80 text-slate-100 hover:bg-slate-700'
                     }`}
                     onClick={() => {
                       if (isActive) {
@@ -309,19 +309,25 @@ export const WindowsTaskbar: React.FC<WindowsTaskbarProps> = ({
                     )}
 
                     {/* Window Icon */}
-                    <div className="w-4 h-4 shrink-0 flex items-center justify-center text-slate-300">
+                    <div className="w-4.5 h-4.5 shrink-0 flex items-center justify-center text-slate-300 text-sm">
                       {win.icon || (win.type === 'dialog' ? <span>🗔</span> : <span>🖥️</span>)}
                     </div>
 
-                    {/* Window Title */}
-                    <span className="truncate min-w-0 text-[11px]">
+                    {/* Window Title (Large, clearly readable) */}
+                    <span className={`truncate min-w-0 ${
+                      isMin
+                        ? 'text-xs sm:text-[13px] font-bold text-amber-300 drop-shadow-xs'
+                        : isActive
+                        ? 'text-xs sm:text-[13px] font-black text-white'
+                        : 'text-xs sm:text-[13px] font-semibold text-slate-100'
+                    }`}>
                       {win.title}
                     </span>
 
-                    {/* Minimized label */}
+                    {/* Minimized badge label */}
                     {isMin && (
-                      <span className="text-[9px] px-1 rounded bg-slate-800 text-amber-400 shrink-0 font-medium">
-                        —
+                      <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold shrink-0">
+                        মিনিমাইজড
                       </span>
                     )}
 
@@ -332,10 +338,10 @@ export const WindowsTaskbar: React.FC<WindowsTaskbarProps> = ({
                         e.stopPropagation();
                         closeWindow(win.id);
                       }}
-                      className="w-4 h-4 rounded hover:bg-rose-600 hover:text-white flex items-center justify-center text-slate-400 shrink-0 transition"
+                      className="w-4.5 h-4.5 rounded-md hover:bg-rose-600 hover:text-white flex items-center justify-center text-slate-400 shrink-0 transition cursor-pointer"
                       title="উইন্ডো বন্ধ করুন"
                     >
-                      <X className="w-2.5 h-2.5 stroke-[3]" />
+                      <X className="w-3 h-3 stroke-[2.5]" />
                     </button>
                   </div>
                 );
@@ -345,10 +351,10 @@ export const WindowsTaskbar: React.FC<WindowsTaskbarProps> = ({
         </div>
 
         {/* Right Section: System Tray & Clock */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0 pl-2">
+        <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0 pl-2">
           {/* Online/Offline Diagnostic Indicator */}
           <div
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-xl text-[11px] font-bold border ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border ${
               isOnline
                 ? 'bg-emerald-950/60 border-emerald-800 text-emerald-400'
                 : 'bg-amber-950/60 border-amber-800 text-amber-400'
@@ -356,19 +362,19 @@ export const WindowsTaskbar: React.FC<WindowsTaskbarProps> = ({
             title={isOnline ? 'সিস্টেম ক্লাউডে সংযুক্ত (Online)' : 'সিস্টেম অফলাইন লোকাল ক্যাশে চলছে'}
           >
             {isOnline ? (
-              <Wifi className="w-3 h-3 text-emerald-400" />
+              <Wifi className="w-3.5 h-3.5 text-emerald-400" />
             ) : (
-              <WifiOff className="w-3 h-3 text-amber-400" />
+              <WifiOff className="w-3.5 h-3.5 text-amber-400" />
             )}
             <span className="hidden md:inline">{isOnline ? 'অনলাইন' : 'অফলাইন'}</span>
           </div>
 
           {/* Digital Clock */}
           <div className="flex flex-col items-end text-right leading-tight px-1.5">
-            <span className="font-mono font-bold text-xs text-slate-100">
+            <span className="font-mono font-bold text-xs sm:text-sm text-slate-100">
               {formattedTime}
             </span>
-            <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
+            <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
               {formattedDate}
             </span>
           </div>
@@ -377,7 +383,7 @@ export const WindowsTaskbar: React.FC<WindowsTaskbarProps> = ({
           <button
             type="button"
             onClick={minimizeAll}
-            className="w-3 sm:w-3.5 h-7 rounded-[2px] bg-slate-800 hover:bg-blue-500 border-l border-slate-700 transition cursor-pointer"
+            className="w-3.5 sm:w-4 h-8 rounded-[2px] bg-slate-800 hover:bg-blue-500 border-l border-slate-700 transition cursor-pointer"
             title="ডেস্কটপ দেখুন (Show Desktop / Minimize All)"
           />
         </div>
