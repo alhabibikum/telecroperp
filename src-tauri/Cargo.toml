@@ -1,6 +1,6 @@
 [package]
 name = "telecorp_erp"
-version = "1.0.0"
+version = "1.0.1"
 description = "TeleCorp ERP Desktop Application"
 authors = ["TeleCorp ERP"]
 license = ""
