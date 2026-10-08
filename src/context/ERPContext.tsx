@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { erpStorage } from '../services/storageService';
 import {
   Brand,
   Product,
@@ -674,6 +675,66 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [commissionDisbursements, setCommissionDisbursements] = useState<CommissionDisbursement[]>(savedState?.commissionDisbursements || initialCommissionDisbursements);
   const [emiPlans, setEmiPlans] = useState<EMIPlan[]>(savedState?.emiPlans || initialEMIPlans);
   const [moneyReceipts, setMoneyReceipts] = useState<MoneyReceipt[]>(savedState?.moneyReceipts || initialMoneyReceipts);
+
+  // Hydrate complete ERP state from IndexedDB asynchronously (handles 50MB+ datasets without quota limits)
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const idbState = await erpStorage.getItem<any>(STORAGE_KEY);
+        if (idbState && isMounted) {
+          if (idbState.brands) setBrands(idbState.brands);
+          if (idbState.products) setProducts(idbState.products);
+          if (idbState.imeis) setImeis(idbState.imeis);
+          if (idbState.warehouses) setWarehouses(idbState.warehouses);
+          if (idbState.suppliers) setSuppliers(idbState.suppliers);
+          if (idbState.customers) setCustomers(idbState.customers);
+          if (idbState.salesInvoices) setSalesInvoices(idbState.salesInvoices);
+          if (idbState.purchaseInvoices) setPurchaseInvoices(idbState.purchaseInvoices);
+          if (idbState.stockTransfers) setStockTransfers(idbState.stockTransfers);
+          if (idbState.customerReturns) setCustomerReturns(idbState.customerReturns);
+          if (idbState.salesmen) setSalesmen(idbState.salesmen);
+          if (idbState.bankAccounts) setBankAccounts(idbState.bankAccounts);
+          if (idbState.cashTransactions) setCashTransactions(idbState.cashTransactions);
+          if (idbState.expenses) setExpenses(idbState.expenses);
+          if (idbState.expenseCategories) setExpenseCategories(idbState.expenseCategories);
+          if (idbState.chartOfAccounts) setChartOfAccounts(idbState.chartOfAccounts);
+          if (idbState.journalEntries) setJournalEntries(idbState.journalEntries);
+          if (idbState.alerts) setAlerts(idbState.alerts);
+          if (idbState.auditLogs) setAuditLogs(idbState.auditLogs);
+          if (idbState.settings) setSettings(idbState.settings);
+          if (idbState.salesmanVisits) setSalesmanVisits(idbState.salesmanVisits);
+          if (idbState.customerFollowUps) setCustomerFollowUps(idbState.customerFollowUps);
+          if (idbState.dayClosings) setDayClosings(idbState.dayClosings);
+          if (idbState.phoneExchanges) setPhoneExchanges(idbState.phoneExchanges);
+          if (idbState.bankStatements) setBankStatements(idbState.bankStatements);
+          if (idbState.supplierReturns) setSupplierReturns(idbState.supplierReturns);
+          if (idbState.warrantyClaims) setWarrantyClaims(idbState.warrantyClaims);
+          if (idbState.brandIncentives) setBrandIncentives(idbState.brandIncentives);
+          if (idbState.deliveryChallans) setDeliveryChallans(idbState.deliveryChallans);
+          if (idbState.priceDropClaims) setPriceDropClaims(idbState.priceDropClaims);
+          if (idbState.smsLogs) setSmsLogs(idbState.smsLogs);
+          if (idbState.commissionDisbursements) setCommissionDisbursements(idbState.commissionDisbursements);
+          if (idbState.emiPlans) setEmiPlans(idbState.emiPlans);
+          if (idbState.moneyReceipts) setMoneyReceipts(idbState.moneyReceipts);
+
+          // Once safely stored in IndexedDB, remove bulky payload from localStorage
+          try {
+            if (localStorage.getItem(STORAGE_KEY)) {
+              localStorage.removeItem(STORAGE_KEY);
+            }
+          } catch {
+            // Ignore
+          }
+        }
+      } catch (err) {
+        console.error('Failed to hydrate state from IndexedDB:', err);
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Users Management State (Real-Time RBAC)
   const [users, setUsers] = useState<AuthUser[]>(() => {
@@ -1640,9 +1701,15 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [backupSnapshots]);
 
-  // Sync to localStorage
+  // Sync to IndexedDB with 300ms debounce (replaces localStorage 5MB limit)
+  const isInitialMount = useRef(true);
   useEffect(() => {
-    try {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    const timer = setTimeout(() => {
       const stateToSave = {
         brands,
         products,
@@ -1679,10 +1746,13 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         emiPlans,
         moneyReceipts
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
-    } catch (e) {
-      console.error('Error saving ERP state to localStorage', e);
-    }
+
+      erpStorage.setItem(STORAGE_KEY, stateToSave).catch(e => {
+        console.error('Error saving ERP state to IndexedDB', e);
+      });
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, [
     brands, products, imeis, warehouses, suppliers, customers,
     salesInvoices, purchaseInvoices, stockTransfers, customerReturns,
@@ -1755,6 +1825,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 2. Clear and set local state
     try {
+      await erpStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(STORAGE_KEY);
       localStorage.setItem('TELECORP_USERS_LIST', JSON.stringify(demoUsers));
     } catch (e) {
@@ -2099,6 +2170,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     salesInvoices,
     purchaseInvoices,
     setPurchaseInvoices,
+    settings,
     currentUser,
     currentUserRole,
     enqueueChange,
@@ -2408,6 +2480,12 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setBankAccounts,
     smsLogs,
     setSmsLogs,
+    salesInvoices,
+    setSalesInvoices,
+    journalEntries,
+    setJournalEntries,
+    moneyReceipts,
+    setMoneyReceipts,
     enqueueChange,
     addAudit,
     currentUserRole,

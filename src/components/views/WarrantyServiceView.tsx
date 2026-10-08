@@ -45,6 +45,11 @@ export const WarrantyServiceView: React.FC = () => {
   const [scannerContext, setScannerContext] = useState<'filter' | 'modal'>('filter');
   const [addSuccessMsg, setAddSuccessMsg] = useState<string | null>(null);
 
+  // Warranty Replacement Modal State
+  const [replacementModalClaim, setReplacementModalClaim] = useState<any | null>(null);
+  const [selectedReplacementIMEI, setSelectedReplacementIMEI] = useState<string>('');
+  const [replacementSearch, setReplacementSearch] = useState<string>('');
+
   // New Claim Form State
   const [customerId, setCustomerId] = useState(customers[0]?.id || '');
   const [inputIMEI, setInputIMEI] = useState('');
@@ -362,7 +367,17 @@ export const WarrantyServiceView: React.FC = () => {
                     <td className="py-3 px-4 whitespace-nowrap">
                       <select
                         value={claim.status}
-                        onChange={(e) => updateWarrantyStatus(claim.id, e.target.value as WarrantyStatus)}
+                        onChange={(e) => {
+                          const nextStatus = e.target.value as WarrantyStatus;
+                          if (nextStatus === 'Replaced') {
+                            setReplacementModalClaim(claim);
+                            setSelectedReplacementIMEI('');
+                            setReplacementSearch('');
+                          } else {
+                            updateWarrantyStatus(claim.id, nextStatus);
+                            showSuccess(`ওয়ারেন্টি স্ট্যাটাস আপডেট হয়েছে: ${nextStatus}`);
+                          }
+                        }}
                         className={`text-[11px] font-bold px-2 py-1 rounded-lg border cursor-pointer ${getStatusBadge(claim.status)}`}
                       >
                         <option value="Received">Received</option>
@@ -713,6 +728,141 @@ export const WarrantyServiceView: React.FC = () => {
             setShowScannerModal(false);
           }}
         />
+      )}
+
+      {/* Warranty Replacement Unit Selection Modal */}
+      {replacementModalClaim && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-5 h-5 text-teal-600" />
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    ওয়ারেন্টি রিপ্লেসমেন্ট হ্যান্ডসেট প্রদান
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    RMA #{replacementModalClaim.rmaNumber} - কাস্টমার: {replacementModalClaim.customerName}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setReplacementModalClaim(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Defective Item Banner */}
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-1">
+              <div className="font-bold text-amber-900">ত্রুটিযুক্ত মূল হ্যান্ডসেট (Defective Unit):</div>
+              <div className="text-amber-800 flex justify-between">
+                <span>মডেল: {replacementModalClaim.productModel}</span>
+                <span className="font-mono font-bold">IMEI: {replacementModalClaim.imei}</span>
+              </div>
+              <div className="text-[11px] text-amber-700">সমস্যা: {replacementModalClaim.problemDescription}</div>
+            </div>
+
+            {/* Search In-stock Handsets */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                ইন-স্টক হ্যান্ডসেট নির্বাচন করুন (Select In-Stock Replacement IMEI):
+              </label>
+              <div className="relative mb-2">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="IMEI, ব্র‍্যান্ড বা মডেল লিখে খুঁজুন..."
+                  value={replacementSearch}
+                  onChange={(e) => setReplacementSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 bg-slate-50 font-mono"
+                />
+              </div>
+
+              {/* In-Stock List */}
+              <div className="border border-slate-200 rounded-xl max-h-52 overflow-y-auto divide-y divide-slate-100 text-xs">
+                {imeis
+                  .filter(i => i.status === 'In Stock')
+                  .filter(i => {
+                    if (!replacementSearch.trim()) return true;
+                    const q = replacementSearch.toLowerCase();
+                    return (
+                      i.imei1.toLowerCase().includes(q) ||
+                      (i.imei2 && i.imei2.toLowerCase().includes(q)) ||
+                      i.productName.toLowerCase().includes(q) ||
+                      i.brandName.toLowerCase().includes(q)
+                    );
+                  })
+                  .slice(0, 20)
+                  .map((im) => (
+                    <div
+                      key={im.id}
+                      onClick={() => setSelectedReplacementIMEI(im.imei1)}
+                      className={`p-2.5 flex items-center justify-between cursor-pointer transition ${
+                        selectedReplacementIMEI === im.imei1
+                          ? 'bg-teal-50 border-l-4 border-teal-600'
+                          : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      <div>
+                        <div className="font-bold text-slate-800">{im.brandName} - {im.productName}</div>
+                        <div className="text-[11px] text-slate-500 font-mono">
+                          IMEI 1: {im.imei1} {im.imei2 ? `| IMEI 2: ${im.imei2}` : ''}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
+                          In Stock ({im.condition})
+                        </span>
+                        <div className="text-[10px] text-slate-400 mt-0.5">{im.warehouseName}</div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* Custom / Direct Entry fallback */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                অথবা সরাসরি রিপ্লেসমেন্ট IMEI টাইপ করুন:
+              </label>
+              <input
+                type="text"
+                placeholder="Ex: 860123456789012"
+                value={selectedReplacementIMEI}
+                onChange={(e) => setSelectedReplacementIMEI(e.target.value.trim())}
+                className="w-full p-2.5 text-xs border border-slate-200 rounded-xl font-mono focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setReplacementModalClaim(null)}
+                className="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl font-semibold text-xs hover:bg-slate-50 cursor-pointer"
+              >
+                বাতিল (Cancel)
+              </button>
+              <button
+                type="button"
+                disabled={!selectedReplacementIMEI.trim()}
+                onClick={() => {
+                  updateWarrantyStatus(replacementModalClaim.id, 'Replaced', {
+                    replacementIMEI: selectedReplacementIMEI.trim()
+                  });
+                  showSuccess(`রিপ্লেসমেন্ট সম্পন্ন হয়েছে! নতুন হ্যান্ডসেট (${selectedReplacementIMEI.trim()}) কাস্টমারকে অর্পণ ও স্টক হালনাগাদ করা হয়েছে।`);
+                  setReplacementModalClaim(null);
+                }}
+                className="px-5 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-xl font-bold text-xs shadow-xs cursor-pointer flex items-center gap-1.5"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                রিপ্লেসমেন্ট কনফার্ম করুন (Confirm Replacement)
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

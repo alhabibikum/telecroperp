@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
+import * as XLSX from 'xlsx';
 import {
   Upload,
   FileSpreadsheet,
@@ -99,18 +100,80 @@ Realme,Realme 12 Plus 5G,8GB,256GB,Pioneer Green,863241050000014,863241050000022
     });
   };
 
+  const handleDownloadExcelTemplate = () => {
+    try {
+      const rawCsv = sampleTemplates[entityType];
+      const lines = rawCsv.trim().split('\n');
+      const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+      const sampleRows = lines.slice(1).map(line => {
+        const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+        const row: Record<string, any> = {};
+        headers.forEach((h, i) => {
+          row[h] = vals[i] ?? '';
+        });
+        return row;
+      });
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(sampleRows);
+      XLSX.utils.book_append_sheet(wb, ws, `${entityType.toUpperCase()}`);
+      XLSX.writeFile(wb, `${entityType}_import_template.xlsx`);
+
+      setMessage({
+        type: 'success',
+        text: `${entityType.toUpperCase()} এর এক্সেল (.xlsx) টেমপ্লেট সফলভাবে ডাউনলোড হয়েছে!`
+      });
+    } catch (err: any) {
+      setMessage({
+        type: 'error',
+        text: `Failed to generate Excel template: ${err?.message || 'Unknown error'}`
+      });
+    }
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      if (text) {
-        setCsvText(text);
-        setMessage({ type: 'info', text: `Loaded file "${file.name}". Click "Parse & Validate CSV".` });
-      }
-    };
-    reader.readAsText(file);
+
+    const fileNameLower = file.name.toLowerCase();
+    const isExcel = fileNameLower.endsWith('.xlsx') || fileNameLower.endsWith('.xls');
+
+    if (isExcel) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const buffer = event.target?.result as ArrayBuffer;
+          const workbook = XLSX.read(buffer, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonRows: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+          const csvString = XLSX.utils.sheet_to_csv(worksheet);
+
+          setCsvText(csvString);
+          setParsedRows(jsonRows);
+          setMessage({
+            type: 'success',
+            text: `এক্সেল ফাইল "${file.name}" সফলভাবে লোড হয়েছে! (${jsonRows.length} টি রেকর্ড পাওয়া গেছে)। নিচের প্রিভিউ দেখে Commit এ ক্লিক করুন।`
+          });
+        } catch (err: any) {
+          setMessage({
+            type: 'error',
+            text: `Failed to read Excel file: ${err?.message || 'Corrupted file'}`
+          });
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        if (text) {
+          setCsvText(text);
+          setMessage({ type: 'info', text: `Loaded file "${file.name}". Click "Parse & Validate CSV".` });
+        }
+      };
+      reader.readAsText(file);
+    }
   };
 
   return (
@@ -129,13 +192,25 @@ Realme,Realme 12 Plus 5G,8GB,256GB,Pioneer Green,863241050000014,863241050000022
           </p>
         </div>
 
-        <button
-          onClick={handleLoadSample}
-          className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
-        >
-          <FileSpreadsheet className="w-4 h-4 text-blue-600" />
-          <span>Load {entityType.toUpperCase()} Template</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleDownloadExcelTemplate}
+            className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
+            title="Download official Microsoft Excel template (.xlsx)"
+          >
+            <Download className="w-4 h-4 text-emerald-600" />
+            <span>Download {entityType.toUpperCase()} Template (.xlsx)</span>
+          </button>
+
+          <button
+            onClick={handleLoadSample}
+            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+            title="Load sample test rows directly into editor"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+            <span>Load Sample Data</span>
+          </button>
+        </div>
       </div>
 
       {message && (
@@ -234,12 +309,12 @@ Realme,Realme 12 Plus 5G,8GB,256GB,Pioneer Green,863241050000014,863241050000022
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4 text-xs">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <label className="cursor-pointer px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold transition flex items-center gap-1.5">
-              <Upload className="w-3.5 h-3.5 text-slate-600" />
-              <span>Choose CSV File</span>
-              <input type="file" accept=".csv,.txt" onChange={handleFileUpload} className="hidden" />
+            <label className="cursor-pointer px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 rounded-xl font-bold transition flex items-center gap-1.5 shadow-xs">
+              <Upload className="w-3.5 h-3.5 text-blue-700" />
+              <span>Choose Excel / CSV File (.xlsx, .xls, .csv)</span>
+              <input type="file" accept=".xlsx,.xls,.csv,.txt" onChange={handleFileUpload} className="hidden" />
             </label>
-            <span className="text-slate-400 text-[11px]">or paste CSV text directly below</span>
+            <span className="text-slate-400 text-[11px]">Direct binary Excel parsing supported</span>
           </div>
 
           <button

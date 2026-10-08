@@ -31,9 +31,12 @@ export const ApiIntegrationsView: React.FC = () => {
   const savedApi = settings.apiIntegrations || {};
 
   // SMS Gateway State
-  const [smsProvider, setSmsProvider] = useState<'Greenweb' | 'Onnorokom' | 'Twilio' | 'SSL Wireless'>(savedApi.smsProvider || 'Greenweb');
+  const [smsProvider, setSmsProvider] = useState<
+    'Greenweb' | 'Onnorokom' | 'Twilio' | 'SSL Wireless' | 'BulkSMSBD' | 'MimSMS' | 'Custom HTTP'
+  >(savedApi.smsProvider || 'Greenweb');
   const [smsApiKey, setSmsApiKey] = useState(savedApi.smsApiKey || '');
   const [smsSenderId, setSmsSenderId] = useState(savedApi.smsSenderId || '');
+  const [smsGatewayUrl, setSmsGatewayUrl] = useState(savedApi.smsGatewayUrl || '');
   const [autoSmsOnSale, setAutoSmsOnSale] = useState(savedApi.autoSmsOnSale ?? true);
   const [showSmsKey, setShowSmsKey] = useState(false);
   const [testSmsPhone, setTestSmsPhone] = useState('01711002233');
@@ -70,6 +73,7 @@ export const ApiIntegrationsView: React.FC = () => {
     setSmsProvider(api.smsProvider || 'Greenweb');
     setSmsApiKey(api.smsApiKey || '');
     setSmsSenderId(api.smsSenderId || '');
+    setSmsGatewayUrl(api.smsGatewayUrl || '');
     setAutoSmsOnSale(api.autoSmsOnSale ?? true);
     setBkashMerchant(api.bkashMerchant || '');
     setBkashAppKey(api.bkashAppKey || '');
@@ -104,6 +108,7 @@ export const ApiIntegrationsView: React.FC = () => {
         smsProvider,
         smsApiKey,
         smsSenderId,
+        smsGatewayUrl,
         autoSmsOnSale,
         bkashMerchant,
         bkashAppKey,
@@ -334,15 +339,15 @@ export const ApiIntegrationsView: React.FC = () => {
             <div className="space-y-4 text-xs">
               <div>
                 <label className="block font-bold text-slate-700 mb-1.5">গেটওয়ে অপারেটর নির্বাচন (Select Provider)</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {(['Greenweb', 'Onnorokom', 'SSL Wireless', 'Twilio'] as const).map(p => (
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+                  {(['Greenweb', 'BulkSMSBD', 'MimSMS', 'SSL Wireless', 'Onnorokom', 'Twilio', 'Custom HTTP'] as const).map(p => (
                     <button
                       key={p}
                       type="button"
                       onClick={() => setSmsProvider(p)}
-                      className={`p-3 rounded-2xl border text-center font-black transition-all cursor-pointer ${
+                      className={`p-2.5 rounded-2xl border text-center font-bold text-xs transition-all cursor-pointer ${
                         smsProvider === p
-                          ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-xs'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-xs ring-1 ring-blue-400'
                           : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
                       }`}
                     >
@@ -352,7 +357,7 @@ export const ApiIntegrationsView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">API Token / Secret Key</label>
                   <div className="relative">
@@ -360,6 +365,7 @@ export const ApiIntegrationsView: React.FC = () => {
                       type={showSmsKey ? 'text' : 'password'}
                       value={smsApiKey}
                       onChange={(e) => setSmsApiKey(e.target.value)}
+                      placeholder="e.g. your-api-token"
                       className="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
                     />
                     <button
@@ -380,6 +386,19 @@ export const ApiIntegrationsView: React.FC = () => {
                     onChange={(e) => setSmsSenderId(e.target.value)}
                     placeholder="e.g. TELECORP"
                     className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Custom Gateway URL {smsProvider === 'Custom HTTP' ? <span className="text-rose-500">*</span> : <span className="text-slate-400 font-normal">(Optional)</span>}
+                  </label>
+                  <input
+                    type="text"
+                    value={smsGatewayUrl}
+                    onChange={(e) => setSmsGatewayUrl(e.target.value)}
+                    placeholder="https://api.yourgateway.com/send"
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
                   />
                 </div>
               </div>

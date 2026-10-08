@@ -7,11 +7,14 @@ import type {
   CashTransaction,
   BankAccount,
   SalesInvoice,
+  JournalEntry,
+  MoneyReceipt,
   SmsLog,
   UserRole,
   AuthUser,
   PaymentMethodType
 } from '../../types/erp';
+import { generateDocNumber } from '../../utils/formatters';
 import type { EnqueueChangeFn, AddAuditFn } from './types';
 
 export interface EMIContextBundle {
@@ -27,6 +30,12 @@ export interface EMIContextBundle {
   setBankAccounts: React.Dispatch<React.SetStateAction<BankAccount[]>>;
   smsLogs: SmsLog[];
   setSmsLogs: React.Dispatch<React.SetStateAction<SmsLog[]>>;
+  salesInvoices?: SalesInvoice[];
+  setSalesInvoices?: React.Dispatch<React.SetStateAction<SalesInvoice[]>>;
+  journalEntries?: JournalEntry[];
+  setJournalEntries?: React.Dispatch<React.SetStateAction<JournalEntry[]>>;
+  moneyReceipts?: MoneyReceipt[];
+  setMoneyReceipts?: React.Dispatch<React.SetStateAction<MoneyReceipt[]>>;
   enqueueChange: EnqueueChangeFn;
   addAudit: AddAuditFn;
   currentUserRole: UserRole;
@@ -54,9 +63,15 @@ export const executeCreateEMIPlan = (
   const {
     emiPlans,
     setEmiPlans,
+    customers,
+    setCustomers,
     imeis,
     setImeis,
     setCashTransactions,
+    salesInvoices,
+    setSalesInvoices,
+    journalEntries,
+    setJournalEntries,
     enqueueChange,
     addAudit,
     currentUser,
@@ -75,6 +90,7 @@ export const executeCreateEMIPlan = (
   const planCount = emiPlans.length;
   const planNo = `EMI-2026-${String(planCount + 101).padStart(4, '0')}`;
   const planId = `emi-plan-${Date.now()}`;
+  const invoiceNo = `SAL-EMI-${String(planCount + 101).padStart(4, '0')}`;
 
   // Financed calculation
   const principalAmount = Math.max(0, planInput.totalPrice - planInput.downPayment);
@@ -107,6 +123,7 @@ export const executeCreateEMIPlan = (
     ...planInput,
     id: planId,
     planNo,
+    invoiceNo,
     financedAmount,
     monthlyInstallment,
     status: 'Active',
@@ -127,20 +144,32 @@ export const executeCreateEMIPlan = (
       return {
         ...i,
         status: 'Sold' as const,
+        customerId: planInput.customerId,
+        customerName: planInput.customerName,
+        salesInvoiceNo: invoiceNo,
+        salesDate: startD,
         history: [
           ...(i.history || []),
           {
             date: new Date().toISOString().replace('T', ' ').substring(0, 16),
             action: 'Sold via EMI Hire-Purchase',
             description: `Sold to ${planInput.customerName} on EMI Plan #${planNo}. Down payment: ৳${planInput.downPayment.toLocaleString()}`,
-            user: currentUser?.name || currentUserRole
+            user: currentUser?.name || currentUserRole,
+            referenceNo: planNo
           }
         ]
       };
     }
     return i;
   }));
-  enqueueChange('imeis', 'UPDATE', targetImei.id, { status: 'Sold' }, `আইএমইআই ইএমআই-তে বিক্রয় (${planInput.imei})`);
+  enqueueChange('imeis', 'UPDATE', targetImei.id, {
+    ...targetImei,
+    status: 'Sold',
+    customerId: planInput.customerId,
+    customerName: planInput.customerName,
+    salesInvoiceNo: invoiceNo,
+    salesDate: startD
+  }, `আইএমইআই ইএমআই-তে বিক্রয় (${planInput.imei})`);
 
   // 3. Record Down Payment in Cash Transaction
   if (planInput.downPayment > 0) {
@@ -158,8 +187,142 @@ export const executeCreateEMIPlan = (
     enqueueChange('cash_transactions', 'INSERT', cashTx.id, cashTx, `ইএমআই ডাউন পেমেন্ট (${planNo})`);
   }
 
+  // 4. Create Official SalesInvoice for EMI sale (Single Source of Truth)
+  if (setSalesInvoices) {
+    const totalContractValue = planInput.totalPrice + totalInterest;
+    const newInvoice: SalesInvoice = {
+      id: `inv-emi-${Date.now()}`,
+      invoiceNo,
+      invoiceType: 'Hire Purchase (EMI)',
+      customerId: planInput.customerId,
+      customerName: planInput.customerName,
+      customerPhone: planInput.customerMobile,
+      warehouseId: planInput.warehouseId || targetImei.warehouseId || 'wh-1',
+      warehouseName: planInput.warehouseName || targetImei.warehouseName || 'Central Warehouse',
+      invoiceDate: startD,
+      dueDate: addMonthsToDate(startD, tenure),
+      items: [
+        {
+          id: `item-${Date.now()}`,
+          productId: planInput.productId,
+          productName: planInput.productName,
+          variantId: targetImei.variantId || 'var-1',
+          variantDesc: planInput.variantDesc || '',
+          quantity: 1,
+          unitPrice: planInput.totalPrice,
+          unitCost: targetImei.purchaseCost || 0,
+          discount: 0,
+          vatRate: 0,
+          vatAmount: 0,
+          totalAmount: planInput.totalPrice,
+          imeiList: [planInput.imei]
+        }
+      ],
+      subTotal: planInput.totalPrice,
+      discountTotal: 0,
+      vatTotal: 0,
+      grandTotal: totalContractValue,
+      paidAmount: planInput.downPayment,
+      dueAmount: financedAmount,
+      payments: planInput.downPayment > 0 ? [
+        {
+          method: 'Cash',
+          amount: planInput.downPayment,
+          date: startD,
+          reference: `DP-${planNo}`
+        }
+      ] : [],
+      status: planInput.downPayment >= totalContractValue ? 'Paid' : 'Partial',
+      notes: `EMI Plan #${planNo} (${tenure} কিস্তি @ ${planInput.interestRate || 0}% মুনাফা)`,
+      createdAt: new Date().toISOString()
+    };
+    setSalesInvoices(prev => [newInvoice, ...prev]);
+    enqueueChange('sales_invoices', 'INSERT', newInvoice.id, newInvoice, `ইএমআই সেলস ইনভয়েস (#${invoiceNo})`);
+  }
+
+  // 5. Update Customer Current Due balance
+  setCustomers(prev => prev.map(c => {
+    if (c.id === planInput.customerId) {
+      const updatedCust: Customer = {
+        ...c,
+        currentDue: c.currentDue + financedAmount
+      };
+      enqueueChange('customers', 'UPDATE', c.id, updatedCust, `ইএমআই চুক্তি বকেয়া যোগ (${c.shopName})`);
+      return updatedCust;
+    }
+    return c;
+  }));
+
+  // 6. Post Double-Entry Accounting Journal Voucher (JV)
+  if (setJournalEntries) {
+    const jvNo = generateDocNumber('JV', (journalEntries?.length || 0) + 1);
+    const totalContract = financedAmount + planInput.downPayment;
+    const newJv: JournalEntry = {
+      id: `jv-emi-${Date.now()}`,
+      voucherNo: jvNo,
+      date: startD,
+      voucherType: 'Sales Voucher',
+      referenceNo: planNo,
+      description: `EMI Hire-Purchase Sale of ${planInput.productName} (${planInput.imei}) to ${planInput.customerName}`,
+      lines: [
+        ...(planInput.downPayment > 0 ? [
+          {
+            accountCode: '1000',
+            accountName: 'Cash in Hand (Main Vault)',
+            debit: planInput.downPayment,
+            credit: 0,
+            memo: `EMI Down Payment for Plan #${planNo}`
+          }
+        ] : []),
+        {
+          accountCode: '1020',
+          accountName: 'Accounts Receivable (Customer Due)',
+          debit: financedAmount,
+          credit: 0,
+          memo: `EMI Principal + Finance Receivable for Plan #${planNo}`
+        },
+        {
+          accountCode: '4000',
+          accountName: 'Sales Revenue',
+          debit: 0,
+          credit: planInput.totalPrice,
+          memo: `Sales value of ${planInput.productName}`
+        },
+        ...(totalInterest > 0 ? [
+          {
+            accountCode: '4050',
+            accountName: 'Finance / Interest Income',
+            debit: 0,
+            credit: totalInterest,
+            memo: `Interest on EMI Plan #${planNo}`
+          }
+        ] : []),
+        {
+          accountCode: '5000',
+          accountName: 'Cost of Goods Sold (COGS)',
+          debit: targetImei.purchaseCost || 0,
+          credit: 0,
+          memo: `Cost of IMEI ${planInput.imei}`
+        },
+        {
+          accountCode: '1050',
+          accountName: 'Merchandise Inventory',
+          debit: 0,
+          credit: targetImei.purchaseCost || 0,
+          memo: `Inventory outflow of IMEI ${planInput.imei}`
+        }
+      ],
+      totalDebit: totalContract + (targetImei.purchaseCost || 0),
+      totalCredit: totalContract + (targetImei.purchaseCost || 0),
+      createdBy: currentUser?.name || currentUserRole,
+      createdAt: startD
+    };
+    setJournalEntries(prev => [newJv, ...prev]);
+    enqueueChange('journal_entries', 'INSERT', newJv.id, newJv, `ইএমআই সেলস জার্নাল #${jvNo}`);
+  }
+
   addAudit(
-    `Created EMI Plan #${planNo} for ${planInput.customerName}`,
+    `Created EMI Plan #${planNo} (Invoice #${invoiceNo}) for ${planInput.customerName}`,
     'EMI & Hire Purchase',
     planNo,
     undefined,
@@ -186,8 +349,17 @@ export const executeCollectInstallmentPayment = (
   const {
     emiPlans,
     setEmiPlans,
+    customers,
+    setCustomers,
     setCashTransactions,
+    bankAccounts,
     setBankAccounts,
+    salesInvoices,
+    setSalesInvoices,
+    journalEntries,
+    setJournalEntries,
+    moneyReceipts,
+    setMoneyReceipts,
     enqueueChange,
     addAudit,
     currentUser,
@@ -245,7 +417,7 @@ export const executeCollectInstallmentPayment = (
   setEmiPlans(prev => prev.map(p => p.id === planId ? updatedPlan : p));
   enqueueChange('emi_plans', 'UPDATE', planId, updatedPlan, `কিস্তি #${installmentNo} আদায় (${plan.planNo})`);
 
-  // Record Payment in Financials
+  // 1. Record Payment in Financials (Cash or Bank)
   const totalAmountReceived = netPaidForPrincipal + lateFee;
   if (payment.paymentMethod === 'Cash') {
     const cashTx: CashTransaction = {
@@ -266,12 +438,123 @@ export const executeCollectInstallmentPayment = (
       if (prev.length === 0) return prev;
       const updated = [...prev];
       updated[0] = { ...updated[0], currentBalance: updated[0].currentBalance + totalAmountReceived };
+      enqueueChange('bank_accounts', 'UPDATE', updated[0].id, updated[0], `ইএমআই ব্যাংক জমা (${updated[0].bankName})`);
       return updated;
     });
   }
 
+  // 2. Reduce Customer Outstanding Due
+  setCustomers(prev => prev.map(c => {
+    if (c.id === plan.customerId) {
+      const updatedCust: Customer = {
+        ...c,
+        currentDue: Math.max(0, c.currentDue - netPaidForPrincipal)
+      };
+      enqueueChange('customers', 'UPDATE', c.id, updatedCust, `ইএমআই কিস্তি বাকি হ্রাস (${c.shopName})`);
+      return updatedCust;
+    }
+    return c;
+  }));
+
+  // 3. Update Associated Sales Invoice
+  const relatedInvoiceNo = plan.invoiceNo || `SAL-EMI-${plan.planNo.replace('EMI-', '')}`;
+  if (setSalesInvoices) {
+    setSalesInvoices(prev => prev.map(inv => {
+      if (inv.invoiceNo === relatedInvoiceNo || inv.invoiceNo === plan.invoiceNo) {
+        const newPaid = inv.paidAmount + netPaidForPrincipal;
+        const newDue = Math.max(0, inv.dueAmount - netPaidForPrincipal);
+        const updatedInvoice: SalesInvoice = {
+          ...inv,
+          paidAmount: newPaid,
+          dueAmount: newDue,
+          status: (newDue <= 0 ? 'Paid' : 'Partial') as any,
+          payments: [
+            ...(inv.payments || []),
+            {
+              method: payment.paymentMethod,
+              amount: netPaidForPrincipal,
+              date: paidD,
+              reference: receiptNo
+            }
+          ]
+        };
+        enqueueChange('sales_invoices', 'UPDATE', inv.id, updatedInvoice, `ইএমআই কিস্তি ইনভয়েস আপডেট (#${inv.invoiceNo})`);
+        return updatedInvoice;
+      }
+      return inv;
+    }));
+  }
+
+  // 4. Generate Money Receipt (MR) for audit & customer statements
+  if (setMoneyReceipts) {
+    const mrNo = generateDocNumber('MR', (moneyReceipts?.length || 0) + 1);
+    const newReceipt: MoneyReceipt = {
+      id: `mr-emi-${Date.now()}`,
+      receiptNo: mrNo,
+      date: paidD,
+      customerId: plan.customerId,
+      customerName: plan.customerName,
+      customerPhone: plan.customerMobile,
+      shopName: plan.customerName,
+      area: plan.customerAddress || 'Retail Client',
+      amount: totalAmountReceived,
+      paymentMethod: payment.paymentMethod,
+      transactionRef: receiptNo,
+      referenceInvoice: relatedInvoiceNo,
+      notes: `ইএমআই কিস্তি #${installmentNo} (${plan.planNo})${lateFee > 0 ? ` (লেট ফি: ৳${lateFee})` : ''}`,
+      status: 'Confirmed',
+      createdAt: new Date().toISOString()
+    };
+    setMoneyReceipts(prev => [newReceipt, ...(prev || [])]);
+    enqueueChange('money_receipts', 'INSERT', newReceipt.id, newReceipt, `ইএমআই মানি রিসিট #${mrNo}`);
+  }
+
+  // 5. Post Double-Entry Accounting Journal Entry (JV)
+  if (setJournalEntries) {
+    const jvNo = generateDocNumber('JV', (journalEntries?.length || 0) + 1);
+    const newJv: JournalEntry = {
+      id: `jv-emi-rcp-${Date.now()}`,
+      voucherNo: jvNo,
+      date: paidD,
+      voucherType: 'Receipt Voucher',
+      referenceNo: receiptNo,
+      description: `EMI Installment #${installmentNo} from ${plan.customerName} (Plan: ${plan.planNo})`,
+      lines: [
+        {
+          accountCode: payment.paymentMethod === 'Cash' ? '1000' : '1010',
+          accountName: payment.paymentMethod === 'Cash' ? 'Cash in Hand (Main Vault)' : 'Bank Accounts',
+          debit: totalAmountReceived,
+          credit: 0,
+          memo: `Received via ${payment.paymentMethod}`
+        },
+        {
+          accountCode: '1020',
+          accountName: 'Accounts Receivable (Customer Due)',
+          debit: 0,
+          credit: netPaidForPrincipal,
+          memo: `Principal installment #${installmentNo} for ${plan.planNo}`
+        },
+        ...(lateFee > 0 ? [
+          {
+            accountCode: '4080',
+            accountName: 'Late Fee / Penalty Income',
+            debit: 0,
+            credit: lateFee,
+            memo: `Late fee on installment #${installmentNo}`
+          }
+        ] : [])
+      ],
+      totalDebit: totalAmountReceived,
+      totalCredit: totalAmountReceived,
+      createdBy: currentUser?.name || currentUserRole,
+      createdAt: paidD
+    };
+    setJournalEntries(prev => [newJv, ...prev]);
+    enqueueChange('journal_entries', 'INSERT', newJv.id, newJv, `ইএমআই আদায় জার্নাল #${jvNo}`);
+  }
+
   addAudit(
-    `Collected Installment #${installmentNo} for EMI #${plan.planNo}`,
+    `Collected Installment #${installmentNo} for EMI #${plan.planNo} (Receipt #${receiptNo})`,
     'EMI & Hire Purchase',
     receiptNo,
     undefined,

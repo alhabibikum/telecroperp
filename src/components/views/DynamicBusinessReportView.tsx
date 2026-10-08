@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useERP } from '../../context/ERPContext';
+import * as XLSX from 'xlsx';
 import {
   FileSpreadsheet,
   Download,
@@ -470,272 +471,129 @@ export const DynamicBusinessReportView: React.FC = () => {
   const CHART_COLORS = ['#2563EB', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#64748B'];
 
   // ==============================================================
-  // 6. EXCEL MULTI-SHEET EXPORT GENERATOR (SpreadsheetML .xls)
+  // 6. EXCEL MULTI-SHEET EXPORT GENERATOR (.xlsx Native Binary)
   // ==============================================================
   const handleExportMultiSheetExcel = () => {
-    const filename = `Executive_Business_Report_${fromDate}_to_${toDate}.xls`;
+    try {
+      const wb = XLSX.utils.book_new();
 
-    // Helper for escaping XML
-    const xmlEscape = (str: any) => {
-      if (str === null || str === undefined) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
-    };
+      // SHEET 1: EXECUTIVE SUMMARY
+      const summaryRows = [
+        ['TELECORP ERP - EXECUTIVE BUSINESS SUMMARY', `(${fromDate} to ${toDate})`, ''],
+        [],
+        ['Key Executive Metric', 'Value (BDT / Units)', 'Remarks / Comparison'],
+        ['Gross Invoiced Sales', totalSalesRevenue, `Wholesale: ৳${totalWholesaleRevenue.toLocaleString()} | Retail: ৳${totalRetailRevenue.toLocaleString()}`],
+        ['Total Procurements (Purchases)', totalPurchasesAmount, `${totalPurchasesUnits} Handset Units Ordered`],
+        ['Gross Trading Profit', grossProfit, `${grossMarginPercent.toFixed(1)}% Gross Margin`],
+        ['Total Operating Expenses (inc. Commission)', totalOperatingExpenses, 'Overheads + Salesman Incentives'],
+        ['Net Operating Profit', netOperatingProfit, `${netMarginPercent.toFixed(1)}% Net Margin`],
+        ['Market Receivables (Customer Due)', totalReceivableDue, 'Outstanding Dealer Credit'],
+        ['Accounts Payable (Supplier Due)', totalSupplierPayable, 'Pending Supplier Dues'],
+        ['Liquid Operating Funds (Vault + Bank)', totalLiquidFunds, `Vault Cash: ৳${currentCashInHand.toLocaleString()} | Banks: ৳${totalBankBalance.toLocaleString()}`],
+        ['Handset Stock Valuation', totalStockValuation, `${inStockImeis.length} Active In-Stock Units`],
+        ['Period Sales Growth %', `${salesGrowthPercent.toFixed(1)}%`, 'Compared to prior equivalent period']
+      ];
+      const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Executive Summary');
 
-    let xml = `<?xml version="1.0"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:o="urn:schemas-microsoft-com:office:office"
- xmlns:x="urn:schemas-microsoft-com:office:excel"
- xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:html="http://www.w3.org/TR/REC-html40">
- <Styles>
-  <Style ss:ID="Header">
-   <Font ss:Bold="1" ss:Color="#FFFFFF" ss:Size="11"/>
-   <Interior ss:Color="#1E3A8A" ss:Pattern="Solid"/>
-   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-  </Style>
-  <Style ss:ID="SubHeader">
-   <Font ss:Bold="1" ss:Color="#1E3A8A" ss:Size="12"/>
-   <Interior ss:Color="#E0F2FE" ss:Pattern="Solid"/>
-  </Style>
-  <Style ss:ID="Bold">
-   <Font ss:Bold="1"/>
-  </Style>
-  <Style ss:ID="Currency">
-   <NumberFormat ss:Format="#,##0"/>
-   <Alignment ss:Horizontal="Right"/>
-  </Style>
-  <Style ss:ID="CurrencyBold">
-   <Font ss:Bold="1"/>
-   <NumberFormat ss:Format="#,##0"/>
-   <Alignment ss:Horizontal="Right"/>
-  </Style>
-  <Style ss:ID="Percent">
-   <NumberFormat ss:Format="0.0%"/>
-   <Alignment ss:Horizontal="Right"/>
-  </Style>
- </Styles>`;
+      // SHEET 2: SALES INVOICES
+      const salesRows = currentSales.map(inv => ({
+        'Invoice No': inv.invoiceNo,
+        'Date': inv.invoiceDate,
+        'Customer / Dealer': inv.customerName,
+        'Type': inv.invoiceType,
+        'Warehouse': inv.warehouseName,
+        'Grand Total (BDT)': inv.grandTotal,
+        'Paid (BDT)': inv.paidAmount,
+        'Due (BDT)': inv.dueAmount
+      }));
+      const wsSales = XLSX.utils.json_to_sheet(salesRows);
+      XLSX.utils.book_append_sheet(wb, wsSales, 'Sales Invoices');
 
-    // SHEET 1: EXECUTIVE SUMMARY
-    xml += `
- <Worksheet ss:Name="Executive Summary">
-  <Table>
-   <Column ss:Width="220"/>
-   <Column ss:Width="160"/>
-   <Column ss:Width="200"/>
-   <Row ss:Height="25">
-    <Cell ss:MergeAcross="2" ss:StyleID="SubHeader"><Data ss:Type="String">TELECORP ERP - EXECUTIVE BUSINESS SUMMARY (${fromDate} to ${toDate})</Data></Cell>
-   </Row>
-   <Row><Cell><Data ss:Type="String"></Data></Cell></Row>
-   <Row ss:StyleID="Header">
-    <Cell><Data ss:Type="String">Key Executive Metric</Data></Cell>
-    <Cell><Data ss:Type="String">Value (BDT / Units)</Data></Cell>
-    <Cell><Data ss:Type="String">Remarks / Comparison</Data></Cell>
-   </Row>
-   <Row><Cell><Data ss:Type="String">Gross Invoiced Sales</Data></Cell><Cell ss:StyleID="Currency"><Data ss:Type="Number">${totalSalesRevenue}</Data></Cell><Cell><Data ss:Type="String">Wholesale: ৳${totalWholesaleRevenue.toLocaleString()} | Retail: ৳${totalRetailRevenue.toLocaleString()}</Data></Cell></Row>
-   <Row><Cell><Data ss:Type="String">Total Procurements (Purchases)</Data></Cell><Cell ss:StyleID="Currency"><Data ss:Type="Number">${totalPurchasesAmount}</Data></Cell><Cell><Data ss:Type="String">${totalPurchasesUnits} Handset Units Ordered</Data></Cell></Row>
-   <Row><Cell><Data ss:Type="String">Gross Trading Profit</Data></Cell><Cell ss:StyleID="CurrencyBold"><Data ss:Type="Number">${grossProfit}</Data></Cell><Cell><Data ss:Type="String">${grossMarginPercent.toFixed(1)}% Gross Margin</Data></Cell></Row>
-   <Row><Cell><Data ss:Type="String">Total Operating Expenses (inc. Commission)</Data></Cell><Cell ss:StyleID="Currency"><Data ss:Type="Number">${totalOperatingExpenses}</Data></Cell><Cell><Data ss:Type="String">Overheads + Salesman Incentives</Data></Cell></Row>
-   <Row><Cell><Data ss:Type="String">Net Operating Profit</Data></Cell><Cell ss:StyleID="CurrencyBold"><Data ss:Type="Number">${netOperatingProfit}</Data></Cell><Cell><Data ss:Type="String">${netMarginPercent.toFixed(1)}% Net Margin</Data></Cell></Row>
-   <Row><Cell><Data ss:Type="String">Market Receivables (Customer Due)</Data></Cell><Cell ss:StyleID="Currency"><Data ss:Type="Number">${totalReceivableDue}</Data></Cell><Cell><Data ss:Type="String">Outstanding Dealer Credit</Data></Cell></Row>
-   <Row><Cell><Data ss:Type="String">Accounts Payable (Supplier Due)</Data></Cell><Cell ss:StyleID="Currency"><Data ss:Type="Number">${totalSupplierPayable}</Data></Cell><Cell><Data ss:Type="String">Pending Supplier Dues</Data></Cell></Row>
-   <Row><Cell><Data ss:Type="String">Liquid Operating Funds (Vault + Bank)</Data></Cell><Cell ss:StyleID="CurrencyBold"><Data ss:Type="Number">${totalLiquidFunds}</Data></Cell><Cell><Data ss:Type="String">Vault Cash: ৳${currentCashInHand.toLocaleString()} | Banks: ৳${totalBankBalance.toLocaleString()}</Data></Cell></Row>
-   <Row><Cell><Data ss:Type="String">Handset Stock Valuation</Data></Cell><Cell ss:StyleID="Currency"><Data ss:Type="Number">${totalStockValuation}</Data></Cell><Cell><Data ss:Type="String">${inStockImeis.length} Active In-Stock Units</Data></Cell></Row>
-   <Row><Cell><Data ss:Type="String">Period Sales Growth %</Data></Cell><Cell><Data ss:Type="String">${salesGrowthPercent.toFixed(1)}%</Data></Cell><Cell><Data ss:Type="String">Compared to prior equivalent period</Data></Cell></Row>
-  </Table>
- </Worksheet>`;
+      // SHEET 3: PURCHASES
+      const purchasesRows = currentPurchases.map(p => ({
+        'PO / Bill No': p.invoiceNo,
+        'Date': p.purchaseDate,
+        'Supplier Name': p.supplierName,
+        'Destination Warehouse': p.warehouseName,
+        'Grand Total (BDT)': p.grandTotal,
+        'Due Amount (BDT)': p.dueAmount
+      }));
+      const wsPurchases = XLSX.utils.json_to_sheet(purchasesRows);
+      XLSX.utils.book_append_sheet(wb, wsPurchases, 'Purchases');
 
-    // SHEET 2: SALES INVOICES
-    xml += `
- <Worksheet ss:Name="Sales Invoices">
-  <Table>
-   <Column ss:Width="120"/><Column ss:Width="90"/><Column ss:Width="160"/><Column ss:Width="90"/><Column ss:Width="120"/><Column ss:Width="100"/><Column ss:Width="100"/><Column ss:Width="90"/>
-   <Row ss:StyleID="Header">
-    <Cell><Data ss:Type="String">Invoice No</Data></Cell>
-    <Cell><Data ss:Type="String">Date</Data></Cell>
-    <Cell><Data ss:Type="String">Customer / Dealer</Data></Cell>
-    <Cell><Data ss:Type="String">Type</Data></Cell>
-    <Cell><Data ss:Type="String">Warehouse</Data></Cell>
-    <Cell><Data ss:Type="String">Grand Total</Data></Cell>
-    <Cell><Data ss:Type="String">Paid</Data></Cell>
-    <Cell><Data ss:Type="String">Due</Data></Cell>
-   </Row>`;
-    currentSales.forEach(inv => {
-      xml += `
-   <Row>
-    <Cell><Data ss:Type="String">${xmlEscape(inv.invoiceNo)}</Data></Cell>
-    <Cell><Data ss:Type="String">${xmlEscape(inv.invoiceDate)}</Data></Cell>
-    <Cell><Data ss:Type="String">${xmlEscape(inv.customerName)}</Data></Cell>
-    <Cell><Data ss:Type="String">${xmlEscape(inv.invoiceType)}</Data></Cell>
-    <Cell><Data ss:Type="String">${xmlEscape(inv.warehouseName)}</Data></Cell>
-    <Cell ss:StyleID="Currency"><Data ss:Type="Number">${inv.grandTotal}</Data></Cell>
-    <Cell ss:StyleID="Currency"><Data ss:Type="Number">${inv.paidAmount}</Data></Cell>
-    <Cell ss:StyleID="Currency"><Data ss:Type="Number">${inv.dueAmount}</Data></Cell>
-   </Row>`;
-    });
-    xml += `
-  </Table>
- </Worksheet>`;
+      // SHEET 4: PROFIT AND LOSS
+      const plRows = [
+        ['Accounting Head', 'Amount (BDT)', 'Ratio / Nature'],
+        ['Gross Handset Revenue', totalSalesRevenue, 'Total Billings'],
+        ['Less: Sales Returns', totalReturnCredits, 'Credit Notes'],
+        ['Net Sales Revenue', netSalesRevenue, '100.0% Basis'],
+        ['Cost of Goods Sold (COGS)', totalCOGS, 'Purchase FIFO Basis'],
+        ['Gross Trading Margin', grossProfit, `${grossMarginPercent.toFixed(1)}% Margin`],
+        ['Administrative & Operational Overheads', baseExpenses, 'Office, Fuel, Utilities'],
+        ['Salesman Commission & Field Incentives', totalSalesmanCommission, 'Target Incentives'],
+        ['Net Operating Income', netOperatingProfit, `${netMarginPercent.toFixed(1)}% Net Margin`]
+      ];
+      const wsPL = XLSX.utils.aoa_to_sheet(plRows);
+      XLSX.utils.book_append_sheet(wb, wsPL, 'Profit and Loss');
 
-    // SHEET 3: PURCHASES
-    xml += `
- <Worksheet ss:Name="Purchases">
-  <Table>
-   <Column ss:Width="120"/><Column ss:Width="90"/><Column ss:Width="180"/><Column ss:Width="130"/><Column ss:Width="110"/><Column ss:Width="100"/>
-   <Row ss:StyleID="Header">
-    <Cell><Data ss:Type="String">PO / Bill No</Data></Cell>
-    <Cell><Data ss:Type="String">Date</Data></Cell>
-    <Cell><Data ss:Type="String">Supplier Name</Data></Cell>
-    <Cell><Data ss:Type="String">Destination Warehouse</Data></Cell>
-    <Cell><Data ss:Type="String">Grand Total</Data></Cell>
-    <Cell><Data ss:Type="String">Due Amount</Data></Cell>
-   </Row>`;
-    currentPurchases.forEach(p => {
-      xml += `
-   <Row>
-    <Cell><Data ss:Type="String">${xmlEscape(p.invoiceNo)}</Data></Cell>
-    <Cell><Data ss:Type="String">${xmlEscape(p.purchaseDate)}</Data></Cell>
-    <Cell><Data ss:Type="String">${xmlEscape(p.supplierName)}</Data></Cell>
-    <Cell><Data ss:Type="String">${xmlEscape(p.warehouseName)}</Data></Cell>
-    <Cell ss:StyleID="Currency"><Data ss:Type="Number">${p.grandTotal}</Data></Cell>
-    <Cell ss:StyleID="Currency"><Data ss:Type="Number">${p.dueAmount}</Data></Cell>
-   </Row>`;
-    });
-    xml += `
-  </Table>
- </Worksheet>`;
-
-    // SHEET 4: PROFIT & LOSS STATEMENT
-    xml += `
- <Worksheet ss:Name="Profit and Loss">
-  <Table>
-   <Column ss:Width="240"/><Column ss:Width="140"/><Column ss:Width="180"/>
-   <Row ss:StyleID="Header">
-    <Cell><Data ss:Type="String">Accounting Head</Data></Cell>
-    <Cell><Data ss:Type="String">Amount (BDT)</Data></Cell>
-    <Cell><Data ss:Type="String">Ratio / Nature</Data></Cell>
-   </Row>
-   <Row><Cell><Data ss:Type="String">Gross Handset Revenue</Data></Cell><Cell ss:StyleID="Currency"><Data ss:Type="Number">${totalSalesRevenue}</Data></Cell><Cell><Data ss:Type="String">Total Billings</Data></Cell></Row>
-   <Row><Cell><Data ss:Type="String">Less: Sales Returns</Data></Cell><Cell ss:StyleID="Currency"><Data ss:Type="Number">${totalReturnCredits}</Data></Cell><Cell><Data ss:Type="String">Credit Notes</Data></Cell></Row>
-   <Row ss:StyleID="Bold"><Cell><Data ss:Type="String">Net Sales Revenue</Data></Cell><Cell ss:StyleID="CurrencyBold"><Data ss:Type="Number">${netSalesRevenue}</Data></Cell><Cell><Data ss:Type="String">100.0% Basis</Data></Cell></Row>
-   <Row><Cell><Data ss:Type="String">Cost of Goods Sold (COGS)</Data></Cell><Cell ss:StyleID="Currency"><Data ss:Type="Number">${totalCOGS}</Data></Cell><Cell><Data ss:Type="String">Purchase FIFO Basis</Data></Cell></Row>
-   <Row ss:StyleID="Bold"><Cell><Data ss:Type="String">Gross Trading Margin</Data></Cell><Cell ss:StyleID="CurrencyBold"><Data ss:Type="Number">${grossProfit}</Data></Cell><Cell><Data ss:Type="String">${grossMarginPercent.toFixed(1)}% Margin</Data></Cell></Row>
-   <Row><Cell><Data ss:Type="String">Administrative & Operational Overheads</Data></Cell><Cell ss:StyleID="Currency"><Data ss:Type="Number">${baseExpenses}</Data></Cell><Cell><Data ss:Type="String">Office, Fuel, Utilities</Data></Cell></Row>
-   <Row><Cell><Data ss:Type="String">Salesman Commission & Field Incentives</Data></Cell><Cell ss:StyleID="Currency"><Data ss:Type="Number">${totalSalesmanCommission}</Data></Cell><Cell><Data ss:Type="String">Target Incentives</Data></Cell></Row>
-   <Row ss:StyleID="Bold"><Cell><Data ss:Type="String">Net Operating Income</Data></Cell><Cell ss:StyleID="CurrencyBold"><Data ss:Type="Number">${netOperatingProfit}</Data></Cell><Cell><Data ss:Type="String">${netMarginPercent.toFixed(1)}% Net Margin</Data></Cell></Row>
-  </Table>
- </Worksheet>`;
-
-    // SHEET 5: INVENTORY VALUATION
-    xml += `
- <Worksheet ss:Name="Inventory Valuation">
-  <Table>
-   <Column ss:Width="130"/><Column ss:Width="160"/><Column ss:Width="140"/><Column ss:Width="100"/><Column ss:Width="90"/><Column ss:Width="120"/>
-   <Row ss:StyleID="Header">
-    <Cell><Data ss:Type="String">Brand</Data></Cell>
-    <Cell><Data ss:Type="String">Model</Data></Cell>
-    <Cell><Data ss:Type="String">SKU / Specs</Data></Cell>
-    <Cell><Data ss:Type="String">Unit Cost</Data></Cell>
-    <Cell><Data ss:Type="String">Stock Qty</Data></Cell>
-    <Cell><Data ss:Type="String">Total Value</Data></Cell>
-   </Row>`;
-    products.forEach(p => {
-      p.variants.forEach(v => {
-        const count = inStockImeis.filter(i => i.productId === p.id && i.variantId === v.id).length;
-        const totalVal = count * v.purchasePrice;
-        xml += `
-   <Row>
-    <Cell><Data ss:Type="String">${xmlEscape(p.brandName)}</Data></Cell>
-    <Cell><Data ss:Type="String">${xmlEscape(p.model)}</Data></Cell>
-    <Cell><Data ss:Type="String">${xmlEscape(v.sku)} (${v.ram}/${v.storage})</Data></Cell>
-    <Cell ss:StyleID="Currency"><Data ss:Type="Number">${v.purchasePrice}</Data></Cell>
-    <Cell><Data ss:Type="Number">${count}</Data></Cell>
-    <Cell ss:StyleID="Currency"><Data ss:Type="Number">${totalVal}</Data></Cell>
-   </Row>`;
+      // SHEET 5: INVENTORY VALUATION
+      const inventoryRows: any[] = [];
+      products.forEach(p => {
+        p.variants.forEach(v => {
+          const count = inStockImeis.filter(i => i.productId === p.id && i.variantId === v.id).length;
+          const totalVal = count * v.purchasePrice;
+          inventoryRows.push({
+            'Brand': p.brandName,
+            'Model': p.model,
+            'SKU / Specs': `${v.sku} (${v.ram}/${v.storage})`,
+            'Unit Cost (BDT)': v.purchasePrice,
+            'Stock Qty': count,
+            'Total Value (BDT)': totalVal
+          });
+        });
       });
-    });
-    xml += `
-  </Table>
- </Worksheet>`;
+      const wsInventory = XLSX.utils.json_to_sheet(inventoryRows);
+      XLSX.utils.book_append_sheet(wb, wsInventory, 'Inventory Valuation');
 
-    // SHEET 6: BRANCH PERFORMANCE
-    xml += `
- <Worksheet ss:Name="Branch Performance">
-  <Table>
-   <Column ss:Width="180"/><Column ss:Width="130"/><Column ss:Width="130"/><Column ss:Width="100"/>
-   <Row ss:StyleID="Header">
-    <Cell><Data ss:Type="String">Branch / Hub Name</Data></Cell>
-    <Cell><Data ss:Type="String">Total Sales (BDT)</Data></Cell>
-    <Cell><Data ss:Type="String">Gross Profit (BDT)</Data></Cell>
-    <Cell><Data ss:Type="String">In-Stock Units</Data></Cell>
-   </Row>`;
-    branchData.forEach(b => {
-      xml += `
-   <Row>
-    <Cell><Data ss:Type="String">${xmlEscape(b.fullName)}</Data></Cell>
-    <Cell ss:StyleID="Currency"><Data ss:Type="Number">${b.revenue}</Data></Cell>
-    <Cell ss:StyleID="Currency"><Data ss:Type="Number">${b.profit}</Data></Cell>
-    <Cell><Data ss:Type="Number">${b.stockUnits}</Data></Cell>
-   </Row>`;
-    });
-    xml += `
-  </Table>
- </Worksheet>`;
+      // SHEET 6: BRANCH PERFORMANCE
+      const branchRows = branchData.map(b => ({
+        'Branch / Hub Name': b.fullName,
+        'Total Sales (BDT)': b.revenue,
+        'Gross Profit (BDT)': b.profit,
+        'In-Stock Units': b.stockUnits
+      }));
+      const wsBranch = XLSX.utils.json_to_sheet(branchRows);
+      XLSX.utils.book_append_sheet(wb, wsBranch, 'Branch Performance');
 
-    // SHEET 7: SALESMEN PERFORMANCE
-    xml += `
- <Worksheet ss:Name="Salesmen Report">
-  <Table>
-   <Column ss:Width="160"/><Column ss:Width="110"/><Column ss:Width="120"/><Column ss:Width="120"/><Column ss:Width="90"/><Column ss:Width="110"/>
-   <Row ss:StyleID="Header">
-    <Cell><Data ss:Type="String">Sales Officer</Data></Cell>
-    <Cell><Data ss:Type="String">Assigned Route</Data></Cell>
-    <Cell><Data ss:Type="String">Sales Target</Data></Cell>
-    <Cell><Data ss:Type="String">Achieved Sales</Data></Cell>
-    <Cell><Data ss:Type="String">Achievement %</Data></Cell>
-    <Cell><Data ss:Type="String">Commission Earned</Data></Cell>
-   </Row>`;
-    salesmanPerformanceData.forEach(sm => {
-      xml += `
-   <Row>
-    <Cell><Data ss:Type="String">${xmlEscape(sm.name)}</Data></Cell>
-    <Cell><Data ss:Type="String">${xmlEscape(sm.area)}</Data></Cell>
-    <Cell ss:StyleID="Currency"><Data ss:Type="Number">${sm.target}</Data></Cell>
-    <Cell ss:StyleID="Currency"><Data ss:Type="Number">${sm.soldRevenue}</Data></Cell>
-    <Cell><Data ss:Type="String">${sm.achievementRate}%</Data></Cell>
-    <Cell ss:StyleID="Currency"><Data ss:Type="Number">${sm.commissionEarned}</Data></Cell>
-   </Row>`;
-    });
-    xml += `
-  </Table>
- </Worksheet>
-</Workbook>`;
+      // SHEET 7: SALESMEN PERFORMANCE
+      const salesmanRows = salesmanPerformanceData.map(sm => ({
+        'Sales Officer': sm.name,
+        'Assigned Route': sm.area,
+        'Sales Target (BDT)': sm.target,
+        'Achieved Sales (BDT)': sm.soldRevenue,
+        'Achievement %': `${sm.achievementRate}%`,
+        'Commission Earned (BDT)': sm.commissionEarned
+      }));
+      const wsSalesman = XLSX.utils.json_to_sheet(salesmanRows);
+      XLSX.utils.book_append_sheet(wb, wsSalesman, 'Salesmen Report');
 
-    const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      const filename = `Executive_Business_Report_${fromDate}_to_${toDate}.xlsx`;
+      XLSX.writeFile(wb, filename);
 
-    // Save to report history
-    saveHistory({
-      id: `hist-${Date.now()}`,
-      reportName: filename.replace('.xls', ''),
-      reportType: 'Excel Multi-Sheet',
-      dateRange: `${fromDate} to ${toDate}`,
-      generatedBy: currentUserRole,
-      generatedAt: new Date().toLocaleString(),
-      recordCount: currentSales.length + currentPurchases.length
-    });
+      // Save to report history
+      saveHistory({
+        id: `hist-${Date.now()}`,
+        reportName: filename.replace('.xlsx', ''),
+        reportType: 'Excel Multi-Sheet',
+        dateRange: `${fromDate} to ${toDate}`,
+        generatedBy: currentUserRole,
+        generatedAt: new Date().toLocaleString(),
+        recordCount: currentSales.length + currentPurchases.length
+      });
+    } catch (err) {
+      console.error('Failed to export multi-sheet Excel:', err);
+    }
   };
 
   return (
@@ -782,20 +640,20 @@ export const DynamicBusinessReportView: React.FC = () => {
           <button
             onClick={handleExportMultiSheetExcel}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md transition transform active:scale-95"
-            title="Download multi-sheet Microsoft Excel report"
+            title="Download 7-Sheet Microsoft Excel (.xlsx) complete workbook"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span>Export Excel (.xls)</span>
+            <span>Export Excel (.xlsx)</span>
           </button>
 
           {/* Executive PDF / Print */}
           <button
             onClick={() => setShowPdfModal(true)}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md transition transform active:scale-95"
-            title="Generate high-resolution printable PDF report"
+            title="Open high-resolution printable report modal with instant browser print"
           >
             <Printer className="w-4 h-4" />
-            <span>Generate Official PDF</span>
+            <span>Print / Official PDF</span>
           </button>
         </div>
       </div>

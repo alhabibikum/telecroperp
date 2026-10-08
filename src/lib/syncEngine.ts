@@ -1,4 +1,5 @@
 import { getSupabaseClient } from './supabase';
+import { erpStorage } from '../services/storageService';
 
 export type SyncAction = 'INSERT' | 'UPDATE' | 'DELETE' | 'UPSERT';
 
@@ -17,27 +18,46 @@ export interface SyncQueueItem {
 
 const SYNC_QUEUE_KEY = 'TELECORP_OFFLINE_SYNC_QUEUE_V1';
 
+let memoryQueue: SyncQueueItem[] | null = null;
+
+// Initialize queue from IndexedDB
+erpStorage.getItem<SyncQueueItem[]>(SYNC_QUEUE_KEY).then(items => {
+  if (items && Array.isArray(items)) {
+    memoryQueue = items;
+  }
+}).catch(() => {});
+
 /**
- * Retrieve the current offline sync queue from LocalStorage
+ * Retrieve the current offline sync queue from Memory / IndexedDB / LocalStorage
  */
 export const getSyncQueue = (): SyncQueueItem[] => {
+  if (memoryQueue) return memoryQueue;
   try {
     const raw = localStorage.getItem(SYNC_QUEUE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (Array.isArray(parsed)) {
+      memoryQueue = parsed;
+      return parsed;
+    }
   } catch (err) {
     console.error('Failed to read sync queue from localStorage:', err);
-    return [];
   }
+  return [];
 };
 
 /**
- * Save the sync queue to LocalStorage and dispatch change event
+ * Save the sync queue to IndexedDB & LocalStorage and dispatch change event
  */
 const saveSyncQueue = (queue: SyncQueueItem[]) => {
+  memoryQueue = queue;
   try {
-    localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+    erpStorage.setItem(SYNC_QUEUE_KEY, queue).catch(console.error);
+    try {
+      localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+    } catch {
+      // Ignored if localStorage 5MB limit is reached; IndexedDB has saved it safely
+    }
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('telecorp-sync-queue-updated', {
         detail: {
@@ -47,7 +67,7 @@ const saveSyncQueue = (queue: SyncQueueItem[]) => {
       }));
     }
   } catch (err) {
-    console.error('Failed to write sync queue to localStorage:', err);
+    console.error('Failed to write sync queue:', err);
   }
 };
 
@@ -957,7 +977,9 @@ export const getPendingSyncCount = (): number => {
  * Clear the offline sync queue from LocalStorage and dispatch event
  */
 export const clearSyncQueue = () => {
+  memoryQueue = [];
   try {
+    erpStorage.removeItem(SYNC_QUEUE_KEY).catch(console.error);
     localStorage.removeItem(SYNC_QUEUE_KEY);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('telecorp-sync-queue-updated', {
@@ -968,6 +990,6 @@ export const clearSyncQueue = () => {
       }));
     }
   } catch (err) {
-    console.error('Failed to clear sync queue from localStorage:', err);
+    console.error('Failed to clear sync queue from storage:', err);
   }
 };

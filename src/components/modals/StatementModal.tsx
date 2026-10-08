@@ -24,7 +24,16 @@ export const StatementModal: React.FC<StatementModalProps> = ({
   entityType,
   entityId
 }) => {
-  const { customers, suppliers, salesInvoices, purchaseInvoices, cashTransactions, settings } = useERP();
+  const {
+    customers,
+    suppliers,
+    salesInvoices,
+    purchaseInvoices,
+    customerReturns,
+    supplierReturns,
+    moneyReceipts,
+    settings
+  } = useERP();
 
   if (!isOpen) return null;
 
@@ -34,7 +43,136 @@ export const StatementModal: React.FC<StatementModalProps> = ({
   const entityName = customer ? customer.shopName : supplier ? supplier.name : 'Statement';
   const entityContact = customer ? `${customer.ownerName} (${customer.mobile})` : supplier ? `${supplier.contactPerson} (${supplier.mobile})` : '';
 
-  // Ledger entries builder
+  interface LedgerRawItem {
+    date: string;
+    docNo: string;
+    description: string;
+    debit: number;
+    credit: number;
+  }
+
+  const rawItems: LedgerRawItem[] = [];
+  let initialOpeningBalance = 0;
+
+  if (customer) {
+    initialOpeningBalance = customer.openingBalance || 0;
+
+    // 1. Sales Invoices
+    const invoices = salesInvoices.filter(i => i.customerId === customer.id);
+    invoices.forEach(inv => {
+      // Invoice Bill (Debit)
+      rawItems.push({
+        date: inv.invoiceDate,
+        docNo: inv.invoiceNo,
+        description: `পাইকারি বিক্রয় চালান (${inv.items.map(it => `${it.quantity}x ${it.productName}`).join(', ')})`,
+        debit: inv.grandTotal,
+        credit: 0
+      });
+
+      // Payments recorded directly inside invoice at creation (if not already captured in moneyReceipts)
+      if (inv.payments && inv.payments.length > 0) {
+        inv.payments.forEach((p, idx) => {
+          const payRef = p.reference || p.transactionRef;
+          const isRecordedInMR = (moneyReceipts || []).some(
+            mr => (mr.transactionRef === payRef || mr.receiptNo === payRef) && mr.customerId === customer.id
+          );
+          if (!isRecordedInMR && p.amount > 0) {
+            rawItems.push({
+              date: p.date || inv.invoiceDate,
+              docNo: payRef || `REC-${inv.invoiceNo.replace('SAL-', '')}-${idx + 1}`,
+              description: `ইনভয়েস ইস্যুকালীন জমা (${p.method || 'Cash'})`,
+              debit: 0,
+              credit: p.amount
+            });
+          }
+        });
+      } else if (inv.paidAmount > 0) {
+        const isRecordedInMR = (moneyReceipts || []).some(
+          mr => mr.referenceInvoice === inv.invoiceNo && mr.customerId === customer.id
+        );
+        if (!isRecordedInMR) {
+          rawItems.push({
+            date: inv.invoiceDate,
+            docNo: `REC-${inv.invoiceNo.replace('SAL-', '')}`,
+            description: `ইনভয়েস ইস্যুকালীন নগদ জমা`,
+            debit: 0,
+            credit: inv.paidAmount
+          });
+        }
+      }
+    });
+
+    // 2. Money Receipts (Due Collections)
+    const partyReceipts = (moneyReceipts || []).filter(
+      mr => mr.customerId === customer.id && mr.status !== 'Voided'
+    );
+    partyReceipts.forEach(mr => {
+      rawItems.push({
+        date: mr.date,
+        docNo: mr.receiptNo,
+        description: `মানি রসিদ আদায় (${mr.paymentMethod})${mr.referenceInvoice ? ` [ইনভয়েস: ${mr.referenceInvoice}]` : ''}${mr.notes ? ` - ${mr.notes}` : ''}`,
+        debit: 0,
+        credit: mr.amount
+      });
+    });
+
+    // 3. Customer Returns (Credit to Customer)
+    const partyReturns = (customerReturns || []).filter(
+      cr => cr.customerId === customer.id && cr.status === 'Approved'
+    );
+    partyReturns.forEach(cr => {
+      rawItems.push({
+        date: cr.returnDate || cr.createdAt || '2026-08-01',
+        docNo: cr.returnNo,
+        description: `পণ্য ফেরত ক্রেডিট (রিটার্ন) - IMEI: ${cr.imei} [কারণ: ${cr.returnReason}]`,
+        debit: 0,
+        credit: cr.refundOrCreditAmount
+      });
+    });
+  } else if (supplier) {
+    initialOpeningBalance = supplier.openingBalance || 0;
+
+    // 1. Supplier Purchases
+    const purchases = purchaseInvoices.filter(p => p.supplierId === supplier.id);
+    purchases.forEach(pur => {
+      rawItems.push({
+        date: pur.purchaseDate,
+        docNo: pur.invoiceNo,
+        description: `হ্যান্ডসেট চালান ইনওয়ার্ড (${pur.items.map(it => `${it.quantity}x ${it.productName}`).join(', ')})`,
+        debit: 0,
+        credit: pur.grandTotal
+      });
+
+      if (pur.paidAmount > 0) {
+        rawItems.push({
+          date: pur.purchaseDate,
+          docNo: `PAY-${pur.invoiceNo.replace('PUR-', '')}`,
+          description: `সাপ্লায়ার বিল পরিশোধ`,
+          debit: pur.paidAmount,
+          credit: 0
+        });
+      }
+    });
+
+    // 2. Supplier Stock Returns (Debit - reduces payable)
+    const partySupplierReturns = (supplierReturns || []).filter(
+      sr => sr.supplierId === supplier.id && sr.status === 'Completed'
+    );
+    partySupplierReturns.forEach(sr => {
+      rawItems.push({
+        date: sr.returnDate || sr.createdAt || '2026-08-01',
+        docNo: sr.returnNo,
+        description: `সাপ্লায়ারে স্টক ফেরত (রিটার্ন) - IMEI: ${sr.imei} [কারণ: ${sr.returnReason}]`,
+        debit: sr.amount,
+        credit: 0
+      });
+    });
+  }
+
+  // Sort transactions chronologically
+  rawItems.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // Ledger entries builder with running balance
   const ledgerRows: Array<{
     date: string;
     docNo: string;
@@ -44,71 +182,33 @@ export const StatementModal: React.FC<StatementModalProps> = ({
     balance: number;
   }> = [];
 
-  let runningBalance = customer ? customer.openingBalance : supplier ? supplier.openingBalance : 0;
+  let runningBalance = initialOpeningBalance;
 
-  if (customer) {
-    // Opening balance row
+  // Insert Opening Balance at index 0
+  ledgerRows.push({
+    date: (customer as any)?.joiningDate || (customer as any)?.createdAt || '2026-08-01',
+    docNo: 'OB-2026',
+    description: customer ? 'প্রারম্ভিক বকেয়া ব্যালেন্স (Opening Balance Brought Forward)' : 'প্রারম্ভিক পাওনা ব্যালেন্স (Opening Balance)',
+    debit: customer ? initialOpeningBalance : 0,
+    credit: supplier ? initialOpeningBalance : 0,
+    balance: runningBalance
+  });
+
+  // Calculate Running Balance
+  rawItems.forEach(item => {
+    if (customer) {
+      runningBalance = runningBalance + item.debit - item.credit;
+    } else {
+      runningBalance = runningBalance + item.credit - item.debit;
+    }
     ledgerRows.push({
-      date: '2026-08-01',
-      docNo: 'OB-2026',
-      description: 'Opening Due Balance Brought Forward',
-      debit: customer.openingBalance,
-      credit: 0,
+      ...item,
       balance: runningBalance
     });
+  });
 
-    // Invoices for this customer
-    const invoices = salesInvoices.filter(i => i.customerId === customer.id);
-    invoices.forEach(inv => {
-      runningBalance += inv.grandTotal;
-      ledgerRows.push({
-        date: inv.invoiceDate,
-        docNo: inv.invoiceNo,
-        description: `Wholesale Invoice (${inv.items.map(it => `${it.quantity}x ${it.productName}`).join(', ')})`,
-        debit: inv.grandTotal,
-        credit: 0,
-        balance: runningBalance
-      });
-
-      if (inv.paidAmount > 0) {
-        runningBalance -= inv.paidAmount;
-        ledgerRows.push({
-          date: inv.invoiceDate,
-          docNo: `REC-${inv.invoiceNo.replace('SAL-', '')}`,
-          description: `Payment received at invoice issue`,
-          debit: 0,
-          credit: inv.paidAmount,
-          balance: runningBalance
-        });
-      }
-    });
-  } else if (supplier) {
-    // Supplier purchases
-    const purchases = purchaseInvoices.filter(p => p.supplierId === supplier.id);
-    purchases.forEach(pur => {
-      runningBalance += pur.grandTotal;
-      ledgerRows.push({
-        date: pur.purchaseDate,
-        docNo: pur.invoiceNo,
-        description: `Handset Consignment Inward`,
-        debit: 0,
-        credit: pur.grandTotal,
-        balance: runningBalance
-      });
-
-      if (pur.paidAmount > 0) {
-        runningBalance -= pur.paidAmount;
-        ledgerRows.push({
-          date: pur.purchaseDate,
-          docNo: `PAY-${pur.invoiceNo.replace('PUR-', '')}`,
-          description: `Payment disbursed`,
-          debit: pur.paidAmount,
-          credit: 0,
-          balance: runningBalance
-        });
-      }
-    });
-  }
+  const totalDebits = ledgerRows.reduce((s, r) => s + r.debit, 0);
+  const totalCredits = ledgerRows.reduce((s, r) => s + r.credit, 0);
 
   return (
     <WindowsModalFrame
@@ -193,6 +293,16 @@ export const StatementModal: React.FC<StatementModalProps> = ({
                 </tr>
               ))}
             </tbody>
+            <tfoot className="bg-slate-100/90 border-t-2 border-slate-300 font-bold text-slate-900">
+              <tr>
+                <td colSpan={3} className="p-2.5 text-right uppercase tracking-wider text-[10px] text-slate-600">
+                  Total Transactions & Closing Balance:
+                </td>
+                <td className="p-2.5 text-right font-bold text-slate-900">{formatBDT(totalDebits)}</td>
+                <td className="p-2.5 text-right font-bold text-slate-900">{formatBDT(totalCredits)}</td>
+                <td className="p-2.5 text-right font-black text-rose-700">{formatBDT(runningBalance)}</td>
+              </tr>
+            </tfoot>
           </table>
 
           {/* Signatures */}

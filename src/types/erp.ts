@@ -226,6 +226,7 @@ export interface SaleItem {
   unitCost: number; // for gross profit calculation
   discount: number;
   vatAmount: number;
+  vatRate?: number;
   totalAmount: number;
   imeiList: string[]; // IMEIs assigned to this sale
 }
@@ -235,12 +236,14 @@ export interface PaymentSplit {
   amount: number;
   bankAccountId?: string;
   transactionRef?: string;
+  date?: string;
+  reference?: string;
 }
 
 export interface SalesInvoice {
   id: string;
   invoiceNo: string;
-  invoiceType: 'Wholesale' | 'Retail POS';
+  invoiceType: 'Wholesale' | 'Retail POS' | 'Hire Purchase (EMI)';
   customerId: string;
   customerName: string;
   customerPhone: string;
@@ -631,9 +634,10 @@ export interface SystemSettings {
   maxDiscountWithoutApproval: number;
   language: 'en' | 'bn';
   apiIntegrations?: {
-    smsProvider?: 'Greenweb' | 'Onnorokom' | 'Twilio' | 'SSL Wireless';
+    smsProvider?: 'Greenweb' | 'Onnorokom' | 'Twilio' | 'SSL Wireless' | 'BulkSMSBD' | 'MimSMS' | 'Custom HTTP';
     smsApiKey?: string;
     smsSenderId?: string;
+    smsGatewayUrl?: string;
     autoSmsOnSale?: boolean;
     autoSmsOnDue?: boolean;
     bkashMerchant?: string;

@@ -812,9 +812,44 @@ export const executeProcessCustomerReturn = (
 
 export const executeProcessPhoneExchange = (
   data: Omit<PhoneExchangeTransaction, 'id' | 'exchangeNo' | 'createdAt'>,
-  ctx: Pick<SalesContextBundle, 'imeis' | 'setImeis' | 'customers' | 'setCustomers' | 'bankAccounts' | 'setBankAccounts' | 'setCashTransactions' | 'phoneExchanges' | 'setPhoneExchanges' | 'journalEntries' | 'setJournalEntries' | 'currentUserRole' | 'enqueueChange' | 'addAudit'>
+  ctx: Pick<
+    SalesContextBundle,
+    | 'imeis'
+    | 'setImeis'
+    | 'products'
+    | 'setProducts'
+    | 'customers'
+    | 'setCustomers'
+    | 'bankAccounts'
+    | 'setBankAccounts'
+    | 'setCashTransactions'
+    | 'phoneExchanges'
+    | 'setPhoneExchanges'
+    | 'journalEntries'
+    | 'setJournalEntries'
+    | 'currentUserRole'
+    | 'enqueueChange'
+    | 'addAudit'
+  >
 ) => {
-  const { imeis, setImeis, customers, setCustomers, bankAccounts, setBankAccounts, setCashTransactions, phoneExchanges, setPhoneExchanges, journalEntries, setJournalEntries, currentUserRole, enqueueChange, addAudit } = ctx;
+  const {
+    imeis,
+    setImeis,
+    products,
+    setProducts,
+    customers,
+    setCustomers,
+    bankAccounts,
+    setBankAccounts,
+    setCashTransactions,
+    phoneExchanges,
+    setPhoneExchanges,
+    journalEntries,
+    setJournalEntries,
+    currentUserRole,
+    enqueueChange,
+    addAudit
+  } = ctx;
   const exchangeNo = generateDocNumber('EXCH' as any, phoneExchanges.length);
   const today = new Date().toISOString().split('T')[0];
 
@@ -823,6 +858,7 @@ export const executeProcessPhoneExchange = (
     return { success: false, error: 'New handset selected for exchange is not available in stock!' };
   }
 
+  // 1. Transition Outgoing New Handset IMEI to 'Sold'
   setImeis(prev =>
     prev.map(i => i.imei1 === data.newIMEI ? {
       ...i,
@@ -852,6 +888,24 @@ export const executeProcessPhoneExchange = (
     salesDate: today
   }, `IMEI এক্সচেঞ্জ সেল #${data.newIMEI}`);
 
+  // 2. Decrement Sold Handset Product Inventory Stock
+  setProducts(prev => prev.map(p => {
+    if (p.id === newImeiRecord.productId) {
+      const updated = {
+        ...p,
+        variants: p.variants.map(v =>
+          v.id === newImeiRecord.variantId
+            ? { ...v, currentStock: Math.max(0, v.currentStock - 1) }
+            : v
+        )
+      };
+      enqueueChange('products', 'UPDATE', p.id, updated, `হ্যান্ডসেট স্টক হ্রাস (এক্সচেঞ্জ সেল)`);
+      return updated;
+    }
+    return p;
+  }));
+
+  // 3. Register Incoming Pre-Owned Handset in IMEI Records
   const oldImeiEntry: IMEIRecord = {
     id: `imei-used-${Date.now()}`,
     imei1: data.oldIMEI,
@@ -881,6 +935,55 @@ export const executeProcessPhoneExchange = (
   };
   setImeis(prev => [oldImeiEntry, ...prev]);
   enqueueChange('imeis', 'INSERT', oldImeiEntry.id, oldImeiEntry, `পুরাতন ফোন স্টক ইনওয়ার্ড #${data.oldIMEI}`);
+
+  // 4. Update or Create Pre-Owned Inventory in Products
+  setProducts(prev => {
+    const existing = prev.find(p => p.id === 'prod-exchange');
+    if (existing) {
+      return prev.map(p => {
+        if (p.id === 'prod-exchange') {
+          const updated = {
+            ...p,
+            variants: p.variants.map(v => v.id === 'var-used' ? { ...v, currentStock: v.currentStock + 1 } : v)
+          };
+          enqueueChange('products', 'UPDATE', p.id, updated, `প্রি-ওনড এক্সচেঞ্জ স্টক বৃদ্ধি`);
+          return updated;
+        }
+        return p;
+      });
+    } else {
+      const newPreOwned: Product = {
+        id: 'prod-exchange',
+        brandId: 'brand-exchange',
+        brandName: data.oldBrand,
+        model: `${data.oldBrand} Pre-Owned`,
+        category: 'Smartphone',
+        networkRegion: 'Official BD',
+        warrantyPeriodMonths: 1,
+        description: 'Certified pre-owned / customer trade-in handsets',
+        status: 'Active',
+        variants: [
+          {
+            id: 'var-used',
+            sku: `USED-${data.oldBrand.toUpperCase().replace(/\s+/g, '')}-01`,
+            color: 'Assorted',
+            storage: 'Standard',
+            ram: 'Standard',
+            purchasePrice: data.assessedValue,
+            dealerPrice: data.assessedValue,
+            wholesalePrice: data.assessedValue,
+            retailPrice: Math.round(data.assessedValue * 1.15),
+            minSellingPrice: data.assessedValue,
+            maxDiscount: 0,
+            reorderLevel: 0,
+            currentStock: 1
+          }
+        ]
+      };
+      enqueueChange('products', 'INSERT', newPreOwned.id, newPreOwned, `প্রি-ওনড এক্সচেঞ্জ প্রোডাক্ট ক্রিয়েশন`);
+      return [newPreOwned, ...prev];
+    }
+  });
 
   if (data.dueAmount > 0) {
     setCustomers(prev =>
@@ -1013,24 +1116,186 @@ export const executeUpdateDeliveryStatus = (
 export const executeSettleChallanCod = (
   id: string,
   bankAccountId: string | undefined,
-  ctx: Pick<SalesContextBundle, 'deliveryChallans' | 'setDeliveryChallans' | 'bankAccounts' | 'setBankAccounts' | 'enqueueChange' | 'addAudit'>
+  ctx: Pick<
+    SalesContextBundle,
+    | 'deliveryChallans'
+    | 'setDeliveryChallans'
+    | 'salesInvoices'
+    | 'setSalesInvoices'
+    | 'customers'
+    | 'setCustomers'
+    | 'bankAccounts'
+    | 'setBankAccounts'
+    | 'setCashTransactions'
+    | 'journalEntries'
+    | 'setJournalEntries'
+    | 'moneyReceipts'
+    | 'setMoneyReceipts'
+    | 'currentUserRole'
+    | 'enqueueChange'
+    | 'addAudit'
+  >
 ) => {
-  const { deliveryChallans, setDeliveryChallans, bankAccounts, setBankAccounts, enqueueChange, addAudit } = ctx;
+  const {
+    deliveryChallans,
+    setDeliveryChallans,
+    salesInvoices,
+    setSalesInvoices,
+    customers,
+    setCustomers,
+    bankAccounts,
+    setBankAccounts,
+    setCashTransactions,
+    journalEntries,
+    setJournalEntries,
+    moneyReceipts,
+    setMoneyReceipts,
+    currentUserRole,
+    enqueueChange,
+    addAudit
+  } = ctx;
+
   const challan = deliveryChallans.find(c => c.id === id);
   if (!challan || !challan.isCOD || challan.codAmount <= 0) return;
+  if (challan.codStatus === 'Collected & Settled') return;
 
-  const updatedChallan = { ...challan, codStatus: 'Collected & Settled' as const, deliveryStatus: 'Delivered' as const };
+  const today = todayStr();
+  const codAmount = challan.codAmount;
+
+  // 1. Update Challan status
+  const updatedChallan: DeliveryChallan = {
+    ...challan,
+    codStatus: 'Collected & Settled',
+    deliveryStatus: 'Delivered',
+    deliveredAt: challan.deliveredAt || `${today} 15:00`
+  };
   setDeliveryChallans(prev => prev.map(c => c.id === id ? updatedChallan : c));
   enqueueChange('delivery_challans', 'UPDATE', id, updatedChallan, `চালান সিওডি আদায় ও সেটেল্ড #${challan.challanNo}`);
 
+  // 2. Deposit into Bank Account or Vault Cash
   if (bankAccountId) {
     const bank = bankAccounts.find(b => b.id === bankAccountId);
     if (bank) {
-      const updatedBank = { ...bank, currentBalance: bank.currentBalance + challan.codAmount };
+      const updatedBank = { ...bank, currentBalance: bank.currentBalance + codAmount };
       setBankAccounts(prev => prev.map(b => b.id === bankAccountId ? updatedBank : b));
       enqueueChange('bank_accounts', 'UPDATE', bank.id, updatedBank, `সিওডি ব্যাংক জমা (${bank.bankName})`);
     }
+  } else {
+    pushCashHelper(
+      setCashTransactions,
+      'Cash In',
+      'Due Collection',
+      codAmount,
+      challan.challanNo,
+      `Courier COD remittance for Challan ${challan.challanNo} (${challan.courierPartner})`,
+      currentUserRole
+    );
   }
 
-  addAudit(`Settled Courier COD ৳${challan.codAmount} for Challan ${challan.challanNo}`, 'Cash & Bank', challan.challanNo);
+  // 3. Update Sales Invoice payment and due balances
+  const targetInvoice = salesInvoices.find(inv => inv.invoiceNo === challan.invoiceNo);
+  if (targetInvoice) {
+    const newPaidAmount = targetInvoice.paidAmount + codAmount;
+    const newDueAmount = Math.max(0, targetInvoice.dueAmount - codAmount);
+    const newStatus = newDueAmount <= 0 ? 'Paid' : 'Partial';
+    const newPayments = [
+      ...(targetInvoice.payments || []),
+      {
+        method: bankAccountId ? ('Bank' as PaymentMethodType) : ('Cash' as PaymentMethodType),
+        amount: codAmount,
+        date: today,
+        reference: `COD-${challan.challanNo}`
+      }
+    ];
+
+    const updatedInvoice: SalesInvoice = {
+      ...targetInvoice,
+      paidAmount: newPaidAmount,
+      dueAmount: newDueAmount,
+      status: newStatus,
+      payments: newPayments
+    };
+
+    setSalesInvoices(prev => prev.map(inv => inv.id === targetInvoice.id ? updatedInvoice : inv));
+    enqueueChange('sales_invoices', 'UPDATE', targetInvoice.id, updatedInvoice, `সিওডি আদায় ইনভয়েস আপডেট #${targetInvoice.invoiceNo}`);
+  }
+
+  // 4. Update Customer Outstanding Due
+  const customerId = challan.customerId || targetInvoice?.customerId;
+  if (customerId) {
+    const targetCust = customers.find(c => c.id === customerId);
+    if (targetCust) {
+      const newCustomerDue = Math.max(0, targetCust.currentDue - codAmount);
+      const updatedCustomer: Customer = {
+        ...targetCust,
+        currentDue: newCustomerDue
+      };
+      setCustomers(prev => prev.map(c => c.id === customerId ? updatedCustomer : c));
+      enqueueChange('customers', 'UPDATE', targetCust.id, updatedCustomer, `সিওডি কাস্টমার বকেয়া হ্রাস (${targetCust.shopName})`);
+    }
+  }
+
+  // 5. Generate Money Receipt (MR) for Audit & Statements
+  if (setMoneyReceipts) {
+    const mrNo = generateDocNumber('MR', (moneyReceipts?.length || 0) + 1);
+    const newReceipt: MoneyReceipt = {
+      id: `mr-cod-${Date.now()}`,
+      receiptNo: mrNo,
+      date: today,
+      customerId: customerId || 'cust-unknown',
+      customerName: challan.customerName,
+      customerPhone: challan.customerPhone || '',
+      shopName: challan.customerName,
+      area: challan.district || 'Dhaka Territory',
+      amount: codAmount,
+      paymentMethod: bankAccountId ? 'Bank Transfer' : 'Cash',
+      bankAccountId: bankAccountId || undefined,
+      transactionRef: `COD-${challan.consignmentNo || challan.challanNo}`,
+      referenceInvoice: challan.invoiceNo,
+      notes: `Courier COD settled via ${challan.courierPartner} (Challan #${challan.challanNo})`,
+      status: 'Confirmed',
+      createdAt: new Date().toISOString()
+    };
+    setMoneyReceipts(prev => [newReceipt, ...(prev || [])]);
+    enqueueChange('money_receipts', 'INSERT', newReceipt.id, newReceipt, `সিওডি মানি রিসিট #${mrNo}`);
+  }
+
+  // 6. Post Double-Entry Accounting Journal Entry (JV)
+  const jvNo = generateDocNumber('JV', journalEntries.length);
+  const newJv: JournalEntry = {
+    id: `jv-cod-${Date.now()}`,
+    voucherNo: jvNo,
+    date: today,
+    voucherType: 'Receipt Voucher',
+    referenceNo: challan.challanNo,
+    description: `Courier COD Settlement for Challan ${challan.challanNo} (Invoice: ${challan.invoiceNo})`,
+    lines: [
+      {
+        accountCode: bankAccountId ? '1010' : '1000',
+        accountName: bankAccountId ? 'Bank Accounts' : 'Cash in Hand (Main Vault)',
+        debit: codAmount,
+        credit: 0,
+        memo: `COD Remittance received via ${challan.courierPartner}`
+      },
+      {
+        accountCode: '1020',
+        accountName: 'Accounts Receivable (Customer Due)',
+        debit: 0,
+        credit: codAmount,
+        memo: `Due cleared on wholesale invoice ${challan.invoiceNo}`
+      }
+    ],
+    totalDebit: codAmount,
+    totalCredit: codAmount,
+    createdBy: currentUserRole,
+    createdAt: today
+  };
+  setJournalEntries(prev => [newJv, ...prev]);
+  enqueueChange('journal_entries', 'INSERT', newJv.id, newJv, `সিওডি জার্নাল ভাউচার #${jvNo}`);
+
+  addAudit(
+    `Settled Courier COD ৳${codAmount.toLocaleString()} for Challan ${challan.challanNo} (Invoice: ${challan.invoiceNo})`,
+    'Dispatch Logistics',
+    challan.challanNo
+  );
 };

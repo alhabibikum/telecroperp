@@ -85,7 +85,7 @@ export const calculateDueAgeing = (dueDateStr: string): { bucket: AgeingBucket; 
   }
 };
 
-export const generateDocNumber = (prefix: 'SAL' | 'PUR' | 'REC' | 'TRF' | 'RET' | 'JV' | 'EXP' | 'PAY', count: number): string => {
+export const generateDocNumber = (prefix: 'SAL' | 'PUR' | 'REC' | 'TRF' | 'RET' | 'JV' | 'EXP' | 'PAY' | 'MR', count: number): string => {
   const year = new Date().getFullYear();
   const seq = (count + 1).toString().padStart(6, '0');
   return `${prefix}-${year}-${seq}`;

@@ -18,7 +18,8 @@ import type {
   PurchaseInvoice,
   AuthUser,
   CrudResult,
-  UserRole
+  UserRole,
+  SystemSettings
 } from '../../types/erp';
 import { generateDocNumber } from '../../utils/formatters';
 import { EnqueueChangeFn, AddAuditFn } from './types';
@@ -54,6 +55,7 @@ export interface MasterDataContextBundle {
   salesInvoices: SalesInvoice[];
   purchaseInvoices: PurchaseInvoice[];
   setPurchaseInvoices: React.Dispatch<React.SetStateAction<PurchaseInvoice[]>>;
+  settings?: SystemSettings;
   currentUser: AuthUser | null;
   currentUserRole: UserRole;
   enqueueChange: EnqueueChangeFn;
@@ -620,7 +622,110 @@ export const executeUpdateWarrantyStatus = (
   updates: Partial<WarrantyClaim> | undefined,
   ctx: MasterDataContextBundle
 ) => {
-  const { setWarrantyClaims, enqueueChange, addAudit } = ctx;
+  const { setWarrantyClaims, warrantyClaims, imeis, setImeis, products, setProducts, currentUserRole, enqueueChange, addAudit } = ctx;
+  const targetClaim = warrantyClaims.find(c => c.id === id);
+  if (!targetClaim) return;
+
+  const today = new Date().toISOString().replace('T', ' ').substr(0, 16);
+  const repImei = updates?.replacementIMEI || targetClaim.replacementIMEI;
+
+  // 1. Automate Original Defective IMEI Status
+  setImeis(prev => prev.map(i => {
+    if (i.imei1 === targetClaim.imei) {
+      let newStatus: IMEIStatus = i.status;
+      let actionTitle = `Warranty Status: ${status}`;
+      let actionDesc = `RMA ${targetClaim.rmaNumber} changed to ${status}.`;
+
+      if (status === 'Delivered to Customer') {
+        newStatus = 'Sold';
+        actionDesc = `Repaired unit returned & delivered to customer (${targetClaim.customerName}). RMA ${targetClaim.rmaNumber} closed.`;
+      } else if (status === 'Rejected') {
+        newStatus = 'Sold';
+        actionDesc = `Warranty claim rejected. Handset returned to customer (${targetClaim.customerName}).`;
+      } else if (status === 'Replaced') {
+        newStatus = 'Damaged';
+        actionDesc = `Replaced with new handset (${repImei || 'Issued'}). Defective unit retained in store.`;
+      } else if (status === 'Dispatched to Service Center') {
+        newStatus = 'Warranty';
+        actionDesc = `Dispatched to care/service center: ${targetClaim.serviceCenterName || 'Brand Care'}`;
+      } else if (status === 'In Repair') {
+        newStatus = 'Warranty';
+        actionDesc = `Under technical repair at ${targetClaim.serviceCenterName || 'Care Center'}`;
+      } else if (status === 'Repaired') {
+        newStatus = 'Warranty';
+        actionDesc = `Repair completed. Ready for customer delivery.`;
+      }
+
+      const updatedRecord: IMEIRecord = {
+        ...i,
+        status: newStatus,
+        history: [
+          ...(i.history || []),
+          {
+            date: today,
+            action: actionTitle,
+            description: actionDesc,
+            user: currentUserRole,
+            referenceNo: targetClaim.rmaNumber
+          }
+        ]
+      };
+      enqueueChange('imeis', 'UPDATE', i.id, updatedRecord, `ওয়ারেন্টি IMEI স্ট্যাটাস আপডেট (#${i.imei1})`);
+      return updatedRecord;
+    }
+    return i;
+  }));
+
+  // 2. Automate Replacement IMEI & Product Stock when status is 'Replaced'
+  if (status === 'Replaced' && repImei) {
+    const replacementRecord = imeis.find(i => i.imei1 === repImei);
+    if (replacementRecord && replacementRecord.status === 'In Stock') {
+      setImeis(prev => prev.map(i => {
+        if (i.imei1 === repImei) {
+          const updatedRep: IMEIRecord = {
+            ...i,
+            status: 'Sold',
+            customerId: targetClaim.customerId,
+            customerName: targetClaim.customerName,
+            salesInvoiceNo: targetClaim.rmaNumber,
+            salesDate: today.split(' ')[0],
+            history: [
+              ...(i.history || []),
+              {
+                date: today,
+                action: 'Warranty Replacement Issued',
+                description: `Issued as warranty replacement for defective IMEI ${targetClaim.imei} (RMA #${targetClaim.rmaNumber})`,
+                user: currentUserRole,
+                referenceNo: targetClaim.rmaNumber
+              }
+            ]
+          };
+          enqueueChange('imeis', 'UPDATE', i.id, updatedRep, `ওয়ারেন্টি রিপ্লেসমেন্ট প্রদান (#${repImei})`);
+          return updatedRep;
+        }
+        return i;
+      }));
+
+      // Decrement product inventory count for replacement handset
+      setProducts(prev => prev.map(p => {
+        if (p.id === replacementRecord.productId) {
+          const updatedProd = {
+            ...p,
+            variants: p.variants.map(v =>
+              v.id === replacementRecord.variantId
+                ? { ...v, currentStock: Math.max(0, v.currentStock - 1) }
+                : v
+            )
+          };
+          enqueueChange('products', 'UPDATE', p.id, updatedProd, `ওয়ারেন্টি রিপ্লেসমেন্টে স্টক হ্রাস (${p.model})`);
+          return updatedProd;
+        }
+        return p;
+      }));
+    }
+  }
+
+  // 3. Update Warranty Claim Record
   setWarrantyClaims(prev => prev.map(c => {
     if (c.id === id) {
       const updated = {
@@ -629,7 +734,7 @@ export const executeUpdateWarrantyStatus = (
         ...(updates || {})
       };
       enqueueChange('warranty_claims', 'UPDATE', id, updated, `ওয়ারেন্টি স্ট্যাটাস আপডেট (${c.rmaNumber})`);
-      addAudit(`Updated RMA ${c.rmaNumber} status to ${status}`, 'Warranty RMA', c.rmaNumber);
+      addAudit(`Updated RMA ${c.rmaNumber} status to ${status}${repImei ? ` (Replacement IMEI: ${repImei})` : ''}`, 'Warranty RMA', c.rmaNumber);
       return updated;
     }
     return c;
@@ -824,16 +929,82 @@ export const executeSendSmsNotification = (
   sms: Omit<SmsLog, 'id' | 'sentAt' | 'status'>,
   ctx: MasterDataContextBundle
 ): { success: boolean } => {
-  const { setSmsLogs, enqueueChange, addAudit } = ctx;
+  const { setSmsLogs, enqueueChange, addAudit, settings } = ctx;
+  const today = new Date().toISOString().replace('T', ' ').substr(0, 16);
+  const smsId = `sms-${Date.now()}`;
+  const integrations = settings?.apiIntegrations;
+  const apiKey = integrations?.smsApiKey;
+  const provider = integrations?.smsProvider || 'Greenweb';
+  const senderId = integrations?.smsSenderId || sms.masking || 'TeleCorp';
+  const gatewayUrl = integrations?.smsGatewayUrl;
+
   const newSms: SmsLog = {
     ...sms,
-    id: `sms-${Date.now()}`,
-    sentAt: new Date().toISOString().replace('T', ' ').substr(0, 16),
-    status: 'Delivered'
+    id: smsId,
+    sentAt: today,
+    status: apiKey || gatewayUrl ? 'Sent' : 'Delivered'
   };
+
   setSmsLogs(prev => [newSms, ...prev]);
   enqueueChange('sms_logs', 'INSERT', newSms.id, newSms, `এসএমএস লগ (${sms.recipientPhone})`);
-  addAudit(`Dispatched SMS to ${sms.recipientPhone}`, 'SMS Gateway', sms.recipientName);
+  addAudit(`Dispatched SMS to ${sms.recipientPhone} via ${provider}`, 'SMS Gateway', sms.recipientName);
+
+  // Live Async Dispatch to SMS Gateway
+  if (apiKey || gatewayUrl) {
+    (async () => {
+      try {
+        let dispatchUrl = '';
+        let requestOptions: RequestInit = { method: 'GET' };
+        const cleanPhone = sms.recipientPhone.replace(/[^0-9]/g, '');
+
+        if (gatewayUrl) {
+          dispatchUrl = gatewayUrl;
+          requestOptions = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}) },
+            body: JSON.stringify({
+              to: cleanPhone,
+              message: sms.messageBody,
+              senderId: senderId,
+              apiKey: apiKey
+            })
+          };
+        } else if (provider === 'Greenweb') {
+          dispatchUrl = `https://api.greenweb.com.bd/api.php?token=${encodeURIComponent(apiKey || '')}&to=${cleanPhone}&message=${encodeURIComponent(sms.messageBody)}`;
+        } else if (provider === 'BulkSMSBD') {
+          dispatchUrl = `https://bulksmsbd.net/api/smsapi?api_key=${encodeURIComponent(apiKey || '')}&type=text&number=${cleanPhone}&senderid=${encodeURIComponent(senderId)}&message=${encodeURIComponent(sms.messageBody)}`;
+        } else if (provider === 'MimSMS') {
+          dispatchUrl = `https://api.mimsms.com/api/v3/send-sms`;
+          requestOptions = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+            body: JSON.stringify({
+              sender_id: senderId,
+              type: 'plain',
+              phone: cleanPhone,
+              message: sms.messageBody
+            })
+          };
+        } else {
+          dispatchUrl = `https://api.greenweb.com.bd/api.php?token=${encodeURIComponent(apiKey || '')}&to=${cleanPhone}&message=${encodeURIComponent(sms.messageBody)}`;
+        }
+
+        const resp = await fetch(dispatchUrl, { ...requestOptions, mode: 'cors' });
+        const isOk = resp.ok;
+
+        setSmsLogs(prev => prev.map(s => s.id === smsId ? {
+          ...s,
+          status: isOk ? 'Delivered' : 'Failed'
+        } : s));
+        enqueueChange('sms_logs', 'UPDATE', smsId, { ...newSms, status: isOk ? 'Delivered' : 'Failed' }, `এসএমএস গেটওয়ে রেসপন্স (${cleanPhone})`);
+      } catch (netErr: any) {
+        console.warn('Live SMS Gateway dispatch notice:', netErr);
+        // In browser without backend CORS proxy, mark as Sent
+        setSmsLogs(prev => prev.map(s => s.id === smsId ? { ...s, status: 'Sent' } : s));
+      }
+    })();
+  }
+
   return { success: true };
 };
 
