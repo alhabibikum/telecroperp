@@ -2112,6 +2112,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAlerts,
     moneyReceipts,
     setMoneyReceipts,
+    sendSmsNotification: (sms) => executeSendSmsNotification(sms, masterDataBundle),
     currentUserRole,
     enqueueChange,
     addAudit
@@ -2702,6 +2703,19 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       'Due Collection',
       receiptNo
     );
+
+    // Auto-send payment receipt SMS to customer
+    if (customer.mobile && (settings.apiIntegrations?.autoSmsOnSale ?? true)) {
+      const remainingDue = Math.max(0, customer.currentDue - totalDeduction);
+      executeSendSmsNotification({
+        recipientPhone: customer.mobile,
+        recipientName: customer.shopName,
+        messageType: 'Payment Receipt',
+        messageBody: `প্রিয় ${customer.ownerName || customer.shopName}, TeleCorp-এ আপনার ৳${data.amount.toLocaleString()} জমা গ্রহণ করা হয়েছে। মানি রিসিট #${receiptNo}। বর্তমান অবশিষ্ট বকেয়া: ৳${remainingDue.toLocaleString()}। ধন্যবাদ!`,
+        masking: settings.apiIntegrations?.smsSenderId || 'TeleCorp',
+        smsUnits: 1
+      }, masterDataBundle);
+    }
 
     return { success: true, receiptNo };
   };

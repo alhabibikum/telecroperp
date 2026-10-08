@@ -19,6 +19,7 @@ import type {
   SystemAlert,
   CommissionDisbursement,
   MoneyReceipt,
+  SmsLog,
   CrudResult,
   UserRole
 } from '../../types/erp';
@@ -53,6 +54,7 @@ export interface SalesContextBundle {
   setAlerts: React.Dispatch<React.SetStateAction<SystemAlert[]>>;
   moneyReceipts?: MoneyReceipt[];
   setMoneyReceipts?: React.Dispatch<React.SetStateAction<MoneyReceipt[]>>;
+  sendSmsNotification?: (sms: Omit<SmsLog, 'id' | 'sentAt' | 'status'>) => void;
   currentUserRole: UserRole;
   enqueueChange: EnqueueChangeFn;
   addAudit: AddAuditFn;
@@ -340,6 +342,19 @@ export const executeCreateSale = (
 
   addAudit('Created Sales Invoice', 'Sales', invoiceNo, undefined, `Customer: ${saleData.customerName}, Total: ৳ ${saleData.grandTotal}, Paid: ৳ ${saleData.paidAmount}, Due: ৳ ${saleData.dueAmount}`);
 
+  // Auto-send SMS to Customer if enabled
+  if (ctx.sendSmsNotification && (settings.apiIntegrations?.autoSmsOnSale ?? true) && customer?.mobile) {
+    const text = `প্রিয় ${customer.ownerName || customer.shopName}, TeleCorp থেকে আপনার ইনভয়েস #${invoiceNo} সম্পন্ন হয়েছে। মোট: ৳${saleData.grandTotal.toLocaleString()}, পরিশোধ: ৳${saleData.paidAmount.toLocaleString()}, বকেয়া: ৳${saleData.dueAmount.toLocaleString()}। ধন্যবাদ!`;
+    ctx.sendSmsNotification({
+      recipientPhone: customer.mobile,
+      recipientName: customer.shopName,
+      messageType: 'Invoice Alert',
+      messageBody: text,
+      masking: settings.apiIntegrations?.smsSenderId || 'TeleCorp',
+      smsUnits: 1
+    });
+  }
+
   return { success: true, invoiceNo };
 };
 
@@ -503,9 +518,9 @@ export const executeCollectCustomerPayment = (
     allocations: PaymentAllocationItem[];
     notes?: string;
   },
-  ctx: Pick<SalesContextBundle, 'customers' | 'setCustomers' | 'salesInvoices' | 'setSalesInvoices' | 'salesmen' | 'setSalesmen' | 'bankAccounts' | 'setBankAccounts' | 'setCashTransactions' | 'journalEntries' | 'setJournalEntries' | 'setMoneyReceipts' | 'currentUserRole' | 'enqueueChange' | 'addAudit'>
+  ctx: Pick<SalesContextBundle, 'customers' | 'setCustomers' | 'salesInvoices' | 'setSalesInvoices' | 'salesmen' | 'setSalesmen' | 'bankAccounts' | 'setBankAccounts' | 'setCashTransactions' | 'journalEntries' | 'setJournalEntries' | 'setMoneyReceipts' | 'settings' | 'sendSmsNotification' | 'currentUserRole' | 'enqueueChange' | 'addAudit'>
 ) => {
-  const { customers, setCustomers, salesInvoices, setSalesInvoices, salesmen, setSalesmen, bankAccounts, setBankAccounts, setCashTransactions, journalEntries, setJournalEntries, setMoneyReceipts, currentUserRole, enqueueChange, addAudit } = ctx;
+  const { customers, setCustomers, salesInvoices, setSalesInvoices, salesmen, setSalesmen, bankAccounts, setBankAccounts, setCashTransactions, journalEntries, setJournalEntries, setMoneyReceipts, settings, sendSmsNotification, currentUserRole, enqueueChange, addAudit } = ctx;
   const customer = customers.find(c => c.id === data.customerId);
   if (!customer) return { success: false, error: 'Customer not found' };
 
@@ -649,6 +664,19 @@ export const executeCollectCustomerPayment = (
   }, `কাস্টমার বকেয়া হ্রাস (${customer.shopName})`);
 
   addAudit('Collected Customer Due Payment', 'Payment', receiptNo, `Previous Due: ৳ ${customer.currentDue}`, `Collected: ৳ ${data.amount} via ${data.paymentMethod}`);
+
+  // Auto-send SMS receipt to Customer if enabled
+  if (sendSmsNotification && (settings?.apiIntegrations?.autoSmsOnSale ?? true) && customer.mobile) {
+    const remainingDue = Math.max(0, customer.currentDue - data.amount);
+    sendSmsNotification({
+      recipientPhone: customer.mobile,
+      recipientName: customer.shopName,
+      messageType: 'Payment Receipt',
+      messageBody: `প্রিয় ${customer.ownerName || customer.shopName}, TeleCorp-এ আপনার ৳${data.amount.toLocaleString()} জমা গ্রহণ করা হয়েছে। মানি রিসিট #${receiptNo}। বর্তমান অবশিষ্ট বকেয়া: ৳${remainingDue.toLocaleString()}। ধন্যবাদ!`,
+      masking: settings?.apiIntegrations?.smsSenderId || 'TeleCorp',
+      smsUnits: 1
+    });
+  }
 
   return { success: true, collectionNo: receiptNo };
 };
