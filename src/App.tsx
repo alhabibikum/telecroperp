@@ -65,6 +65,8 @@ import { WindowsWindowFrame } from './components/common/WindowsWindowFrame';
 import { WindowsTaskbar } from './components/layout/WindowsTaskbar';
 import { DesktopView } from './components/views/DesktopView';
 import { useAppZoom } from './hooks/useAppZoom';
+import { useAppUpdater } from './hooks/useAppUpdater';
+import { AppUpdaterModal } from './components/common/AppUpdaterModal';
 
 const VIEW_CONFIG: Record<string, { title: string; subtitle: string; icon: string }> = {
   'dashboard': { title: 'ড্যাশবোর্ড (Dashboard)', subtitle: 'ব্যবসার সার্বিক ওভারভিউ ও বিশ্লেষণ', icon: '📊' },
@@ -111,7 +113,7 @@ const VIEW_CONFIG: Record<string, { title: string; subtitle: string; icon: strin
 const ERPAppContent: React.FC = () => {
   const { isAuthenticated, currentUserRole, currentUser, hasPermission, salesInvoices, triggerManualSync } = useERP();
   const { showSuccess, showInfo, showError } = useToast();
-  const { zoomLevel, showZoomIndicator } = useAppZoom();
+  const { zoomLevel, showZoomIndicator, isZoomed, zoomIn, zoomOut, resetZoom } = useAppZoom();
   const {
     isDesktop,
     registerWindow,
@@ -137,6 +139,23 @@ const ERPAppContent: React.FC = () => {
 
   // Header auto-hide & pin state (Default false so software opens with header auto-hidden instantly)
   const [isHeaderPinned, setIsHeaderPinned] = useState<boolean>(false);
+
+  // Desktop Auto-Updater Engine
+  const {
+    isChecking: isCheckingUpdates,
+    isDownloading: isDownloadingUpdate,
+    isInstalling: isInstallingUpdate,
+    showUpdateModal,
+    updateInfo,
+    progressPercent: updateProgressPercent,
+    downloadedBytes: updateDownloadedBytes,
+    totalBytes: updateTotalBytes,
+    statusMessage: updateStatusMessage,
+    errorMessage: updateErrorMessage,
+    checkForUpdates,
+    installUpdateNow,
+    dismissModal: dismissUpdateModal
+  } = useAppUpdater();
 
   const handleToggleHeaderPin = () => {
     setIsHeaderPinned(prev => {
@@ -759,6 +778,16 @@ const ERPAppContent: React.FC = () => {
         onSelectView={handleNavigateView}
         isPinned={isHeaderPinned}
         onTogglePin={handleToggleHeaderPin}
+        onCheckForUpdates={() => {
+          checkForUpdates(true).then((res) => {
+            if (res && !res.available && res.message) {
+              showInfo('সফটওয়্যার আপডেট', res.message);
+            } else if (res && res.available && res.message) {
+              showSuccess('নতুন সংস্করণ উপলব্ধ', res.message);
+            }
+          });
+        }}
+        isCheckingUpdates={isCheckingUpdates}
       />
 
       <div className={`flex-1 flex overflow-hidden relative ${isDesktop ? 'pb-14' : ''}`}>
@@ -774,7 +803,13 @@ const ERPAppContent: React.FC = () => {
         {/* Main Content Viewport - Windows Desktop Workspace */}
         <main className="flex-1 h-full overflow-hidden relative">
           {!currentView || (isDesktop && !isSplitView && (isWindowMinimized(currentView) || !openViewIds.includes(currentView))) ? (
-            <DesktopView onOpenApp={handleNavigateView} />
+            <DesktopView
+              onOpenApp={handleNavigateView}
+              zoomLevel={zoomLevel}
+              onZoomIn={zoomIn}
+              onZoomOut={zoomOut}
+              onResetZoom={resetZoom}
+            />
           ) : isDesktop && isSplitView && splitWindowIds ? (
             <div className="h-full w-full flex flex-row overflow-hidden divide-x-2 divide-slate-300 dark:divide-slate-800 bg-slate-900/10">
               <div className="w-1/2 h-full flex flex-col overflow-hidden">
@@ -979,6 +1014,21 @@ const ERPAppContent: React.FC = () => {
       <KeyboardShortcutHelpModal
         isOpen={showShortcutHelp}
         onClose={() => setShowShortcutHelp(false)}
+      />
+
+      {/* 1-Click Desktop Auto-Updater Modal */}
+      <AppUpdaterModal
+        isOpen={showUpdateModal}
+        onClose={dismissUpdateModal}
+        updateInfo={updateInfo}
+        isDownloading={isDownloadingUpdate}
+        isInstalling={isInstallingUpdate}
+        progressPercent={updateProgressPercent}
+        downloadedBytes={updateDownloadedBytes}
+        totalBytes={updateTotalBytes}
+        statusMessage={updateStatusMessage}
+        errorMessage={updateErrorMessage}
+        onInstall={installUpdateNow}
       />
     </div>
   );

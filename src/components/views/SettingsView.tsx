@@ -36,11 +36,14 @@ import {
   Copy,
   ExternalLink,
   Check,
-  Zap
+  Zap,
+  Sparkles
 } from 'lucide-react';
 import { formatBDT } from '../../utils/formatters';
 import { UserRole, AuthUser } from '../../types/erp';
 import { getSupabaseConfig, saveSupabaseConfig, testSupabaseConnection } from '../../lib/supabase';
+import { useAppUpdater } from '../../hooks/useAppUpdater';
+import { AppUpdaterModal } from '../common/AppUpdaterModal';
 
 export const SettingsView: React.FC = () => {
   const {
@@ -71,7 +74,24 @@ export const SettingsView: React.FC = () => {
     currentUser
   } = useERP();
 
-  const [activeTab, setActiveTab] = useState<'users' | 'supabase' | 'backup' | 'reset' | 'profile'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'supabase' | 'backup' | 'reset' | 'profile' | 'updater'>('users');
+
+  const {
+    isTauriApp,
+    isChecking,
+    isDownloading,
+    isInstalling,
+    showUpdateModal,
+    updateInfo,
+    progressPercent,
+    downloadedBytes,
+    totalBytes,
+    statusMessage,
+    errorMessage,
+    checkForUpdates,
+    installUpdateNow,
+    dismissModal
+  } = useAppUpdater();
 
   // Company Profile State
   const [companyName, setCompanyName] = useState(settings.companyName);
@@ -539,6 +559,17 @@ export const SettingsView: React.FC = () => {
         >
           <Cloud className="w-4 h-4 text-emerald-600" />
           <span>Supabase Cloud (ক্লাউড ডাটাবেজ)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('updater')}
+          className={`pb-3 px-4 flex items-center gap-1.5 border-b-2 transition cursor-pointer ${activeTab === 'updater'
+              ? 'border-cyan-600 text-cyan-600 font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+        >
+          <Sparkles className="w-4 h-4 text-cyan-500" />
+          <span>Auto-Updater (সফটওয়্যার অটো-আপডেট)</span>
         </button>
       </div>
 
@@ -1475,6 +1506,136 @@ export const SettingsView: React.FC = () => {
             </button>
           </div>
         </form>
+      )}
+
+      {/* ============================================================== */}
+      {/* TAB 5: AUTO-UPDATER & SYSTEM VERSION */}
+      {/* ============================================================== */}
+      {activeTab === 'updater' && (
+        <div className="space-y-6">
+          <div className="p-6 bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-3xl border border-slate-800 shadow-xl">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-800">
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+                  <Sparkles className="w-7 h-7" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 text-xs font-semibold rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 font-mono">
+                      Tauri v2 Native Updater
+                    </span>
+                    <span className="px-2 py-0.5 text-xs font-semibold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      GitHub Releases
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-black text-white mt-1.5">
+                    TeleCorp ERP - ডেস্কটপ অটো-আপডেট ইঞ্জিন
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1 max-w-xl leading-relaxed">
+                    গিটহাবে নতুন .exe রিলিজ তৈরি হওয়া মাত্রই সফ্টওয়্যারটি স্বয়ংক্রিয়ভাবে নোটিফিকেশন পাঠাবে এবং ১-ক্লিক করলে কোনো অতিরিক্ত ইনস্টলার উইজার্ড বা ক্লিক ছাড়াই সম্পূর্ণ ইনস্টল ও রিস্টার্ট হবে।
+                  </p>
+                </div>
+              </div>
+
+              <div className="shrink-0 flex flex-col items-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    checkForUpdates(true).then((res) => {
+                      if (res && !res.available && res.message) {
+                        setMessage(res.message);
+                        setTimeout(() => setMessage(null), 4000);
+                      }
+                    });
+                  }}
+                  disabled={isChecking}
+                  className="px-5 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 active:scale-95 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-cyan-500/25 flex items-center gap-2 cursor-pointer transition disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isChecking ? 'animate-spin' : ''}`} />
+                  <span>{isChecking ? 'আপডেট চেক হচ্ছে...' : 'নতুন আপডেট চেক করুন'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Metrics Info Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6">
+              <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60">
+                <span className="text-xs text-slate-400 block mb-1">বর্তমান ইনস্টল ভার্সন</span>
+                <div className="text-lg font-black text-white font-mono">v1.0.0</div>
+                <span className="text-[10px] text-emerald-400 flex items-center gap-1 mt-1">
+                  <CheckCircle className="w-3 h-3" /> সক্রিয় সংস্করণ
+                </span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60">
+                <span className="text-xs text-slate-400 block mb-1">রিলিজ চ্যানেল ও রেপো</span>
+                <div className="text-sm font-bold text-slate-200 font-mono truncate">
+                  alhabibikum/telecroperp
+                </div>
+                <span className="text-[10px] text-cyan-400 mt-1 block">
+                  GitHub Actions অটো বিল্ড (.exe)
+                </span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60">
+                <span className="text-xs text-slate-400 block mb-1">ডেস্কটপ ইঞ্জিন প্ল্যাটফর্ম</span>
+                <div className="text-sm font-bold text-slate-200">
+                  {isTauriApp ? 'Windows Native (Tauri v2)' : 'Web Browser Preview'}
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  {isTauriApp ? 'NSIS সাইলেন্ট ব্যাকগ্রাউন্ড ইনস্টলার' : 'ডেস্কটপ অ্যাপে কার্যকর'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Workflow Guide */}
+          <div className="p-5 rounded-2xl bg-white border border-slate-200 space-y-3 text-xs">
+            <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>স্বয়ংক্রিয় ১-ক্লিক আপডেট কীভাবে কাজ করে?</span>
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-black inline-flex items-center justify-center text-xs mb-2">১</span>
+                <div className="font-bold text-slate-800">গিটহাব রিলিজ নোটিফিকেশন</div>
+                <p className="text-slate-500 text-[11px] mt-1 leading-relaxed">
+                  গিটহাবে নতুন ভার্সন পুশ হলে GitHub Action স্বয়ংক্রিয়ভাবে নতুন .exe বিল্ড করবে এবং সফটওয়্যার ওপেন হওয়ামাত্রই স্ক্রিনে আপডেট পপআপ প্রম্পট করবে।
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                <span className="w-6 h-6 rounded-full bg-cyan-100 text-cyan-700 font-black inline-flex items-center justify-center text-xs mb-2">২</span>
+                <div className="font-bold text-slate-800">১-ক্লিক ইনস্টলেশন</div>
+                <p className="text-slate-500 text-[11px] mt-1 leading-relaxed">
+                  ব্যবহারকারী কেবল "এখনই অটো-আপডেট করুন" বাটনে ক্লিক করবেন। সফটওয়্যারটি ব্যাকগ্রাউন্ডে নতুন ফাইল ডাউনলোড করে নিবে।
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 font-black inline-flex items-center justify-center text-xs mb-2">৩</span>
+                <div className="font-bold text-slate-800">কোন ক্লিক ছাড়াই রিস্টার্ট</div>
+                <p className="text-slate-500 text-[11px] mt-1 leading-relaxed">
+                  ইনস্টলারের Next/Finish জাতীয় কোনো ম্যানুয়াল ক্লিক ছাড়াই সফটওয়্যারটি স্বয়ংক্রিয়ভাবে বন্ধ হয়ে নতুন সংস্করণে রিস্টার্ট হয়ে যাবে।
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <AppUpdaterModal
+            isOpen={showUpdateModal}
+            onClose={dismissModal}
+            updateInfo={updateInfo}
+            isDownloading={isDownloading}
+            isInstalling={isInstalling}
+            progressPercent={progressPercent}
+            downloadedBytes={downloadedBytes}
+            totalBytes={totalBytes}
+            statusMessage={statusMessage}
+            errorMessage={errorMessage}
+            onInstall={installUpdateNow}
+          />
+        </div>
       )}
 
       {/* Snapshot Create Modal */}

@@ -21,7 +21,8 @@ import {
   Menu,
   Pin,
   PinOff,
-  ChevronDown
+  ChevronDown,
+  Download
 } from 'lucide-react';
 import { Notifications } from './Notifications';
 import { testSupabaseConnection } from '../../lib/supabase';
@@ -40,6 +41,8 @@ interface HeaderProps {
   onSelectView: (view: string) => void;
   isPinned?: boolean;
   onTogglePin?: () => void;
+  onCheckForUpdates?: () => void;
+  isCheckingUpdates?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -54,7 +57,9 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenShortcutsHelp,
   onSelectView,
   isPinned = false,
-  onTogglePin
+  onTogglePin,
+  onCheckForUpdates,
+  isCheckingUpdates = false
 }) => {
   const {
     currentUserRole,
@@ -401,6 +406,20 @@ export const Header: React.FC<HeaderProps> = ({
           )}
           <span className="hidden sm:inline">{theme === 'dark' ? 'লাইট' : 'ডার্ক'}</span>
         </button>
+
+        {/* Check for Software Updates */}
+        {onCheckForUpdates && (
+          <button
+            type="button"
+            onClick={onCheckForUpdates}
+            disabled={isCheckingUpdates}
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl border border-cyan-500/30 bg-cyan-50/50 dark:bg-cyan-950/30 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 font-bold transition cursor-pointer shadow-2xs disabled:opacity-50"
+            title="গিটহাব থেকে নতুন ভার্সন ও আপডেট চেক করুন (Check for Updates)"
+          >
+            <Download className={`w-3.5 h-3.5 ${isCheckingUpdates ? 'animate-bounce text-cyan-500' : 'text-cyan-600 dark:text-cyan-400'}`} />
+            <span className="hidden xl:inline">{isCheckingUpdates ? 'চেক হচ্ছে...' : 'আপডেট'}</span>
+          </button>
+        )}
 
         {/* Font Size Scaler */}
         <div className="hidden md:flex items-center rounded-xl border border-slate-200/80 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-0.5 text-[11px] font-black text-slate-600 dark:text-slate-300 shadow-2xs">

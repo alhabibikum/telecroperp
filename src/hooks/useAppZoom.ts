@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 
 export const useAppZoom = () => {
+  // Enforce minimum zoom of strictly 1.0 (100% normal scale). No zooming out below normal!
   const [zoomLevel, setZoomLevel] = useState<number>(() => {
     try {
       const saved = localStorage.getItem('TELECORP_APP_ZOOM');
       if (saved) {
         const val = parseFloat(saved);
-        if (!isNaN(val) && val >= 0.6 && val <= 2.5) {
+        if (!isNaN(val) && val >= 1.0 && val <= 2.5) {
           return val;
         }
       }
@@ -21,7 +22,9 @@ export const useAppZoom = () => {
 
   // Apply zoom to document.body and document.documentElement
   useEffect(() => {
-    const zoomStr = zoomLevel.toString();
+    // Strictly clamp between 1.0 and 2.5
+    const clamped = Math.max(1.0, Math.min(2.5, zoomLevel));
+    const zoomStr = clamped.toString();
     try {
       (document.body.style as any).zoom = zoomStr;
       (document.documentElement.style as any).zoom = zoomStr;
@@ -39,28 +42,41 @@ export const useAppZoom = () => {
     }, 1400);
   };
 
+  const zoomIn = () => {
+    setZoomLevel(prev => {
+      const next = Math.min(2.5, Number((prev + 0.1).toFixed(2)));
+      return next;
+    });
+    triggerIndicator();
+  };
+
+  const zoomOut = () => {
+    setZoomLevel(prev => {
+      // Cannot go below 1.0 (normal)
+      const next = Math.max(1.0, Number((prev - 0.1).toFixed(2)));
+      return next;
+    });
+    triggerIndicator();
+  };
+
+  const resetZoom = () => {
+    setZoomLevel(1.0);
+    triggerIndicator();
+  };
+
   useEffect(() => {
     // 1. Keyboard shortcuts: Ctrl + +, Ctrl + -, Ctrl + 0
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
         if (e.key === '=' || e.key === '+' || e.code === 'NumpadAdd' || e.key === 'Add') {
           e.preventDefault();
-          setZoomLevel(prev => {
-            const next = Math.min(2.5, Number((prev + 0.1).toFixed(2)));
-            return next;
-          });
-          triggerIndicator();
+          zoomIn();
         } else if (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract' || e.key === 'Subtract') {
           e.preventDefault();
-          setZoomLevel(prev => {
-            const next = Math.max(0.6, Number((prev - 0.1).toFixed(2)));
-            return next;
-          });
-          triggerIndicator();
+          zoomOut();
         } else if (e.key === '0' || e.code === 'Numpad0') {
           e.preventDefault();
-          setZoomLevel(1.0);
-          triggerIndicator();
+          resetZoom();
         }
       }
     };
@@ -71,7 +87,8 @@ export const useAppZoom = () => {
         e.preventDefault();
         const factor = e.deltaY < 0 ? 1.04 : 0.96;
         setZoomLevel(prev => {
-          const next = Math.min(2.5, Math.max(0.6, Number((prev * factor).toFixed(2))));
+          // STRICT RULE: Cannot go below 1.0
+          const next = Math.min(2.5, Math.max(1.0, Number((prev * factor).toFixed(2))));
           return next;
         });
         triggerIndicator();
@@ -99,7 +116,8 @@ export const useAppZoom = () => {
         if (currentDist > 0) {
           e.preventDefault();
           const scale = currentDist / touchStartDist;
-          const next = Math.min(2.5, Math.max(0.6, Number((touchStartZoom * scale).toFixed(2))));
+          // STRICT RULE: Cannot go below 1.0
+          const next = Math.min(2.5, Math.max(1.0, Number((touchStartZoom * scale).toFixed(2))));
           setZoomLevel(next);
           triggerIndicator();
         }
@@ -128,5 +146,13 @@ export const useAppZoom = () => {
     };
   }, []);
 
-  return { zoomLevel, setZoomLevel, showZoomIndicator };
+  return {
+    zoomLevel,
+    setZoomLevel,
+    showZoomIndicator,
+    isZoomed: zoomLevel > 1.0,
+    zoomIn,
+    zoomOut,
+    resetZoom
+  };
 };
