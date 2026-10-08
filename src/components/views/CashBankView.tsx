@@ -20,6 +20,9 @@ import {
 import { formatBDT, formatDateTime } from '../../utils/formatters';
 import { RowActions, EditModal, FieldDef } from '../common/CrudKit';
 import type { BankAccount, CashTransaction } from '../../types/erp';
+import { useToast } from '../common/ToastNotificationSystem';
+import { HistoryInput } from '../common/HistoryInput';
+import { recordFieldHistory } from '../../services/formHistoryService';
 
 const bankFields: FieldDef[] = [
   { key: 'bankName', label: 'Bank / Gateway Name', required: true },
@@ -55,6 +58,7 @@ export const CashBankView: React.FC = () => {
     deleteCashTransaction,
     currentUserRole
   } = useERP();
+  const { showSuccess } = useToast();
 
   const [activeTab, setActiveTab] = useState<'bank' | 'cash'>('bank');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -62,6 +66,7 @@ export const CashBankView: React.FC = () => {
   const [showSetVaultModal, setShowSetVaultModal] = useState(false);
   const [vaultCashInput, setVaultCashInput] = useState<string>('');
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [vaultSuccessMsg, setVaultSuccessMsg] = useState<string | null>(null);
 
   // Cash Transaction CRUD State
   const [showAddCashModal, setShowAddCashModal] = useState(false);
@@ -71,6 +76,7 @@ export const CashBankView: React.FC = () => {
   const [cashDesc, setCashDesc] = useState('');
   const [cashRef, setCashRef] = useState('');
   const [cashError, setCashError] = useState<string | null>(null);
+  const [addCashSuccessMsg, setAddCashSuccessMsg] = useState<string | null>(null);
 
   const totalBankFunds = bankAccounts.reduce((acc, b) => acc + b.currentBalance, 0);
   const totalCashIn = cashTransactions.filter(c => c.type === 'Cash In').reduce((acc, c) => acc + c.amount, 0);
@@ -80,6 +86,7 @@ export const CashBankView: React.FC = () => {
 
   const handleOpenSetVault = () => {
     setVaultCashInput(openingVault.toString());
+    setVaultSuccessMsg(null);
     setShowSetVaultModal(true);
   };
 
@@ -87,8 +94,10 @@ export const CashBankView: React.FC = () => {
     e.preventDefault();
     const val = parseFloat(vaultCashInput) || 0;
     setVaultOpeningCash(val);
-    setShowSetVaultModal(false);
-    setStatusMsg(`ভল্ট ক্যাশ প্রারম্ভিক ব্যালেন্স ৳${val.toLocaleString('en-IN')} এ সফলভাবে আপডেট করা হয়েছে।`);
+    const msg = `ভল্ট ক্যাশ প্রারম্ভিক ব্যালেন্স ৳${val.toLocaleString('en-IN')} এ সফলভাবে আপডেট করা হয়েছে।`;
+    setVaultSuccessMsg(msg);
+    setStatusMsg(msg);
+    showSuccess(msg, { title: 'ভল্ট ক্যাশ আপডেট সফল' });
     setTimeout(() => setStatusMsg(null), 4000);
   };
 
@@ -112,22 +121,29 @@ export const CashBankView: React.FC = () => {
       setCashError(`অপর্যাপ্ত ক্যাশ ব্যালেন্স! বর্তমান ভল্ট ও টিল ক্যাশ ৳${currentCashInHand.toLocaleString('en-IN')} কিন্তু আপনি খরচ করতে চেয়েছেন ৳${amt.toLocaleString('en-IN')}।`);
       return;
     }
+    const finalRef = cashRef.trim() || `CSH-${Date.now().toString().slice(-6)}`;
+    const finalDesc = cashDesc.trim() || `${cashType} Entry`;
     const res = addCashTransaction({
       date: `${new Date().toISOString().split('T')[0]} ${new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}`,
       type: cashType,
       category: cashCategory,
       amount: amt,
-      referenceNo: cashRef.trim() || `CSH-${Date.now().toString().slice(-6)}`,
-      description: cashDesc.trim() || `${cashType} Entry`,
+      referenceNo: finalRef,
+      description: finalDesc,
       performedBy: currentUserRole
     });
     if (res.success) {
-      setShowAddCashModal(false);
+      if (cashRef.trim()) recordFieldHistory('referenceNo', cashRef.trim());
+      if (cashDesc.trim()) recordFieldHistory('description', cashDesc.trim());
+
+      const msg = `নতুন ক্যাশ ${cashType === 'Cash In' ? 'ইনফ্লো (+)' : 'আউটফ্লো (-)'} ৳${amt.toLocaleString('en-IN')} সফলভাবে রেকর্ড করা হয়েছে।`;
+      showSuccess(msg, { title: 'ক্যাশ ট্রানজেকশন সফল' });
+      setAddCashSuccessMsg(msg);
+      setStatusMsg(msg);
+      // Keep modal open and reset inputs for consecutive entries
       setCashAmount('');
       setCashDesc('');
       setCashRef('');
-      setStatusMsg(`নতুন ক্যাশ ${cashType === 'Cash In' ? 'ইনফ্লো (+)' : 'আউটফ্লো (-)'} ৳${amt.toLocaleString('en-IN')} সফলভাবে রেকর্ড করা হয়েছে।`);
-      setTimeout(() => setStatusMsg(null), 4000);
     } else {
       setCashError(res.error || 'ক্যাশ লেনদেন সেভ করা সম্ভব হয়নি।');
     }
@@ -444,6 +460,25 @@ export const CashBankView: React.FC = () => {
             </div>
 
             <form onSubmit={handleSaveVaultCash} className="space-y-4">
+              {vaultSuccessMsg && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{vaultSuccessMsg}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSetVaultModal(false);
+                      setVaultSuccessMsg(null);
+                    }}
+                    className="text-[11px] underline text-emerald-700 hover:text-emerald-900 font-medium shrink-0 cursor-pointer"
+                  >
+                    উইন্ডো বন্ধ করুন
+                  </button>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   প্রারম্ভিক নগদ টাকার পরিমাণ (টাকা)
@@ -455,7 +490,10 @@ export const CashBankView: React.FC = () => {
                     min="0"
                     step="any"
                     value={vaultCashInput}
-                    onChange={e => setVaultCashInput(e.target.value)}
+                    onChange={e => {
+                      setVaultCashInput(e.target.value);
+                      setVaultSuccessMsg(null);
+                    }}
                     placeholder="0"
                     className="w-full pl-8 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
                     autoFocus
@@ -518,6 +556,25 @@ export const CashBankView: React.FC = () => {
               </div>
             )}
 
+            {addCashSuccessMsg && (
+              <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{addCashSuccessMsg}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddCashModal(false);
+                    setAddCashSuccessMsg(null);
+                  }}
+                  className="text-[11px] underline text-emerald-700 hover:text-emerald-900 font-medium shrink-0 cursor-pointer"
+                >
+                  উইন্ডো বন্ধ করুন
+                </button>
+              </div>
+            )}
+
             <form onSubmit={handleAddCashSubmit} className="space-y-4">
               {/* Type Switch */}
               <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl text-xs font-bold">
@@ -526,6 +583,7 @@ export const CashBankView: React.FC = () => {
                   onClick={() => {
                     setCashType('Cash In');
                     setCashError(null);
+                    setAddCashSuccessMsg(null);
                   }}
                   className={`py-2 rounded-lg transition cursor-pointer ${
                     cashType === 'Cash In' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
@@ -538,6 +596,7 @@ export const CashBankView: React.FC = () => {
                   onClick={() => {
                     setCashType('Cash Out');
                     setCashError(null);
+                    setAddCashSuccessMsg(null);
                   }}
                   className={`py-2 rounded-lg transition cursor-pointer ${
                     cashType === 'Cash Out' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
@@ -562,6 +621,7 @@ export const CashBankView: React.FC = () => {
                     onChange={e => {
                       setCashAmount(e.target.value);
                       setCashError(null);
+                      setAddCashSuccessMsg(null);
                     }}
                     placeholder="0.00"
                     required
@@ -583,7 +643,10 @@ export const CashBankView: React.FC = () => {
                 </label>
                 <select
                   value={cashCategory}
-                  onChange={e => setCashCategory(e.target.value as any)}
+                  onChange={e => {
+                    setCashCategory(e.target.value as any);
+                    setAddCashSuccessMsg(null);
+                  }}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="Expense">অফিস অপারেশনাল খরচ (Expense)</option>
@@ -600,10 +663,13 @@ export const CashBankView: React.FC = () => {
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   রেফারেন্স / ভাউচার নম্বর (ঐচ্ছিক)
                 </label>
-                <input
-                  type="text"
+                <HistoryInput
+                  historyKey="referenceNo"
                   value={cashRef}
-                  onChange={e => setCashRef(e.target.value)}
+                  onChange={(e) => {
+                    setCashRef(e.target.value);
+                    setAddCashSuccessMsg(null);
+                  }}
                   placeholder="e.g. VOUCHER-101 / RECEIPT-55"
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                 />
@@ -614,10 +680,13 @@ export const CashBankView: React.FC = () => {
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   বিবরণ / বর্ণনা
                 </label>
-                <textarea
-                  rows={2}
+                <HistoryInput
+                  historyKey="description"
                   value={cashDesc}
-                  onChange={e => setCashDesc(e.target.value)}
+                  onChange={(e) => {
+                    setCashDesc(e.target.value);
+                    setAddCashSuccessMsg(null);
+                  }}
                   placeholder="লেনদেনের প্রয়োজনীয় বিস্তারিত লিখুন..."
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                 />

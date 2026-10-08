@@ -12,21 +12,26 @@ export interface ToastMessage {
   duration?: number;
 }
 
-interface ToastContextType {
+export interface ToastOptions {
+  title?: string;
+  duration?: number;
+}
+
+export interface ToastContextType {
   toasts: ToastMessage[];
   showToast: (type: ToastType, title: string, description?: string, duration?: number) => string;
-  showSuccess: (title: string, description?: string) => string;
-  showError: (title: string, description?: string) => string;
-  showWarning: (title: string, description?: string) => string;
-  showInfo: (title: string, description?: string) => string;
-  showLoading: (title: string, description?: string) => string;
+  showSuccess: (messageOrTitle: string, descriptionOrOptions?: string | ToastOptions, duration?: number) => string;
+  showError: (messageOrTitle: string, descriptionOrOptions?: string | ToastOptions, duration?: number) => string;
+  showWarning: (messageOrTitle: string, descriptionOrOptions?: string | ToastOptions, duration?: number) => string;
+  showInfo: (messageOrTitle: string, descriptionOrOptions?: string | ToastOptions, duration?: number) => string;
+  showLoading: (messageOrTitle: string, descriptionOrOptions?: string | ToastOptions, duration?: number) => string;
   dismissToast: (id: string) => void;
   clearAllToasts: () => void;
 }
 
-const ToastContext = createContext<ToastContextType | undefined>(undefined);
+export const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
-export const useToast = () => {
+export const useToast = (): ToastContextType => {
   const context = useContext(ToastContext);
   if (!context) {
     throw new Error('useToast must be used within a ToastProvider');
@@ -46,7 +51,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, []);
 
   const showToast = useCallback((type: ToastType, title: string, description?: string, duration: number = 4000) => {
-    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const newToast: ToastMessage = { id, type, title, description, duration };
 
     // Audio feedback
@@ -67,25 +72,49 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return id;
   }, [dismissToast]);
 
-  const showSuccess = useCallback((title: string, description?: string) => {
-    return showToast('success', title, description, 3500);
+  const parseToastArgs = useCallback((
+    type: ToastType,
+    messageOrTitle: string,
+    descriptionOrOptions?: string | ToastOptions,
+    customDuration?: number
+  ) => {
+    let realTitle = messageOrTitle;
+    let realDesc: string | undefined = undefined;
+    let duration = customDuration ?? (type === 'error' ? 5000 : type === 'warning' ? 4500 : 3500);
+
+    if (typeof descriptionOrOptions === 'object' && descriptionOrOptions !== null) {
+      realTitle = descriptionOrOptions.title || messageOrTitle;
+      realDesc = descriptionOrOptions.title ? messageOrTitle : undefined;
+      if (descriptionOrOptions.duration !== undefined) {
+        duration = descriptionOrOptions.duration;
+      }
+    } else if (typeof descriptionOrOptions === 'string') {
+      realTitle = messageOrTitle;
+      realDesc = descriptionOrOptions;
+    }
+
+    return showToast(type, realTitle, realDesc, duration);
   }, [showToast]);
 
-  const showError = useCallback((title: string, description?: string) => {
-    return showToast('error', title, description, 5000);
-  }, [showToast]);
+  const showSuccess = useCallback((messageOrTitle: string, descriptionOrOptions?: string | ToastOptions, duration?: number) => {
+    return parseToastArgs('success', messageOrTitle, descriptionOrOptions, duration ?? 3500);
+  }, [parseToastArgs]);
 
-  const showWarning = useCallback((title: string, description?: string) => {
-    return showToast('warning', title, description, 4500);
-  }, [showToast]);
+  const showError = useCallback((messageOrTitle: string, descriptionOrOptions?: string | ToastOptions, duration?: number) => {
+    return parseToastArgs('error', messageOrTitle, descriptionOrOptions, duration ?? 5000);
+  }, [parseToastArgs]);
 
-  const showInfo = useCallback((title: string, description?: string) => {
-    return showToast('info', title, description, 3500);
-  }, [showToast]);
+  const showWarning = useCallback((messageOrTitle: string, descriptionOrOptions?: string | ToastOptions, duration?: number) => {
+    return parseToastArgs('warning', messageOrTitle, descriptionOrOptions, duration ?? 4500);
+  }, [parseToastArgs]);
 
-  const showLoading = useCallback((title: string, description?: string) => {
-    return showToast('loading', title, description, 0);
-  }, [showToast]);
+  const showInfo = useCallback((messageOrTitle: string, descriptionOrOptions?: string | ToastOptions, duration?: number) => {
+    return parseToastArgs('info', messageOrTitle, descriptionOrOptions, duration ?? 3500);
+  }, [parseToastArgs]);
+
+  const showLoading = useCallback((messageOrTitle: string, descriptionOrOptions?: string | ToastOptions, duration?: number) => {
+    return parseToastArgs('loading', messageOrTitle, descriptionOrOptions, duration ?? 0);
+  }, [parseToastArgs]);
 
   return (
     <ToastContext.Provider

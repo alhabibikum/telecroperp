@@ -32,6 +32,9 @@ import {
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
 import type { Salesman, CommissionDisbursement } from '../../types/erp';
+import { useToast } from '../common/ToastNotificationSystem';
+import { HistoryInput } from '../common/HistoryInput';
+import { recordFieldHistory } from '../../services/formHistoryService';
 
 export const SalesmenView: React.FC = () => {
   const {
@@ -46,6 +49,7 @@ export const SalesmenView: React.FC = () => {
     disburseSalesmanCommission,
     settings
   } = useERP();
+  const { showSuccess } = useToast();
 
   const isBn = settings.language === 'bn';
 
@@ -63,6 +67,8 @@ export const SalesmenView: React.FC = () => {
   const [statementSalesman, setStatementSalesman] = useState<Salesman | null>(null);
   const [payoutSalesman, setPayoutSalesman] = useState<Salesman | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
+  const [addSuccessMsg, setAddSuccessMsg] = useState<string | null>(null);
+  const [payoutSuccessMsg, setPayoutSuccessMsg] = useState<string | null>(null);
 
   // Form State for Add / Edit
   const [formData, setFormData] = useState({
@@ -101,6 +107,7 @@ export const SalesmenView: React.FC = () => {
   const [simCollectionAmount, setSimCollectionAmount] = useState(2800000);
 
   const openAddModal = () => {
+    setAddSuccessMsg(null);
     setFormData({
       name: '',
       mobile: '',
@@ -121,6 +128,7 @@ export const SalesmenView: React.FC = () => {
   };
 
   const openEditModal = (sm: Salesman) => {
+    setAddSuccessMsg(null);
     setEditingSalesman(sm);
     setFormData({
       name: sm.name,
@@ -164,8 +172,15 @@ export const SalesmenView: React.FC = () => {
         collectionCommissionRate: Number(formData.collectionCommissionRate),
         status: formData.status
       });
-      setEditingSalesman(null);
-      setNotification(isBn ? 'সেলস অফিসার ও টার্গেট পলিসি সফলভাবে আপডেট করা হয়েছে!' : 'Sales officer and target policy updated successfully!');
+      recordFieldHistory('ownerName', formData.name);
+      recordFieldHistory('mobile', formData.mobile);
+      recordFieldHistory('area', formData.assignedArea);
+      if (formData.address) recordFieldHistory('address', formData.address);
+
+      const msg = isBn ? 'সেলস অফিসার ও টার্গেট পলিসি সফলভাবে আপডেট করা হয়েছে!' : 'Sales officer and target policy updated successfully!';
+      setNotification(msg);
+      setAddSuccessMsg(msg);
+      showSuccess(msg, { title: 'আপডেট সফল' });
     } else {
       addSalesman({
         name: formData.name,
@@ -188,8 +203,32 @@ export const SalesmenView: React.FC = () => {
         status: formData.status,
         paidCommissionTotal: 0
       });
-      setShowAddModal(false);
-      setNotification(isBn ? 'নতুন সেলস অফিসার ও টার্গেট কনফিগারেশন যোগ করা হয়েছে!' : 'New sales officer added successfully!');
+      recordFieldHistory('ownerName', formData.name);
+      recordFieldHistory('mobile', formData.mobile);
+      recordFieldHistory('area', formData.assignedArea);
+      if (formData.address) recordFieldHistory('address', formData.address);
+
+      const msg = isBn ? `নতুন সেলস অফিসার (${formData.name}) সফলভাবে যুক্ত করা হয়েছে!` : `New sales officer (${formData.name}) added successfully!`;
+      setNotification(msg);
+      setAddSuccessMsg(msg);
+      showSuccess(msg, { title: 'সেলস অফিসার যুক্ত সম্পন্ন' });
+      // Keep modal open and reset form for continuous entries
+      setFormData({
+        name: '',
+        mobile: '',
+        email: '',
+        address: '',
+        assignedArea: '',
+        joiningDate: new Date().toISOString().split('T')[0],
+        basicSalary: 30000,
+        monthlyTarget: 4000000,
+        monthlyUnitTarget: 150,
+        monthlyCollectionTarget: 3000000,
+        commissionType: 'Percentage of Sales',
+        commissionRate: 1.0,
+        collectionCommissionRate: 0.5,
+        status: 'Active'
+      });
     }
     setTimeout(() => setNotification(null), 4000);
   };
@@ -257,10 +296,15 @@ export const SalesmenView: React.FC = () => {
     });
 
     if (res.success) {
-      setPayoutSalesman(null);
-      setNotification(isBn
+      if (payoutForm.referenceNo) {
+        recordFieldHistory('referenceNo', payoutForm.referenceNo);
+      }
+      const msg = isBn
         ? `কমিশন সফলভাবে পরিশোধ করা হয়েছে! ভাউচার #${res.disbursementNo}`
-        : `Commission disbursed successfully! Voucher #${res.disbursementNo}`);
+        : `Commission disbursed successfully! Voucher #${res.disbursementNo}`;
+      setNotification(msg);
+      setPayoutSuccessMsg(msg);
+      showSuccess(msg, { title: 'কমিশন পরিশোধ সম্পন্ন' });
       setTimeout(() => setNotification(null), 4500);
     }
   };
@@ -1131,15 +1175,38 @@ export const SalesmenView: React.FC = () => {
             </div>
 
             <form onSubmit={handleSaveSalesman} className="space-y-4 text-xs">
+              {addSuccessMsg && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{addSuccessMsg}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddModal(false);
+                      setEditingSalesman(null);
+                      setAddSuccessMsg(null);
+                    }}
+                    className="text-[11px] underline text-emerald-700 hover:text-emerald-900 font-medium shrink-0 cursor-pointer"
+                  >
+                    উইন্ডো বন্ধ করুন
+                  </button>
+                </div>
+              )}
+
               {/* Basic Information */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">অফিসারের পূর্ণ নাম *</label>
-                  <input
-                    type="text"
+                  <HistoryInput
+                    historyKey="ownerName"
                     required
                     value={formData.name}
-                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, name: e.target.value });
+                      setAddSuccessMsg(null);
+                    }}
                     placeholder="e.g. Tanvir Ahmed"
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold"
                   />
@@ -1147,11 +1214,14 @@ export const SalesmenView: React.FC = () => {
 
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">মোবাইল নাম্বার *</label>
-                  <input
-                    type="text"
+                  <HistoryInput
+                    historyKey="mobile"
                     required
                     value={formData.mobile}
-                    onChange={e => setFormData({ ...formData, mobile: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, mobile: e.target.value });
+                      setAddSuccessMsg(null);
+                    }}
                     placeholder="01711xxxxxx"
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold"
                   />
@@ -1161,11 +1231,14 @@ export const SalesmenView: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">দায়িত্বপ্রাপ্ত টেরিটরি / রুট *</label>
-                  <input
-                    type="text"
+                  <HistoryInput
+                    historyKey="area"
                     required
                     value={formData.assignedArea}
-                    onChange={e => setFormData({ ...formData, assignedArea: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, assignedArea: e.target.value });
+                      setAddSuccessMsg(null);
+                    }}
                     placeholder="e.g. Mirpur, Uttara Route"
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold"
                   />
@@ -1454,6 +1527,25 @@ export const SalesmenView: React.FC = () => {
 
               return (
                 <form onSubmit={handleExecutePayout} className="space-y-4 text-xs">
+                  {payoutSuccessMsg && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>{payoutSuccessMsg}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPayoutSalesman(null);
+                          setPayoutSuccessMsg(null);
+                        }}
+                        className="text-[11px] underline text-emerald-700 hover:text-emerald-900 font-medium shrink-0 cursor-pointer"
+                      >
+                        উইন্ডো বন্ধ করুন
+                      </button>
+                    </div>
+                  )}
+
                   <div className="p-3.5 rounded-2xl bg-blue-50/50 border border-blue-200 space-y-1.5">
                     <div className="flex justify-between">
                       <span className="text-slate-600">সেলস ও কালেকশন বকেয়া কমিশন:</span>
@@ -1537,11 +1629,14 @@ export const SalesmenView: React.FC = () => {
 
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">রেফারেন্স / ট্রানজেকশন আইডি</label>
-                    <input
-                      type="text"
+                    <HistoryInput
+                      historyKey="referenceNo"
                       placeholder="e.g. Bank FT Ref / bKash TrxID"
                       value={payoutForm.referenceNo}
-                      onChange={e => setPayoutForm({ ...payoutForm, referenceNo: e.target.value })}
+                      onChange={(e) => {
+                        setPayoutForm({ ...payoutForm, referenceNo: e.target.value });
+                        setPayoutSuccessMsg(null);
+                      }}
                       className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold"
                     />
                   </div>

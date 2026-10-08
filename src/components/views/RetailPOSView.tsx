@@ -29,6 +29,9 @@ import {
   generateESCPOSReceipt,
   checkHardwareSupport
 } from '../../services/thermalPrinterService';
+import { useToast } from '../common/ToastNotificationSystem';
+import { HistoryInput } from '../common/HistoryInput';
+import { recordFieldHistory } from '../../services/formHistoryService';
 
 interface RetailPOSViewProps {
   onPrintInvoice: (invoiceNo: string) => void;
@@ -36,6 +39,7 @@ interface RetailPOSViewProps {
 
 export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) => {
   const { products, imeis, warehouses, customers, createSale } = useERP();
+  const { showSuccess } = useToast();
 
   const retailOutlet = warehouses.find(w => w.type === 'Retail Outlet') || warehouses[0];
 
@@ -188,7 +192,19 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
 
     if (result.success && result.invoiceNo) {
       const invNo = result.invoiceNo;
+      if (customerName.trim() && customerName !== 'Walk-in Customer') {
+        recordFieldHistory('ownerName', customerName.trim());
+      }
+      if (customerPhone.trim() && customerPhone !== '01700-000000') {
+        recordFieldHistory('mobile', customerPhone.trim());
+      }
+
+      showSuccess(`রিটেইল বিক্রয় সম্পন্ন! ইনভয়েস #${invNo} ইস্যু করা হয়েছে।`, {
+        title: 'POS বিলিং সফল'
+      });
       setCartItems([]);
+      setCustomerName('Walk-in Customer');
+      setCustomerPhone('01700-000000');
 
       // If hardware thermal printer is connected, dispatch raw ESC/POS receipt
       if (connectedPrinter.connected) {
@@ -470,8 +486,8 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
           <div className="grid grid-cols-2 gap-2 text-xs pt-3 border-t border-slate-200">
             <div>
               <label className="block text-[11px] font-semibold text-slate-600 mb-1">Customer Name</label>
-              <input
-                type="text"
+              <HistoryInput
+                historyKey="ownerName"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg text-xs"
@@ -479,8 +495,8 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-slate-600 mb-1">Phone (SMS Memo)</label>
-              <input
-                type="text"
+              <HistoryInput
+                historyKey="mobile"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 onKeyDown={(e) => {

@@ -23,6 +23,9 @@ import {
 import { formatDate } from '../../utils/formatters';
 import type { StockTransfer } from '../../types/erp';
 import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
+import { useToast } from '../common/ToastNotificationSystem';
+import { HistoryInput } from '../common/HistoryInput';
+import { recordFieldHistory } from '../../services/formHistoryService';
 
 interface StockTransfersViewProps {
   onOpenStockTransfer?: () => void;
@@ -43,6 +46,7 @@ export const StockTransfersView: React.FC<StockTransfersViewProps> = ({
     deleteStockTransfer,
     currentUserRole
   } = useERP();
+  const { showSuccess } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWarehouseFilter, setSelectedWarehouseFilter] = useState('all');
@@ -56,6 +60,7 @@ export const StockTransfersView: React.FC<StockTransfersViewProps> = ({
   const [transferNotes, setTransferNotes] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [addSuccessMsg, setAddSuccessMsg] = useState<string | null>(null);
   const [showScannerModal, setShowScannerModal] = useState(false);
   const [scannerContext, setScannerContext] = useState<'filter' | 'select-transfer'>('filter');
 
@@ -96,6 +101,7 @@ export const StockTransfersView: React.FC<StockTransfersViewProps> = ({
       return;
     }
     setFormError(null);
+    setAddSuccessMsg(null);
     setSelectedImeis([]);
     setTransferNotes('');
     if (warehouses.length >= 2) {
@@ -150,11 +156,16 @@ export const StockTransfersView: React.FC<StockTransfersViewProps> = ({
     });
 
     if (res.success) {
-      setShowAddModal(false);
+      if (transferNotes.trim()) {
+        recordFieldHistory('notes', transferNotes.trim());
+      }
+      const msg = `স্টক ট্রান্সফার #${res.transferNo} সফলভাবে সম্পন্ন হয়েছে (${selectedImeis.length}টি ডিভাইস)।`;
+      showSuccess(msg, { title: 'স্টক ট্রান্সফার সফল' });
+      setAddSuccessMsg(msg);
+      setStatusMsg(msg);
+      // Keep modal open and reset selected IMEIs & notes for consecutive transfers
       setSelectedImeis([]);
       setTransferNotes('');
-      setStatusMsg(`স্টক ট্রান্সফার #${res.transferNo} সফলভাবে সম্পন্ন হয়েছে (${selectedImeis.length}টি ডিভাইস)।`);
-      setTimeout(() => setStatusMsg(null), 4000);
     } else {
       setFormError(res.error || 'স্টক ট্রান্সফার সম্পন্ন করা সম্ভব হয়নি।');
     }
@@ -417,6 +428,25 @@ export const StockTransfersView: React.FC<StockTransfersViewProps> = ({
               </div>
             )}
 
+            {addSuccessMsg && (
+              <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{addSuccessMsg}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setAddSuccessMsg(null);
+                  }}
+                  className="text-[11px] underline text-emerald-700 hover:text-emerald-900 font-medium shrink-0 cursor-pointer"
+                >
+                  উইন্ডো বন্ধ করুন
+                </button>
+              </div>
+            )}
+
             <form onSubmit={handleSubmitTransfer} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -521,10 +551,13 @@ export const StockTransfersView: React.FC<StockTransfersViewProps> = ({
                 <label className="block font-bold text-slate-700 mb-1">
                   ট্রান্সফার নোট / চালানের কারণ (ঐচ্ছিক)
                 </label>
-                <textarea
-                  rows={2}
+                <HistoryInput
+                  historyKey="notes"
                   value={transferNotes}
-                  onChange={e => setTransferNotes(e.target.value)}
+                  onChange={(e) => {
+                    setTransferNotes(e.target.value);
+                    setAddSuccessMsg(null);
+                  }}
                   placeholder="যেমন: ব্রাঞ্চের স্টক ঘাটতি পূরণ, জরুরি অর্ডার ইত্যাদি..."
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                 />

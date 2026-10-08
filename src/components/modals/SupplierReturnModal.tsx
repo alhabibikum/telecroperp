@@ -6,6 +6,7 @@ import {
   RotateCcw,
   AlertTriangle,
   CheckCircle,
+  CheckCircle2,
   Building,
   Camera,
   Barcode
@@ -13,6 +14,9 @@ import {
 import { formatBDT } from '../../utils/formatters';
 import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 import { WindowsModalFrame } from '../common/WindowsModalFrame';
+import { HistoryInput } from '../common/HistoryInput';
+import { recordFieldHistory } from '../../services/formHistoryService';
+import { useToast } from '../common/ToastNotificationSystem';
 
 interface SupplierReturnModalProps {
   isOpen: boolean;
@@ -26,12 +30,14 @@ export const SupplierReturnModal: React.FC<SupplierReturnModalProps> = ({
   onSuccessReturn
 }) => {
   const { suppliers, imeis, processSupplierReturn } = useERP();
+  const { showSuccess } = useToast();
 
   const [supplierId, setSupplierId] = useState(suppliers[0]?.id || '');
   const [selectedImei, setSelectedImei] = useState('');
   const [returnReason, setReturnReason] = useState('Factory defect / Dead on Arrival (DOA) credit return');
   const [returnAmount, setReturnAmount] = useState<number>(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [showMultiScanner, setShowMultiScanner] = useState(false);
 
   if (!isOpen) return null;
@@ -69,8 +75,19 @@ export const SupplierReturnModal: React.FC<SupplierReturnModalProps> = ({
     });
 
     if (res.success && res.returnNo) {
-      if (onSuccessReturn) onSuccessReturn(res.returnNo);
-      onClose();
+      const retNo = res.returnNo;
+      recordFieldHistory('returnReason', returnReason);
+      recordFieldHistory('imei', selectedImei);
+
+      setSuccessMsg(`সাপ্লায়ার রিটার্ন চালান "${retNo}" সফলভাবে সম্পন্ন হয়েছে! উইন্ডো খোলা রয়েছে পরবর্তী রিটার্নের জন্য।`);
+      showSuccess(
+        'সাপ্লায়ার রিটার্ন সফলভাবে জমা হয়েছে!',
+        `রিটার্ন নং: ${retNo} সফলভাবে সম্পন্ন হয়েছে।`
+      );
+
+      // Reset form fields for next return - DO NOT CLOSE WINDOW
+      setSelectedImei('');
+      setReturnAmount(0);
     } else {
       setErrorMsg(res.error || 'Failed to process return to supplier');
     }
@@ -90,6 +107,22 @@ export const SupplierReturnModal: React.FC<SupplierReturnModalProps> = ({
       >
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+          {successMsg && (
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="font-bold">{successMsg}</span>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-[11px] font-bold text-emerald-700 hover:text-emerald-950 underline cursor-pointer"
+              >
+                উইন্ডো বন্ধ করুন
+              </button>
+            </div>
+          )}
+
           {errorMsg && (
             <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -159,8 +192,9 @@ export const SupplierReturnModal: React.FC<SupplierReturnModalProps> = ({
 
           <div>
             <label className="block font-semibold text-slate-700 mb-1">Return Reason *</label>
-            <textarea
-              rows={2}
+            <HistoryInput
+              historyKey="returnReason"
+              type="text"
               value={returnReason}
               onChange={(e) => setReturnReason(e.target.value)}
               className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg"

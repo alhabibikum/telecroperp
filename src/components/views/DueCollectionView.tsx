@@ -30,6 +30,9 @@ import {
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
 import { MoneyReceipt, PaymentMethodType } from '../../types/erp';
+import { useToast } from '../common/ToastNotificationSystem';
+import { HistoryInput } from '../common/HistoryInput';
+import { recordFieldHistory } from '../../services/formHistoryService';
 
 interface DueCollectionViewProps {
   onOpenDueCollection?: (customerId?: string) => void;
@@ -48,6 +51,7 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
     resetDueCollectionsAndDues,
     settings
   } = useERP();
+  const { showSuccess } = useToast();
 
   const isBn = settings.language === 'bn';
 
@@ -58,6 +62,7 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
 
   // Modals state
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createSuccessMsg, setCreateSuccessMsg] = useState<string | null>(null);
   const [editingReceipt, setEditingReceipt] = useState<MoneyReceipt | null>(null);
   const [voidingReceipt, setVoidingReceipt] = useState<MoneyReceipt | null>(null);
   const [voidReason, setVoidReason] = useState('কাস্টমার চেক প্রত্যাখ্যাত / লেনদেন বাতিল');
@@ -81,7 +86,7 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
   // Form State: Edit Money Receipt
   const [editNotes, setEditNotes] = useState<string>('');
   const [editTransactionRef, setEditTransactionRef] = useState<string>('');
-  const [editCollectorSalesmanId, setEditCollectorSalesmanId] = useState<string>('');
+  const [editCollectorSalesmanId, setEditCollectorSalesmanId] = useState<string>(salesmen[0]?.id || '');
   const [editReferenceInvoice, setEditReferenceInvoice] = useState<string>('');
 
   const selectedCustomerForCreate = customers.find(c => c.id === formCustomerId);
@@ -109,6 +114,7 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
     setFormReferenceInvoice('');
     setFormNotes('');
     setFormError(null);
+    setCreateSuccessMsg(null);
     setShowCreateModal(true);
   };
 
@@ -139,11 +145,23 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
     });
 
     if (res.success && res.receiptNo) {
-      setShowCreateModal(false);
+      if (formTransactionRef.trim()) recordFieldHistory('referenceNo', formTransactionRef.trim());
+      if (formReferenceInvoice.trim()) recordFieldHistory('referenceNo', formReferenceInvoice.trim());
+      if (formNotes.trim()) recordFieldHistory('notes', formNotes.trim());
+
+      const msg = `মানি রসিদ #${res.receiptNo} সফলভাবে ইস্যু করা হয়েছে এবং কাস্টমার বকেয়া হ্রাস করা হয়েছে।`;
+      showSuccess(msg, { title: 'মানি রসিদ ইস্যু সফল' });
+      setCreateSuccessMsg(msg);
       setAlertBanner({
         type: 'success',
-        message: `মানি রসিদ #${res.receiptNo} সফলভাবে ইস্যু করা হয়েছে এবং কাস্টমার বকেয়া হ্রাস করা হয়েছে।`
+        message: msg
       });
+      // Keep modal open and clear inputs for consecutive entries
+      setFormAmount(0);
+      setFormDiscountWaiver(0);
+      setFormTransactionRef('');
+      setFormReferenceInvoice('');
+      setFormNotes('');
       setTimeout(() => setAlertBanner(null), 6000);
     } else {
       setFormError(res.error || 'মানি রসিদ তৈরি করতে ব্যর্থ হয়েছে।');
@@ -647,6 +665,25 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
               </div>
             )}
 
+            {createSuccessMsg && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{createSuccessMsg}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setCreateSuccessMsg(null);
+                  }}
+                  className="text-[11px] underline text-emerald-700 hover:text-emerald-900 font-medium shrink-0 cursor-pointer"
+                >
+                  উইন্ডো বন্ধ করুন
+                </button>
+              </div>
+            )}
+
             <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
               {/* Customer Selector */}
               <div>
@@ -705,7 +742,10 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
                     type="number"
                     min="1"
                     value={formAmount || ''}
-                    onChange={(e) => setFormAmount(Number(e.target.value) || 0)}
+                    onChange={(e) => {
+                      setFormAmount(Number(e.target.value) || 0);
+                      setCreateSuccessMsg(null);
+                    }}
                     placeholder="৳ 50,000"
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-700 text-sm focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono"
                     required
@@ -720,7 +760,10 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
                     type="number"
                     min="0"
                     value={formDiscountWaiver || ''}
-                    onChange={(e) => setFormDiscountWaiver(Number(e.target.value) || 0)}
+                    onChange={(e) => {
+                      setFormDiscountWaiver(Number(e.target.value) || 0);
+                      setCreateSuccessMsg(null);
+                    }}
                     placeholder="৳ 0"
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-amber-700 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono"
                   />
@@ -735,7 +778,10 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
                   </label>
                   <select
                     value={formPaymentMethod}
-                    onChange={(e) => setFormPaymentMethod(e.target.value as PaymentMethodType)}
+                    onChange={(e) => {
+                      setFormPaymentMethod(e.target.value as PaymentMethodType);
+                      setCreateSuccessMsg(null);
+                    }}
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="Cash">নগদ ক্যাশ (Cash)</option>
@@ -753,7 +799,10 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
                     </label>
                     <select
                       value={formBankAccountId}
-                      onChange={(e) => setFormBankAccountId(e.target.value)}
+                      onChange={(e) => {
+                        setFormBankAccountId(e.target.value);
+                        setCreateSuccessMsg(null);
+                      }}
                       className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                       required
                     >
@@ -780,10 +829,13 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
                   <label className="font-bold text-slate-700 block mb-1">
                     ট্রানজেকশন আইডি / চেক নম্বর / রেফারেন্স
                   </label>
-                  <input
-                    type="text"
+                  <HistoryInput
+                    historyKey="referenceNo"
                     value={formTransactionRef}
-                    onChange={(e) => setFormTransactionRef(e.target.value)}
+                    onChange={(e) => {
+                      setFormTransactionRef(e.target.value);
+                      setCreateSuccessMsg(null);
+                    }}
                     placeholder="FT-99128 / CQ-00129 / TrxID"
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                   />
@@ -793,7 +845,10 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
                   <label className="font-bold text-slate-700 block mb-1">আদায়কারী সেলসম্যান</label>
                   <select
                     value={formCollectorSalesmanId}
-                    onChange={(e) => setFormCollectorSalesmanId(e.target.value)}
+                    onChange={(e) => {
+                      setFormCollectorSalesmanId(e.target.value);
+                      setCreateSuccessMsg(null);
+                    }}
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="">সরাসরি হেড অফিস / কাউন্টার</option>
@@ -810,10 +865,13 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">রেফারেন্স ইনভয়েস নং</label>
-                  <input
-                    type="text"
+                  <HistoryInput
+                    historyKey="referenceNo"
                     value={formReferenceInvoice}
-                    onChange={(e) => setFormReferenceInvoice(e.target.value)}
+                    onChange={(e) => {
+                      setFormReferenceInvoice(e.target.value);
+                      setCreateSuccessMsg(null);
+                    }}
                     placeholder="SAL-2026-000210"
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                   />
@@ -821,10 +879,13 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
 
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">নোট / মন্তব্য</label>
-                  <input
-                    type="text"
+                  <HistoryInput
+                    historyKey="notes"
                     value={formNotes}
-                    onChange={(e) => setFormNotes(e.target.value)}
+                    onChange={(e) => {
+                      setFormNotes(e.target.value);
+                      setCreateSuccessMsg(null);
+                    }}
                     placeholder="নগদ কিস্তি জমা..."
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                   />
@@ -903,8 +964,8 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
 
               <div>
                 <label className="font-bold text-slate-700 block mb-1">ট্রানজেকশন রেফারেন্স</label>
-                <input
-                  type="text"
+                <HistoryInput
+                  historyKey="referenceNo"
                   value={editTransactionRef}
                   onChange={(e) => setEditTransactionRef(e.target.value)}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500"
@@ -929,8 +990,8 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
 
               <div>
                 <label className="font-bold text-slate-700 block mb-1">রেফারেন্স ইনভয়েস</label>
-                <input
-                  type="text"
+                <HistoryInput
+                  historyKey="referenceNo"
                   value={editReferenceInvoice}
                   onChange={(e) => setEditReferenceInvoice(e.target.value)}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500"
@@ -939,10 +1000,10 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
 
               <div>
                 <label className="font-bold text-slate-700 block mb-1">নোট / মন্তব্য</label>
-                <textarea
+                <HistoryInput
+                  historyKey="notes"
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
-                  rows={3}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                 />
               </div>

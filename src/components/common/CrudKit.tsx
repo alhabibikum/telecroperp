@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Pencil, Trash2, Ban, X, AlertTriangle } from 'lucide-react';
+import { Pencil, Trash2, Ban, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import type { CrudResult } from '../../context/ERPContext';
 import { useFormKeyboardNavigation } from '../../hooks/useFormKeyboardNavigation';
+import { HistoryInput, HistoryTextarea } from './HistoryInput';
+import { recordFormHistory } from '../../services/formHistoryService';
+import { useToast } from './ToastNotificationSystem';
 
 export interface FieldDef {
   key: string;
@@ -25,8 +28,10 @@ interface EditModalProps {
 
 /** Generic form modal. Numbers are converted back to numbers on save. */
 export const EditModal: React.FC<EditModalProps> = ({ title, fields, initial, onSave, onClose, saveLabel = 'Save Changes' }) => {
+  const { showSuccess } = useToast();
   const [values, setValues] = useState<Record<string, any>>({ ...initial });
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const { containerRef, onKeyDown } = useFormKeyboardNavigation({
     autoFocusFirst: true,
@@ -35,6 +40,8 @@ export const EditModal: React.FC<EditModalProps> = ({ title, fields, initial, on
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setSuccessMsg(null);
     const out: Record<string, any> = {};
     for (const f of fields) {
       if (f.readOnly) continue;
@@ -60,8 +67,13 @@ export const EditModal: React.FC<EditModalProps> = ({ title, fields, initial, on
       }
     }
     const res = onSave(out);
-    if (res.success) onClose();
-    else setError(res.error || 'Update failed.');
+    if (res.success) {
+      recordFormHistory(out);
+      setSuccessMsg('তথ্য সফলভাবে সংরক্ষিত হয়েছে! উইন্ডো খোলা রয়েছে পরবর্তী এন্ট্রির জন্য।');
+      showSuccess('তথ্য সফলভাবে সংরক্ষিত হয়েছে!', 'সফলভাবে ডাটাবেজে সংরক্ষণ করা হয়েছে।');
+    } else {
+      setError(res.error || 'Update failed.');
+    }
   };
 
   const inputCls = 'w-full p-2 bg-slate-50 border border-slate-300 rounded-lg text-xs disabled:opacity-60';
@@ -129,7 +141,8 @@ export const EditModal: React.FC<EditModalProps> = ({ title, fields, initial, on
                     })}
                   </select>
                 ) : f.type === 'textarea' ? (
-                  <textarea
+                  <HistoryTextarea
+                    historyKey={f.key}
                     rows={3}
                     className={inputCls}
                     value={values[f.key] ?? ''}
@@ -137,7 +150,8 @@ export const EditModal: React.FC<EditModalProps> = ({ title, fields, initial, on
                     onChange={ev => setValues(v => ({ ...v, [f.key]: ev.target.value }))}
                   />
                 ) : (
-                  <input
+                  <HistoryInput
+                    historyKey={f.key}
                     type={f.type === 'number' ? 'number' : f.type || 'text'}
                     step={f.type === 'number' ? 'any' : undefined}
                     className={inputCls}
@@ -150,6 +164,21 @@ export const EditModal: React.FC<EditModalProps> = ({ title, fields, initial, on
               </div>
             ))}
           </div>
+          {successMsg && (
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between gap-2 animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="font-semibold">{successMsg}</span>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-[11px] font-bold text-emerald-700 hover:text-emerald-950 underline shrink-0 cursor-pointer"
+              >
+                উইন্ডো বন্ধ করুন
+              </button>
+            </div>
+          )}
           {error && (
             <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />

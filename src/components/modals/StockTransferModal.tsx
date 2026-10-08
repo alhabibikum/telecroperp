@@ -13,6 +13,9 @@ import { formatDate } from '../../utils/formatters';
 import { IMEIRecord } from '../../types/erp';
 import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 import { WindowsModalFrame } from '../common/WindowsModalFrame';
+import { HistoryInput } from '../common/HistoryInput';
+import { recordFieldHistory } from '../../services/formHistoryService';
+import { useToast } from '../common/ToastNotificationSystem';
 
 interface StockTransferModalProps {
   isOpen: boolean;
@@ -26,6 +29,8 @@ export const StockTransferModal: React.FC<StockTransferModalProps> = ({
   onSuccessTransfer
 }) => {
   const { warehouses, products, imeis, transferStock } = useERP();
+  const { showSuccess } = useToast();
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const [sourceWarehouseId, setSourceWarehouseId] = useState<string>(warehouses[0]?.id || '');
   const [destinationWarehouseId, setDestinationWarehouseId] = useState<string>(warehouses[1]?.id || '');
@@ -88,8 +93,18 @@ export const StockTransferModal: React.FC<StockTransferModalProps> = ({
     });
 
     if (result.success && result.transferNo) {
-      if (onSuccessTransfer) onSuccessTransfer(result.transferNo);
-      onClose();
+      const trNo = result.transferNo;
+      recordFieldHistory('notes', notes);
+
+      setSuccessMsg(`স্টক ট্রান্সফার চালান "${trNo}" সফলভাবে প্রস্তুত হয়েছে! উইন্ডো খোলা রয়েছে পরবর্তী ট্রান্সফারের জন্য।`);
+      showSuccess(
+        'স্টক ট্রান্সফার সফলভাবে অনুমোদিত হয়েছে!',
+        `চালান নং: ${trNo} সিস্টেমে রেকর্ড করা হয়েছে।`
+      );
+
+      // Reset form fields for next transfer - DO NOT CLOSE WINDOW
+      setSelectedImeis([]);
+      setNotes('');
     } else {
       setErrorMsg(result.error || 'Failed to dispatch stock transfer');
     }
@@ -108,6 +123,22 @@ export const StockTransferModal: React.FC<StockTransferModalProps> = ({
         maxWidth="max-w-2xl"
       >
         <form onSubmit={handleSubmit} className="p-6 space-y-5 bg-white/40 backdrop-blur-md">
+          {successMsg && (
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="font-bold">{successMsg}</span>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-[11px] font-bold text-emerald-700 hover:text-emerald-950 underline cursor-pointer"
+              >
+                উইন্ডো বন্ধ করুন
+              </button>
+            </div>
+          )}
+
           {errorMsg && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -253,7 +284,8 @@ export const StockTransferModal: React.FC<StockTransferModalProps> = ({
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Transfer Notes / Driver Chalan #
             </label>
-            <input
+            <HistoryInput
+              historyKey="notes"
               type="text"
               placeholder="e.g. Courier security pouch #99281, van driver Md. Rafiq"
               value={notes}

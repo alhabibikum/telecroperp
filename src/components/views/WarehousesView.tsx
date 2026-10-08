@@ -6,11 +6,15 @@ import {
   Building,
   Phone,
   Layers,
-  MapPin
+  MapPin,
+  CheckCircle2
 } from 'lucide-react';
 import { formatBDT } from '../../utils/formatters';
 import { RowActions, EditModal } from '../common/CrudKit';
 import type { Warehouse as WarehouseType } from '../../types/erp';
+import { HistoryInput } from '../common/HistoryInput';
+import { recordFieldHistory } from '../../services/formHistoryService';
+import { useToast } from '../common/ToastNotificationSystem';
 
 interface WarehousesViewProps {
   onOpenStockTransfer: () => void;
@@ -18,7 +22,9 @@ interface WarehousesViewProps {
 
 export const WarehousesView: React.FC<WarehousesViewProps> = ({ onOpenStockTransfer }) => {
   const { warehouses, imeis, addWarehouse, updateWarehouse, deleteWarehouse } = useERP();
+  const { showSuccess } = useToast();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addSuccessMsg, setAddSuccessMsg] = useState<string | null>(null);
   const [editing, setEditing] = useState<WarehouseType | null>(null);
   const [name, setName] = useState('');
   const [type, setType] = useState<any>('Branch Warehouse');
@@ -30,8 +36,9 @@ export const WarehousesView: React.FC<WarehousesViewProps> = ({ onOpenStockTrans
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !managerName) return;
+    const warehouseName = name.trim();
     addWarehouse({
-      name,
+      name: warehouseName,
       type,
       address,
       city,
@@ -39,10 +46,24 @@ export const WarehousesView: React.FC<WarehousesViewProps> = ({ onOpenStockTrans
       contactNumber,
       status: 'Active'
     });
-    setShowAddModal(false);
+
+    recordFieldHistory('warehouse', warehouseName);
+    recordFieldHistory('address', address);
+    recordFieldHistory('city', city);
+    recordFieldHistory('contactPerson', managerName);
+    recordFieldHistory('mobile', contactNumber);
+
+    setAddSuccessMsg(`✓ ওয়্যারহাউজ "${warehouseName}" সফলভাবে তৈরি হয়েছে! উইন্ডো খোলা রয়েছে পরবর্তী এন্ট্রির জন্য।`);
+    showSuccess(
+      'ওয়্যারহাউজ সফলভাবে যোগ করা হয়েছে!',
+      `ওয়্যারহাউজ "${warehouseName}" যুক্ত হয়েছে। উইন্ডো খোলা রয়েছে পরবর্তী এন্ট্রির জন্য।`
+    );
+
+    // Reset inputs for next entry - DO NOT CLOSE WINDOW
     setName('');
     setManagerName('');
     setAddress('');
+    setContactNumber('');
   };
 
   return (
@@ -145,9 +166,26 @@ export const WarehousesView: React.FC<WarehousesViewProps> = ({ onOpenStockTrans
               <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
             <form onSubmit={handleAddSubmit} className="p-5 space-y-4 text-xs">
+              {addSuccessMsg && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-bold">{addSuccessMsg}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="text-[11px] font-bold text-emerald-700 hover:text-emerald-950 underline shrink-0 cursor-pointer"
+                  >
+                    উইন্ডো বন্ধ করুন
+                  </button>
+                </div>
+              )}
+
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Facility Name *</label>
-                <input
+                <HistoryInput
+                  historyKey="warehouse"
                   type="text"
                   placeholder="e.g. Sylhet Regional Depot"
                   value={name}
@@ -172,7 +210,8 @@ export const WarehousesView: React.FC<WarehousesViewProps> = ({ onOpenStockTrans
                 </div>
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">City / Region</label>
-                  <input
+                  <HistoryInput
+                    historyKey="city"
                     type="text"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
@@ -182,7 +221,8 @@ export const WarehousesView: React.FC<WarehousesViewProps> = ({ onOpenStockTrans
               </div>
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Physical Address</label>
-                <input
+                <HistoryInput
+                  historyKey="address"
                   type="text"
                   placeholder="Street / Plot / Area"
                   value={address}
@@ -193,7 +233,8 @@ export const WarehousesView: React.FC<WarehousesViewProps> = ({ onOpenStockTrans
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Manager / Custodian *</label>
-                  <input
+                  <HistoryInput
+                    historyKey="contactPerson"
                     type="text"
                     placeholder="Name"
                     value={managerName}
@@ -204,7 +245,8 @@ export const WarehousesView: React.FC<WarehousesViewProps> = ({ onOpenStockTrans
                 </div>
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Contact Phone</label>
-                  <input
+                  <HistoryInput
+                    historyKey="mobile"
                     type="text"
                     placeholder="017XX-XXXXXX"
                     value={contactNumber}

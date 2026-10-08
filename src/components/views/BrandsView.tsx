@@ -5,15 +5,21 @@ import {
   PlusCircle,
   Smartphone,
   Layers,
-  Search
+  Search,
+  CheckCircle2
 } from 'lucide-react';
 import { formatBDT } from '../../utils/formatters';
 import { RowActions, EditModal } from '../common/CrudKit';
 import type { Brand } from '../../types/erp';
+import { HistoryInput } from '../common/HistoryInput';
+import { recordFieldHistory } from '../../services/formHistoryService';
+import { useToast } from '../common/ToastNotificationSystem';
 
 export const BrandsView: React.FC = () => {
   const { brands, imeis, products, addBrand, updateBrand, deleteBrand } = useERP();
+  const { showSuccess } = useToast();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addSuccessMsg, setAddSuccessMsg] = useState<string | null>(null);
   const [editing, setEditing] = useState<Brand | null>(null);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -23,14 +29,25 @@ export const BrandsView: React.FC = () => {
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !code) return;
+    const brandName = name.trim();
     addBrand({
-      name,
+      name: brandName,
       code: code.toUpperCase(),
       logo: logo || '📱',
       status: 'Active',
       description
     });
-    setShowAddModal(false);
+
+    recordFieldHistory('brand', brandName);
+    recordFieldHistory('description', description);
+
+    setAddSuccessMsg(`✓ ব্র্যান্ড "${brandName}" সফলভাবে তৈরি হয়েছে! উইন্ডো খোলা রয়েছে পরবর্তী এন্ট্রির জন্য।`);
+    showSuccess(
+      'ব্র্যান্ড সফলভাবে যোগ করা হয়েছে!',
+      `ব্র্যান্ড "${brandName}" যুক্ত হয়েছে। উইন্ডো খোলা রয়েছে পরবর্তী এন্ট্রির জন্য।`
+    );
+
+    // Reset inputs for next entry - DO NOT CLOSE WINDOW
     setName('');
     setCode('');
     setDescription('');
@@ -118,9 +135,26 @@ export const BrandsView: React.FC = () => {
               <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
             <form onSubmit={handleAddSubmit} className="p-5 space-y-4 text-xs">
+              {addSuccessMsg && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-bold">{addSuccessMsg}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="text-[11px] font-bold text-emerald-700 hover:text-emerald-950 underline shrink-0 cursor-pointer"
+                  >
+                    উইন্ডো বন্ধ করুন
+                  </button>
+                </div>
+              )}
+
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Brand Name *</label>
-                <input
+                <HistoryInput
+                  historyKey="brand"
                   type="text"
                   placeholder="e.g. Motorola"
                   value={name}
@@ -132,7 +166,8 @@ export const BrandsView: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Brand Code *</label>
-                  <input
+                  <HistoryInput
+                    historyKey="brandCode"
                     type="text"
                     placeholder="e.g. MOT"
                     value={code}
@@ -154,8 +189,9 @@ export const BrandsView: React.FC = () => {
               </div>
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Description / Notes</label>
-                <textarea
-                  rows={2}
+                <HistoryInput
+                  historyKey="description"
+                  type="text"
                   placeholder="e.g. Authorized national distribution lineup"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}

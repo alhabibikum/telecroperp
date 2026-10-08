@@ -10,13 +10,17 @@ import {
   AlertTriangle,
   FileText,
   Scan,
-  QrCode
+  QrCode,
+  CheckCircle2
 } from 'lucide-react';
 import { formatBDT } from '../../utils/formatters';
 import { StatementModal } from '../modals/StatementModal';
 import { RowActions, EditModal } from '../common/CrudKit';
 import type { Customer } from '../../types/erp';
 import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
+import { HistoryInput } from '../common/HistoryInput';
+import { recordFieldHistory } from '../../services/formHistoryService';
+import { useToast } from '../common/ToastNotificationSystem';
 
 interface CustomersViewProps {
   onOpenDueCollection: (customerId: string) => void;
@@ -24,9 +28,11 @@ interface CustomersViewProps {
 
 export const CustomersView: React.FC<CustomersViewProps> = ({ onOpenDueCollection }) => {
   const { customers, salesmen, imeis, addCustomer, updateCustomer, deleteCustomer } = useERP();
+  const { showSuccess } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addSuccessMsg, setAddSuccessMsg] = useState<string | null>(null);
   const [statementCustomerId, setStatementCustomerId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [showScannerModal, setShowScannerModal] = useState(false);
@@ -65,9 +71,10 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ onOpenDueCollectio
     if (!shopName || !mobile) return;
 
     const sm = salesmen.find(s => s.id === salesmanId);
+    const createdShopName = shopName.trim();
 
     addCustomer({
-      shopName,
+      shopName: createdShopName,
       ownerName,
       mobile,
       address,
@@ -83,10 +90,25 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ onOpenDueCollectio
       status: 'Active'
     });
 
-    setShowAddModal(false);
+    // Record history
+    recordFieldHistory('shopName', createdShopName);
+    recordFieldHistory('ownerName', ownerName);
+    recordFieldHistory('mobile', mobile);
+    recordFieldHistory('address', address);
+    recordFieldHistory('area', area);
+    recordFieldHistory('district', district);
+
+    setAddSuccessMsg(`✓ ডিলার "${createdShopName}" সফলভাবে তৈরি হয়েছে! উইন্ডো খোলা রয়েছে পরবর্তী এন্ট্রির জন্য।`);
+    showSuccess(
+      'কাস্টমার সফলভাবে যুক্ত হয়েছে!',
+      `ডিলার "${createdShopName}" সফলভাবে তৈরি হয়েছে। উইন্ডো খোলা রয়েছে পরবর্তী এন্ট্রির জন্য।`
+    );
+
+    // Reset inputs for next entry - DO NOT CLOSE WINDOW
     setShopName('');
     setOwnerName('');
     setMobile('');
+    setAddress('');
   };
 
   return (
@@ -253,9 +275,26 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ onOpenDueCollectio
               <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
             <form onSubmit={handleCreateCustomer} className="p-5 space-y-4 text-xs">
+              {addSuccessMsg && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-bold">{addSuccessMsg}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="text-[11px] font-bold text-emerald-700 hover:text-emerald-950 underline shrink-0 cursor-pointer"
+                  >
+                    উইন্ডো বন্ধ করুন
+                  </button>
+                </div>
+              )}
+
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Shop / Outlet Name *</label>
-                <input
+                <HistoryInput
+                  historyKey="shopName"
                   type="text"
                   placeholder="e.g. Al-Amin Telecom"
                   value={shopName}
@@ -268,7 +307,8 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ onOpenDueCollectio
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Proprietor Name</label>
-                  <input
+                  <HistoryInput
+                    historyKey="ownerName"
                     type="text"
                     placeholder="e.g. Md. Al-Amin"
                     value={ownerName}
@@ -278,7 +318,8 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ onOpenDueCollectio
                 </div>
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Mobile Number *</label>
-                  <input
+                  <HistoryInput
+                    historyKey="mobile"
                     type="text"
                     placeholder="017XX-XXXXXX"
                     value={mobile}
@@ -292,7 +333,8 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ onOpenDueCollectio
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Area / Market</label>
-                  <input
+                  <HistoryInput
+                    historyKey="area"
                     type="text"
                     value={area}
                     onChange={(e) => setArea(e.target.value)}
@@ -301,7 +343,8 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ onOpenDueCollectio
                 </div>
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">District</label>
-                  <input
+                  <HistoryInput
+                    historyKey="district"
                     type="text"
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}

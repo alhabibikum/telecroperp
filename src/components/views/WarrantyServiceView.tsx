@@ -22,6 +22,9 @@ import {
 import { formatDate } from '../../utils/formatters';
 import { WarrantyStatus } from '../../types/erp';
 import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
+import { HistoryInput } from '../common/HistoryInput';
+import { recordFieldHistory } from '../../services/formHistoryService';
+import { useToast } from '../common/ToastNotificationSystem';
 
 export const WarrantyServiceView: React.FC = () => {
   const {
@@ -32,6 +35,7 @@ export const WarrantyServiceView: React.FC = () => {
     addWarrantyClaim,
     updateWarrantyStatus
   } = useERP();
+  const { showSuccess } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
@@ -39,6 +43,7 @@ export const WarrantyServiceView: React.FC = () => {
   const [selectedClaimForPrint, setSelectedClaimForPrint] = useState<any | null>(null);
   const [showScannerModal, setShowScannerModal] = useState(false);
   const [scannerContext, setScannerContext] = useState<'filter' | 'modal'>('filter');
+  const [addSuccessMsg, setAddSuccessMsg] = useState<string | null>(null);
 
   // New Claim Form State
   const [customerId, setCustomerId] = useState(customers[0]?.id || '');
@@ -111,10 +116,19 @@ export const WarrantyServiceView: React.FC = () => {
     });
 
     if (res.success) {
-      setShowAddModal(false);
+      if (problemDescription) recordFieldHistory('returnReason', problemDescription);
+      if (physicalCondition) recordFieldHistory('condition', physicalCondition);
+      if (remarks) recordFieldHistory('notes', remarks);
+      if (serviceCenterName) recordFieldHistory('shopName', serviceCenterName);
+
+      const msg = `ওয়ারেন্টি ক্লেইম (${res.rmaNumber || 'RMA'}) সফলভাবে সিস্টেমে যুক্ত করা হয়েছে!`;
+      showSuccess(msg, { title: 'ওয়ারেন্টি এন্ট্রি সফল' });
+      setAddSuccessMsg(msg);
+      // Keep modal open and reset inputs for next claim
       setInputIMEI('');
       setProblemDescription('');
       setRemarks('');
+      setServiceCenterJobNo('');
     }
   };
 
@@ -405,6 +419,25 @@ export const WarrantyServiceView: React.FC = () => {
               </div>
             )}
 
+            {addSuccessMsg && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{addSuccessMsg}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setAddSuccessMsg(null);
+                  }}
+                  className="text-[11px] underline text-emerald-700 hover:text-emerald-900 font-medium shrink-0 cursor-pointer"
+                >
+                  উইন্ডো বন্ধ করুন
+                </button>
+              </div>
+            )}
+
             <form onSubmit={handleCreateClaim} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -446,7 +479,10 @@ export const WarrantyServiceView: React.FC = () => {
                     type="text"
                     placeholder="Scan or enter 15-digit IMEI..."
                     value={inputIMEI}
-                    onChange={(e) => handleIMEIChange(e.target.value)}
+                    onChange={(e) => {
+                      handleIMEIChange(e.target.value);
+                      setAddSuccessMsg(null);
+                    }}
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold"
                     required
                   />
@@ -467,12 +503,14 @@ export const WarrantyServiceView: React.FC = () => {
                 <label className="block font-semibold text-slate-700 mb-1">
                   Reported Fault / Problem Description *
                 </label>
-                <textarea
-                  rows={2}
+                <HistoryInput
+                  historyKey="returnReason"
                   placeholder="e.g. Display flickering, charging port loose, touchscreen unresponsive after drop..."
                   value={problemDescription}
-                  onChange={(e) => setProblemDescription(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  onChange={(e) => {
+                    setProblemDescription(e.target.value);
+                    setAddSuccessMsg(null);
+                  }}
                   required
                 />
               </div>
@@ -482,11 +520,13 @@ export const WarrantyServiceView: React.FC = () => {
                   <label className="block font-semibold text-slate-700 mb-1">
                     Physical Appearance / Condition
                   </label>
-                  <input
-                    type="text"
+                  <HistoryInput
+                    historyKey="condition"
                     value={physicalCondition}
-                    onChange={(e) => setPhysicalCondition(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                    onChange={(e) => {
+                      setPhysicalCondition(e.target.value);
+                      setAddSuccessMsg(null);
+                    }}
                   />
                 </div>
 
@@ -494,11 +534,13 @@ export const WarrantyServiceView: React.FC = () => {
                   <label className="block font-semibold text-slate-700 mb-1">
                     Accessories Received
                   </label>
-                  <input
-                    type="text"
+                  <HistoryInput
+                    historyKey="description"
                     value={accessoriesIncluded}
-                    onChange={(e) => setAccessoriesIncluded(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                    onChange={(e) => {
+                      setAccessoriesIncluded(e.target.value);
+                      setAddSuccessMsg(null);
+                    }}
                   />
                 </div>
               </div>
@@ -508,11 +550,13 @@ export const WarrantyServiceView: React.FC = () => {
                   <label className="block font-semibold text-slate-700 mb-1">
                     Authorized Brand Service Center *
                   </label>
-                  <input
-                    type="text"
+                  <HistoryInput
+                    historyKey="shopName"
                     value={serviceCenterName}
-                    onChange={(e) => setServiceCenterName(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium"
+                    onChange={(e) => {
+                      setServiceCenterName(e.target.value);
+                      setAddSuccessMsg(null);
+                    }}
                     required
                   />
                 </div>
@@ -521,12 +565,14 @@ export const WarrantyServiceView: React.FC = () => {
                   <label className="block font-semibold text-slate-700 mb-1">
                     Service Center Job / Tracking No (Optional)
                   </label>
-                  <input
-                    type="text"
+                  <HistoryInput
+                    historyKey="referenceNo"
                     placeholder="e.g. SAM-CARE-9982"
                     value={serviceCenterJobNo}
-                    onChange={(e) => setServiceCenterJobNo(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono"
+                    onChange={(e) => {
+                      setServiceCenterJobNo(e.target.value);
+                      setAddSuccessMsg(null);
+                    }}
                   />
                 </div>
               </div>
@@ -535,12 +581,14 @@ export const WarrantyServiceView: React.FC = () => {
                 <label className="block font-semibold text-slate-700 mb-1">
                   Internal Remarks / Notes
                 </label>
-                <input
-                  type="text"
+                <HistoryInput
+                  historyKey="notes"
                   placeholder="e.g. Check for water indicator sticker, expedite for VIP dealer"
                   value={remarks}
-                  onChange={(e) => setRemarks(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                  onChange={(e) => {
+                    setRemarks(e.target.value);
+                    setAddSuccessMsg(null);
+                  }}
                 />
               </div>
 

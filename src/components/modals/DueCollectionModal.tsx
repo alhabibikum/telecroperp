@@ -12,8 +12,11 @@ import {
 import { formatBDT, formatDate } from '../../utils/formatters';
 import { PaymentMethodType, PaymentAllocationItem } from '../../types/erp';
 import { useFormKeyboardNavigation } from '../../hooks/useFormKeyboardNavigation';
-import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog';
 import { WindowsModalFrame } from '../common/WindowsModalFrame';
+import { HistoryInput } from '../common/HistoryInput';
+import { recordFieldHistory } from '../../services/formHistoryService';
+import { useToast } from '../common/ToastNotificationSystem';
+import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog';
 
 interface DueCollectionModalProps {
   isOpen: boolean;
@@ -28,6 +31,8 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
   initialCustomerId,
   onSuccessCollection
 }) => {
+  const { showSuccess } = useToast();
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const {
     customers,
     salesInvoices,
@@ -132,8 +137,21 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
     });
 
     if (result.success && result.collectionNo) {
-      if (onSuccessCollection) onSuccessCollection(result.collectionNo);
-      onClose();
+      const colNo = result.collectionNo;
+      recordFieldHistory('referenceNo', transactionRef);
+      recordFieldHistory('notes', notes);
+
+      setSuccessMsg(`কালেকশন রসিদ "${colNo}" (৳${collectionAmount.toLocaleString()}) সফলভাবে জমা হয়েছে! উইন্ডো খোলা রয়েছে পরবর্তী কালেকশনের জন্য।`);
+      showSuccess(
+        'বকেয়া কালেকশন সফলভাবে জমা হয়েছে!',
+        `রসিদ নং: ${colNo} - টাকা ৳${collectionAmount.toLocaleString()} জমা হয়েছে।`
+      );
+
+      // Reset form fields for next entry - DO NOT CLOSE WINDOW
+      setCollectionAmount(0);
+      setTransactionRef('');
+      setNotes('');
+      setAllocations([]);
     } else {
       setErrorMsg(result.error || 'Failed to record payment');
     }
@@ -152,6 +170,22 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
         maxWidth="max-w-4xl"
       >
         <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto bg-white/40 backdrop-blur-md">
+          {successMsg && (
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="font-bold">{successMsg}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleRequestClose}
+                className="text-[11px] font-bold text-emerald-700 hover:text-emerald-950 underline cursor-pointer"
+              >
+                উইন্ডো বন্ধ করুন
+              </button>
+            </div>
+          )}
+
           {errorMsg && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -366,7 +400,8 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Transaction / Cheque Ref #
               </label>
-              <input
+              <HistoryInput
+                historyKey="referenceNo"
                 type="text"
                 placeholder="e.g. BEFTN-112299"
                 value={transactionRef}

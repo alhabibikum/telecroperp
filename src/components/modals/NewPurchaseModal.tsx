@@ -18,6 +18,9 @@ import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 import { useFormKeyboardNavigation } from '../../hooks/useFormKeyboardNavigation';
 import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog';
 import { WindowsModalFrame } from '../common/WindowsModalFrame';
+import { HistoryInput } from '../common/HistoryInput';
+import { recordFieldHistory } from '../../services/formHistoryService';
+import { useToast } from '../common/ToastNotificationSystem';
 
 interface NewPurchaseModalProps {
   isOpen: boolean;
@@ -30,6 +33,9 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
   onClose,
   onSuccessPurchase
 }) => {
+  const { showSuccess } = useToast();
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [lastPurchaseNo, setLastPurchaseNo] = useState<string | null>(null);
   const {
     suppliers,
     warehouses,
@@ -295,8 +301,30 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
     );
 
     if (result.success && result.invoiceNo) {
-      if (onSuccessPurchase) onSuccessPurchase(result.invoiceNo);
-      onClose();
+      const purNo = result.invoiceNo;
+      setLastPurchaseNo(purNo);
+      recordFieldHistory('referenceNo', referenceNo);
+      recordFieldHistory('notes', notes);
+
+      setSuccessMsg(`পারচেজ চালান "${purNo}" সফলভাবে সংরক্ষিত হয়েছে! উইন্ডো খোলা রয়েছে পরবর্তী এন্ট্রির জন্য।`);
+      showSuccess(
+        'পারচেজ চালান সফলভাবে সংরক্ষিত হয়েছে!',
+        `চালান নং: ${purNo} সিস্টেমে যুক্ত হয়েছে। উইন্ডো খোলা রয়েছে পরবর্তী এন্ট্রির জন্য।`
+      );
+
+      // Reset form fields for next entry - DO NOT CLOSE WINDOW
+      setReferenceNo('');
+      setPaidAmount(0);
+      setNotes('');
+      setItems([
+        {
+          productId: products[0]?.id || '',
+          variantId: products[0]?.variants[0]?.id || '',
+          quantity: 1,
+          unitCost: products[0]?.variants[0]?.purchasePrice || 0,
+          bulkIMEIText: ''
+        }
+      ]);
     } else {
       setErrorMsg(result.error || 'Failed to save purchase invoice');
     }
@@ -315,6 +343,22 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
         maxWidth="max-w-5xl"
       >
         <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto bg-white/40 backdrop-blur-md">
+          {successMsg && (
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="font-bold">{successMsg}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleRequestClose}
+                className="text-[11px] font-bold text-emerald-700 hover:text-emerald-950 underline cursor-pointer"
+              >
+                উইন্ডো বন্ধ করুন
+              </button>
+            </div>
+          )}
+
           {errorMsg && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -610,7 +654,8 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Supplier Chalan / PO Ref #
                 </label>
-                <input
+                <HistoryInput
+                  historyKey="referenceNo"
                   type="text"
                   placeholder="e.g. FAIR-CH-2026-90"
                   value={referenceNo}
@@ -643,8 +688,9 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Internal Notes
             </label>
-            <textarea
-              rows={2}
+            <HistoryInput
+              historyKey="notes"
+              type="text"
               placeholder="e.g. BTRC certified official lot, warranty slip registered."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}

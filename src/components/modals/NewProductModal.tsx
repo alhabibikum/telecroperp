@@ -6,12 +6,16 @@ import {
   Plus,
   Trash2,
   CheckCircle,
-  Tag
+  Tag,
+  CheckCircle2
 } from 'lucide-react';
 import { ProductVariant } from '../../types/erp';
 import { useFormKeyboardNavigation } from '../../hooks/useFormKeyboardNavigation';
 import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog';
 import { WindowsModalFrame } from '../common/WindowsModalFrame';
+import { HistoryInput } from '../common/HistoryInput';
+import { recordFieldHistory } from '../../services/formHistoryService';
+import { useToast } from '../common/ToastNotificationSystem';
 
 interface NewProductModalProps {
   isOpen: boolean;
@@ -20,6 +24,7 @@ interface NewProductModalProps {
 
 export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClose }) => {
   const { brands, addProduct } = useERP();
+  const { showSuccess } = useToast();
 
   const [brandId, setBrandId] = useState(brands[0]?.id || '');
   const [model, setModel] = useState('');
@@ -27,6 +32,7 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
   const [networkRegion, setNetworkRegion] = useState('Official BD (BTRC Approved)');
   const [warrantyMonths, setWarrantyMonths] = useState<number>(12);
   const [description, setDescription] = useState('');
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Variants
   const [variants, setVariants] = useState<Array<Omit<ProductVariant, 'id' | 'currentStock'>>>([
@@ -68,7 +74,7 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
     setVariants(prev => [
       ...prev,
       {
-        sku: `${model.substring(0, 3).toUpperCase()}-${prev.length + 1}`,
+        sku: `${model ? model.substring(0, 3).toUpperCase() : 'PRD'}-${prev.length + 1}`,
         ram: '8GB',
         storage: '256GB',
         color: 'Titanium Silver',
@@ -92,12 +98,14 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const br = brands.find(b => b.id === brandId);
-    if (!br || !model) return;
+    if (!br || !model.trim()) return;
+
+    const savedModelName = model.trim();
 
     addProduct({
       brandId: br.id,
       brandName: br.name,
-      model,
+      model: savedModelName,
       category,
       networkRegion,
       warrantyPeriodMonths: warrantyMonths,
@@ -110,7 +118,42 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
       }))
     });
 
-    onClose();
+    // Record to history
+    recordFieldHistory('model', savedModelName);
+    recordFieldHistory('networkRegion', networkRegion);
+    recordFieldHistory('description', description);
+    variants.forEach(v => {
+      recordFieldHistory('sku', v.sku);
+      recordFieldHistory('ram', v.ram);
+      recordFieldHistory('storage', v.storage);
+      recordFieldHistory('color', v.color);
+    });
+
+    // Notify user with alert message
+    showSuccess(
+      'প্রোডাক্ট সফলভাবে সংরক্ষণ করা হয়েছে!',
+      `মডেল "${savedModelName}" (${br.name}) ইনভেন্টরিতে যুক্ত হয়েছে। উইন্ডো খোলা রয়েছে পরবর্তী প্রোডাক্ট এন্ট্রির জন্য।`
+    );
+    setSuccessMsg(`✓ "${savedModelName}" সফলভাবে সংরক্ষিত হয়েছে! উইন্ডোটি পরবর্তী এন্ট্রির জন্য প্রস্তুত।`);
+
+    // Reset form for next entry - DO NOT CLOSE WINDOW
+    setModel('');
+    setDescription('');
+    setVariants([
+      {
+        sku: `${savedModelName.substring(0, 3).toUpperCase()}-NEW`,
+        ram: '8GB',
+        storage: '128GB',
+        color: 'Midnight Black',
+        purchasePrice: 40000,
+        dealerPrice: 44000,
+        wholesalePrice: 45000,
+        retailPrice: 49999,
+        minSellingPrice: 43500,
+        maxDiscount: 5,
+        reorderLevel: 5
+      }
+    ]);
   };
 
   return (
@@ -126,6 +169,22 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
         maxWidth="max-w-4xl"
       >
         <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-6 space-y-5 text-xs max-h-[80vh] overflow-y-auto bg-white/40 backdrop-blur-md">
+          {successMsg && (
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between gap-3 animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="font-bold">{successMsg}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleRequestClose}
+                className="text-[11px] font-bold text-emerald-700 hover:text-emerald-950 underline shrink-0 cursor-pointer"
+              >
+                উইন্ডো বন্ধ করুন
+              </button>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block font-semibold text-slate-700 mb-1">Brand *</label>
@@ -140,7 +199,8 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
 
             <div>
               <label className="block font-semibold text-slate-700 mb-1">Handset Model Name *</label>
-              <input
+              <HistoryInput
+                historyKey="model"
                 type="text"
                 placeholder="e.g. Galaxy A55 5G"
                 value={model}
@@ -152,7 +212,8 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
 
             <div>
               <label className="block font-semibold text-slate-700 mb-1">Network & BTRC Approval</label>
-              <input
+              <HistoryInput
+                historyKey="networkRegion"
                 type="text"
                 value={networkRegion}
                 onChange={(e) => setNetworkRegion(e.target.value)}
@@ -183,7 +244,8 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                     <div>
                       <label className="block text-[10px] text-slate-500 font-semibold mb-0.5">SKU Code</label>
-                      <input
+                      <HistoryInput
+                        historyKey="sku"
                         type="text"
                         value={v.sku}
                         onChange={(e) => {
@@ -196,7 +258,8 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                     <div>
                       <label className="block text-[10px] text-slate-500 font-semibold mb-0.5">RAM & ROM</label>
                       <div className="flex gap-1">
-                        <input
+                        <HistoryInput
+                          historyKey="ram"
                           type="text"
                           value={v.ram}
                           onChange={(e) => {
@@ -206,7 +269,8 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                           placeholder="8GB"
                           className="w-1/2 p-1.5 bg-white border border-slate-300 rounded text-xs"
                         />
-                        <input
+                        <HistoryInput
+                          historyKey="storage"
                           type="text"
                           value={v.storage}
                           onChange={(e) => {
@@ -220,7 +284,8 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                     </div>
                     <div>
                       <label className="block text-[10px] text-slate-500 font-semibold mb-0.5">Color</label>
-                      <input
+                      <HistoryInput
+                        historyKey="color"
                         type="text"
                         value={v.color}
                         onChange={(e) => {

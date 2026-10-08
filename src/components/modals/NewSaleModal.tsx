@@ -9,6 +9,7 @@ import {
   CreditCard,
   Building,
   CheckCircle,
+  CheckCircle2,
   HelpCircle,
   Barcode,
   Camera,
@@ -25,6 +26,9 @@ import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog';
 import { WindowsModalFrame } from '../common/WindowsModalFrame';
 import { playScanSuccessSound, playWarningBuzzer, playCashRegisterSound } from '../../utils/audioAlertUtils';
 import { shareInvoiceViaWhatsApp } from '../../utils/whatsappUtils';
+import { HistoryInput } from '../common/HistoryInput';
+import { recordFieldHistory } from '../../services/formHistoryService';
+import { useToast } from '../common/ToastNotificationSystem';
 
 interface NewSaleModalProps {
   isOpen: boolean;
@@ -39,6 +43,9 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
   defaultType = 'Wholesale',
   onSuccessInvoice
 }) => {
+  const { showSuccess } = useToast();
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [lastInvoiceNo, setLastInvoiceNo] = useState<string | null>(null);
   const {
     customers,
     products,
@@ -435,8 +442,30 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
         localStorage.removeItem('telecorp_sale_draft');
       } catch {}
       playCashRegisterSound();
-      if (onSuccessInvoice) onSuccessInvoice(result.invoiceNo);
-      onClose();
+      recordFieldHistory('notes', notes);
+      recordFieldHistory('referenceNo', transactionRef);
+      const invNo = result.invoiceNo;
+      setLastInvoiceNo(invNo);
+      setSuccessMsg(`ইনভয়েস "${invNo}" সফলভাবে তৈরি ও সংরক্ষিত হয়েছে! উইন্ডো খোলা রয়েছে পরবর্তী বিক্রয়ের জন্য।`);
+      showSuccess(
+        'বিক্রয় ইনভয়েস সফলভাবে সংরক্ষিত হয়েছে!',
+        `ইনভয়েস নং: ${invNo} সিস্টেমে জমা হয়েছে। উইন্ডো খোলা রয়েছে পরবর্তী বিক্রয়ের জন্য।`
+      );
+
+      // Reset items and payments for next sale - do NOT close modal
+      setItems([
+        {
+          productId: products[0]?.id || '',
+          variantId: products[0]?.variants[0]?.id || '',
+          quantity: 1,
+          unitPrice: products[0]?.variants[0]?.wholesalePrice || 0,
+          discount: 0,
+          selectedImeis: []
+        }
+      ]);
+      setPaidAmount(0);
+      setNotes('');
+      setTransactionRef('');
     } else {
       setErrorMsg(result.error || 'Failed to generate sale invoice');
     }
@@ -525,6 +554,33 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
         </div>
 
         <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto bg-white/40 backdrop-blur-md">
+          {successMsg && (
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="font-bold">{successMsg}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {lastInvoiceNo && onSuccessInvoice && (
+                  <button
+                    type="button"
+                    onClick={() => onSuccessInvoice(lastInvoiceNo)}
+                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] shadow-xs cursor-pointer flex items-center gap-1"
+                  >
+                    <span>🖨️ ইনভয়েস প্রিন্ট</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleRequestClose}
+                  className="text-[11px] font-bold text-emerald-700 hover:text-emerald-950 underline cursor-pointer"
+                >
+                  উইন্ডো বন্ধ করুন
+                </button>
+              </div>
+            </div>
+          )}
+
           {errorMsg && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -905,7 +961,8 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Reference / Cheque #
                 </label>
-                <input
+                <HistoryInput
+                  historyKey="referenceNo"
                   type="text"
                   placeholder="e.g. TR-889900 / Cheque"
                   value={transactionRef}
@@ -949,8 +1006,9 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Internal Notes / Terms
             </label>
-            <textarea
-              rows={2}
+            <HistoryInput
+              historyKey="notes"
+              type="text"
               placeholder="e.g. 50% paid on delivery, balance due within 30 days."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}

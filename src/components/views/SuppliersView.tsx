@@ -8,6 +8,7 @@ import {
   CreditCard,
   Building,
   CheckCircle,
+  CheckCircle2,
   DollarSign,
   FileText,
   Scan,
@@ -19,14 +20,19 @@ import { StatementModal } from '../modals/StatementModal';
 import { RowActions, EditModal } from '../common/CrudKit';
 import type { Supplier } from '../../types/erp';
 import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
+import { HistoryInput } from '../common/HistoryInput';
+import { recordFieldHistory } from '../../services/formHistoryService';
+import { useToast } from '../common/ToastNotificationSystem';
 
 export const SuppliersView: React.FC = () => {
   const { suppliers, bankAccounts, imeis, paySupplier, addSupplier, updateSupplier, deleteSupplier } = useERP();
+  const { showSuccess } = useToast();
   const [editing, setEditing] = useState<Supplier | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showPayModal, setShowPayModal] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addSuccessMsg, setAddSuccessMsg] = useState<string | null>(null);
   const [statementSupplierId, setStatementSupplierId] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState<number>(100000);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('Bank Transfer');
@@ -75,8 +81,11 @@ export const SuppliersView: React.FC = () => {
     });
 
     if (res.success) {
+      recordFieldHistory('referenceNo', refNo);
       setMessage(`Successfully disbursed ৳ ${payAmount.toLocaleString()} to ${selectedSupplierForPay.name}!`);
-      setShowPayModal(null);
+      showSuccess('পেমেন্ট সফলভাবে সম্পন্ন হয়েছে!', `৳${payAmount.toLocaleString()} টাকা ${selectedSupplierForPay.name}-কে পরিশোধ করা হয়েছে।`);
+      // Do NOT close pay modal automatically or reset amount
+      setRefNo('');
     }
   };
 
@@ -84,10 +93,12 @@ export const SuppliersView: React.FC = () => {
     e.preventDefault();
     if (!newName || !newMobile) return;
 
+    const supplierDisplayName = newName.trim();
+
     addSupplier({
-      name: newName,
-      companyName: newCompany || newName,
-      contactPerson: newContact || newName,
+      name: supplierDisplayName,
+      companyName: newCompany || supplierDisplayName,
+      contactPerson: newContact || supplierDisplayName,
       mobile: newMobile,
       email: '',
       address: 'Commercial Area',
@@ -102,8 +113,22 @@ export const SuppliersView: React.FC = () => {
       status: 'Active'
     });
 
-    setShowAddModal(false);
+    // Record history
+    recordFieldHistory('companyName', newCompany || supplierDisplayName);
+    recordFieldHistory('contactPerson', newContact || supplierDisplayName);
+    recordFieldHistory('mobile', newMobile);
+    recordFieldHistory('district', newDistrict);
+
+    setAddSuccessMsg(`✓ সাপ্লায়ার "${supplierDisplayName}" সফলভাবে সিস্টেমে যুক্ত হয়েছে! উইন্ডো খোলা রয়েছে পরবর্তী এন্ট্রির জন্য।`);
+    showSuccess(
+      'সাপ্লায়ার সফলভাবে যুক্ত হয়েছে!',
+      `সাপ্লায়ার "${supplierDisplayName}" যুক্ত হয়েছে। উইন্ডো খোলা রয়েছে পরবর্তী এন্ট্রির জন্য।`
+    );
+
+    // Reset inputs for next entry - DO NOT CLOSE WINDOW
     setNewName('');
+    setNewCompany('');
+    setNewContact('');
     setNewMobile('');
   };
 
@@ -331,9 +356,26 @@ export const SuppliersView: React.FC = () => {
             </div>
 
             <form onSubmit={handleCreateSupplier} className="space-y-3 text-xs">
+              {addSuccessMsg && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-bold">{addSuccessMsg}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="text-[11px] font-bold text-emerald-700 hover:text-emerald-950 underline shrink-0 cursor-pointer"
+                  >
+                    উইন্ডো বন্ধ করুন
+                  </button>
+                </div>
+              )}
+
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Supplier / Brand Name *</label>
-                <input
+                <HistoryInput
+                  historyKey="companyName"
                   type="text"
                   placeholder="e.g. Samsung Electronics Bangladesh Ltd"
                   value={newName}
@@ -345,7 +387,8 @@ export const SuppliersView: React.FC = () => {
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Corporate Entity Name</label>
-                <input
+                <HistoryInput
+                  historyKey="companyName"
                   type="text"
                   placeholder="e.g. Fair Electronics Limited"
                   value={newCompany}
@@ -357,7 +400,8 @@ export const SuppliersView: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Contact Person</label>
-                  <input
+                  <HistoryInput
+                    historyKey="contactPerson"
                     type="text"
                     value={newContact}
                     onChange={(e) => setNewContact(e.target.value)}
@@ -366,7 +410,8 @@ export const SuppliersView: React.FC = () => {
                 </div>
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Mobile *</label>
-                  <input
+                  <HistoryInput
+                    historyKey="mobile"
                     type="text"
                     placeholder="017XX-XXXXXX"
                     value={newMobile}
@@ -380,7 +425,8 @@ export const SuppliersView: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">District</label>
-                  <input
+                  <HistoryInput
+                    historyKey="district"
                     type="text"
                     value={newDistrict}
                     onChange={(e) => setNewDistrict(e.target.value)}

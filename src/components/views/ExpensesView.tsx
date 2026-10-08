@@ -13,6 +13,9 @@ import {
 import { formatBDT, formatDate } from '../../utils/formatters';
 import { PaymentMethodType, Expense, ExpenseCategory } from '../../types/erp';
 import { RowActions, EditModal } from '../common/CrudKit';
+import { HistoryInput } from '../common/HistoryInput';
+import { recordFieldHistory } from '../../services/formHistoryService';
+import { useToast } from '../common/ToastNotificationSystem';
 
 const CategoryManager: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { expenseCategories, addExpenseCategory, updateExpenseCategory, deleteExpenseCategory } = useERP();
@@ -91,6 +94,7 @@ export const ExpensesView: React.FC = () => {
     updateExpense,
     deleteExpense
   } = useERP();
+  const { showSuccess } = useToast();
   const [editing, setEditing] = useState<Expense | null>(null);
   const [showCategories, setShowCategories] = useState(false);
 
@@ -103,6 +107,7 @@ export const ExpensesView: React.FC = () => {
   const [approvedBy, setApprovedBy] = useState('Masum Billah');
   const [formError, setFormError] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [addSuccessMsg, setAddSuccessMsg] = useState<string | null>(null);
 
   // Available liquid balances
   const openingVaultCash = chartOfAccounts.find(a => a.code === '1000')?.balance ?? 0;
@@ -148,10 +153,22 @@ export const ExpensesView: React.FC = () => {
       approvedBy
     });
 
-    setShowAddModal(false);
+    if (description) {
+      recordFieldHistory('description', description);
+    }
+    if (approvedBy) {
+      recordFieldHistory('ownerName', approvedBy);
+    }
+
+    const msg = `খরচ ভাউচার ৳${amount.toLocaleString('en-IN')} (${cat.name}) সফলভাবে বুক করা হয়েছে।`;
+    showSuccess(msg, {
+      title: 'খরচ এন্ট্রি সফল',
+      duration: 4000
+    });
+    setAddSuccessMsg(msg);
+    setStatusMsg(msg);
     setDescription('');
-    setStatusMsg(`খরচ ভাউচার ৳${amount.toLocaleString('en-IN')} (${cat.name}) সফলভাবে বুক করা হয়েছে।`);
-    setTimeout(() => setStatusMsg(null), 4000);
+    setAmount(0);
   };
 
   const totalExpense = expenses.reduce((acc, e) => acc + e.amount, 0);
@@ -262,6 +279,22 @@ export const ExpensesView: React.FC = () => {
               <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
             <form onSubmit={handleAddSubmit} className="p-5 space-y-4 text-xs">
+              {addSuccessMsg && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{addSuccessMsg}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="text-[11px] underline text-emerald-700 hover:text-emerald-900 font-medium shrink-0 cursor-pointer"
+                  >
+                    উইন্ডো বন্ধ করুন
+                  </button>
+                </div>
+              )}
+
               {formError && (
                 <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-start gap-2 animate-in fade-in">
                   <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
@@ -290,6 +323,7 @@ export const ExpensesView: React.FC = () => {
                   onChange={(e) => {
                     setAmount(parseFloat(e.target.value) || 0);
                     setFormError(null);
+                    setAddSuccessMsg(null);
                   }}
                   className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg font-bold"
                   required
@@ -303,6 +337,7 @@ export const ExpensesView: React.FC = () => {
                     onChange={(e) => {
                       setPaymentMethod(e.target.value as PaymentMethodType);
                       setFormError(null);
+                      setAddSuccessMsg(null);
                     }}
                     className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg"
                   >
@@ -324,6 +359,7 @@ export const ExpensesView: React.FC = () => {
                       onChange={(e) => {
                         setBankAccountId(e.target.value);
                         setFormError(null);
+                        setAddSuccessMsg(null);
                       }}
                       className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg"
                     >
@@ -336,13 +372,25 @@ export const ExpensesView: React.FC = () => {
               </div>
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Narration / Voucher Description *</label>
-                <textarea
-                  rows={2}
+                <HistoryInput
+                  historyKey="description"
                   placeholder="e.g. Courier charges for consignments"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg"
+                  onChange={(e) => {
+                    setDescription(e.target.value);
+                    setFormError(null);
+                    setAddSuccessMsg(null);
+                  }}
                   required
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Authorized By</label>
+                <HistoryInput
+                  historyKey="ownerName"
+                  placeholder="e.g. Masum Billah"
+                  value={approvedBy}
+                  onChange={(e) => setApprovedBy(e.target.value)}
                 />
               </div>
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
