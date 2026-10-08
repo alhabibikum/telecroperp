@@ -45,32 +45,25 @@ Realme,Realme 12 Plus 5G,8GB,256GB,Pioneer Green,863241050000014,863241050000022
 
   const handleParse = () => {
     if (!csvText.trim()) return;
-    const lines = csvText.trim().split('\n');
-    if (lines.length < 2) {
-      setMessage({ type: 'error', text: 'CSV must contain at least a header row and one data row.' });
-      return;
-    }
+    try {
+      // Full RFC-4180 parsing with quote-wrapped commas protection using SheetJS
+      const workbook = XLSX.read(csvText.trim(), { type: 'string' });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
 
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-    const rows = [];
+      if (rows.length === 0) {
+        setMessage({ type: 'error', text: 'CSV ডেটাতে অন্তত একটি হেডার রো এবং একটি ডাটা রো থাকতে হবে।' });
+        return;
+      }
 
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      // Handle simple CSV splitting
-      const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-      const obj: any = {};
-      headers.forEach((h, idx) => {
-        obj[h] = values[idx] !== undefined ? values[idx] : '';
+      setParsedRows(rows);
+      setMessage({
+        type: 'info',
+        text: `সফলভাবে ${rows.length} টি রেকর্ড পার্স ও ভ্যালিডেট করা হয়েছে (উদ্ধৃতি চিহ্নের ভিতরের কমা সঠিকভাবে হ্যান্ডেল করা হয়েছে)।`
       });
-      rows.push(obj);
+    } catch (err: any) {
+      setMessage({ type: 'error', text: `CSV পার্স করতে ত্রুটি হয়েছে: ${err?.message || 'Invalid CSV format'}` });
     }
-
-    setParsedRows(rows);
-    setMessage({
-      type: 'info',
-      text: `Parsed ${rows.length} rows successfully. Please review the table below and confirm import.`
-    });
   };
 
   const handleCommit = () => {
@@ -103,20 +96,11 @@ Realme,Realme 12 Plus 5G,8GB,256GB,Pioneer Green,863241050000014,863241050000022
   const handleDownloadExcelTemplate = () => {
     try {
       const rawCsv = sampleTemplates[entityType];
-      const lines = rawCsv.trim().split('\n');
-      const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-      const sampleRows = lines.slice(1).map(line => {
-        const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-        const row: Record<string, any> = {};
-        headers.forEach((h, i) => {
-          row[h] = vals[i] ?? '';
-        });
-        return row;
-      });
+      const workbook = XLSX.read(rawCsv, { type: 'string' });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
 
       const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(sampleRows);
-      XLSX.utils.book_append_sheet(wb, ws, `${entityType.toUpperCase()}`);
+      XLSX.utils.book_append_sheet(wb, firstSheet, `${entityType.toUpperCase()}`);
       XLSX.writeFile(wb, `${entityType}_import_template.xlsx`);
 
       setMessage({

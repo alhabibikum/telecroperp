@@ -162,13 +162,14 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
       imeiList: [c.imeiRecord.imei1]
     }));
 
-    const walkInCust = customers.find(c => c.customerType === 'Walk-in' || c.shopName.toLowerCase().includes('walk-in')) || customers[0];
+    const walkInCust = customers.find(c => c.customerType === 'Walk-in' || c.shopName.toLowerCase().includes('walk-in') || c.id === 'cust-walkin');
+    const assignedCustomerId = walkInCust ? walkInCust.id : 'cust-walkin';
 
     const result = createSale({
       invoiceType: 'Retail POS',
-      customerId: walkInCust?.id || 'cust-walkin',
-      customerName,
-      customerPhone,
+      customerId: assignedCustomerId,
+      customerName: customerName.trim() || 'Walk-in Retail Customer',
+      customerPhone: customerPhone.trim() || '01700-000000',
       warehouseId: retailOutlet.id,
       warehouseName: retailOutlet.name,
       invoiceDate: new Date().toISOString().split('T')[0],

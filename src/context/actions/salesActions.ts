@@ -933,13 +933,76 @@ export const executeProcessPhoneExchange = (
     return p;
   }));
 
-  // 3. Register Incoming Pre-Owned Handset in IMEI Records
+  // 3. Create or Update Product Master for this specific Pre-Owned Model
+  const preOwnedModelName = `${data.oldBrand} ${data.oldModel} (Pre-owned)`;
+  const skuSlug = `USED-${data.oldBrand.toUpperCase().replace(/[^A-Z0-9]/g, '')}-${data.oldModel.toUpperCase().replace(/[^A-Z0-9]/g, '')}`;
+  
+  let targetProductId = '';
+  let targetVariantId = '';
+
+  const existingPreOwnedProd = products.find(
+    p => p.brandName.toLowerCase() === data.oldBrand.toLowerCase() &&
+         p.model.toLowerCase() === preOwnedModelName.toLowerCase()
+  );
+
+  if (existingPreOwnedProd) {
+    targetProductId = existingPreOwnedProd.id;
+    const existingVar = existingPreOwnedProd.variants[0];
+    targetVariantId = existingVar ? existingVar.id : `var-used-${Date.now()}`;
+
+    setProducts(prev => prev.map(p => {
+      if (p.id === targetProductId) {
+        const updatedVariants = p.variants.map(v =>
+          v.id === targetVariantId ? { ...v, currentStock: v.currentStock + 1, purchasePrice: data.assessedValue } : v
+        );
+        const updated = { ...p, variants: updatedVariants };
+        enqueueChange('products', 'UPDATE', p.id, updated, `প্রি-ওনড (${preOwnedModelName}) স্টক বৃদ্ধি`);
+        return updated;
+      }
+      return p;
+    }));
+  } else {
+    targetProductId = `prod-used-${Date.now()}`;
+    targetVariantId = `var-used-${Date.now()}`;
+    const newPreOwned: Product = {
+      id: targetProductId,
+      brandId: `brand-${data.oldBrand.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+      brandName: data.oldBrand,
+      model: preOwnedModelName,
+      category: 'Smartphone',
+      networkRegion: 'Pre-owned / Secondary Market',
+      warrantyPeriodMonths: 1,
+      description: `Certified customer trade-in / pre-owned device in ${data.oldCondition} condition.`,
+      status: 'Active',
+      variants: [
+        {
+          id: targetVariantId,
+          sku: skuSlug,
+          color: 'Assorted',
+          storage: 'Standard',
+          ram: 'Standard',
+          purchasePrice: data.assessedValue,
+          dealerPrice: data.assessedValue,
+          wholesalePrice: data.assessedValue,
+          retailPrice: Math.round(data.assessedValue * 1.15),
+          minSellingPrice: data.assessedValue,
+          maxDiscount: 0,
+          reorderLevel: 0,
+          currentStock: 1
+        }
+      ]
+    };
+    setProducts(prev => [newPreOwned, ...prev]);
+    enqueueChange('products', 'INSERT', newPreOwned.id, newPreOwned, `নতুন এক্সচেঞ্জ প্রোডাক্ট মাস্টার (${preOwnedModelName})`);
+  }
+
+  // 4. Register Incoming Pre-Owned Handset in IMEI Records with real product & variant IDs
   const oldImeiEntry: IMEIRecord = {
     id: `imei-used-${Date.now()}`,
     imei1: data.oldIMEI,
-    productId: 'prod-exchange',
-    productName: `${data.oldBrand} ${data.oldModel} (Pre-owned)`,
-    variantId: 'var-used',
+    productId: targetProductId,
+    productName: preOwnedModelName,
+    variantId: targetVariantId,
     variantDesc: `Pre-owned / Trade-in (${data.oldCondition})`,
     brandName: data.oldBrand,
     purchaseCost: data.assessedValue,
@@ -963,55 +1026,6 @@ export const executeProcessPhoneExchange = (
   };
   setImeis(prev => [oldImeiEntry, ...prev]);
   enqueueChange('imeis', 'INSERT', oldImeiEntry.id, oldImeiEntry, `পুরাতন ফোন স্টক ইনওয়ার্ড #${data.oldIMEI}`);
-
-  // 4. Update or Create Pre-Owned Inventory in Products
-  setProducts(prev => {
-    const existing = prev.find(p => p.id === 'prod-exchange');
-    if (existing) {
-      return prev.map(p => {
-        if (p.id === 'prod-exchange') {
-          const updated = {
-            ...p,
-            variants: p.variants.map(v => v.id === 'var-used' ? { ...v, currentStock: v.currentStock + 1 } : v)
-          };
-          enqueueChange('products', 'UPDATE', p.id, updated, `প্রি-ওনড এক্সচেঞ্জ স্টক বৃদ্ধি`);
-          return updated;
-        }
-        return p;
-      });
-    } else {
-      const newPreOwned: Product = {
-        id: 'prod-exchange',
-        brandId: 'brand-exchange',
-        brandName: data.oldBrand,
-        model: `${data.oldBrand} Pre-Owned`,
-        category: 'Smartphone',
-        networkRegion: 'Official BD',
-        warrantyPeriodMonths: 1,
-        description: 'Certified pre-owned / customer trade-in handsets',
-        status: 'Active',
-        variants: [
-          {
-            id: 'var-used',
-            sku: `USED-${data.oldBrand.toUpperCase().replace(/\s+/g, '')}-01`,
-            color: 'Assorted',
-            storage: 'Standard',
-            ram: 'Standard',
-            purchasePrice: data.assessedValue,
-            dealerPrice: data.assessedValue,
-            wholesalePrice: data.assessedValue,
-            retailPrice: Math.round(data.assessedValue * 1.15),
-            minSellingPrice: data.assessedValue,
-            maxDiscount: 0,
-            reorderLevel: 0,
-            currentStock: 1
-          }
-        ]
-      };
-      enqueueChange('products', 'INSERT', newPreOwned.id, newPreOwned, `প্রি-ওনড এক্সচেঞ্জ প্রোডাক্ট ক্রিয়েশন`);
-      return [newPreOwned, ...prev];
-    }
-  });
 
   if (data.dueAmount > 0) {
     setCustomers(prev =>

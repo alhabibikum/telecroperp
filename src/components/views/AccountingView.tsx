@@ -91,7 +91,10 @@ export const AccountingView: React.FC = () => {
   const totalLiabilities = accountsPayable + accruedVat;
 
   const ownerCapital = chartOfAccounts.find(a => a.code === '3000')?.balance ?? 25000000;
-  const retainedEarnings = totalCurrentAssets - totalLiabilities - ownerCapital;
+  const priorRetainedEarnings = chartOfAccounts.find(a => a.code === '3050')?.balance ?? 0;
+  const ownerDrawings = chartOfAccounts.find(a => a.code === '3020')?.balance ?? 0;
+  // Accumulated Retained Earnings: Prior + Current Net Profit - Drawings
+  const retainedEarnings = priorRetainedEarnings + netOperatingProfit - ownerDrawings;
   const totalEquity = ownerCapital + retainedEarnings;
 
   return (
@@ -306,7 +309,21 @@ export const AccountingView: React.FC = () => {
                   <span className="font-bold text-slate-800">{formatBDT(ownerCapital)}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
-                  <span>Retained Earnings & Accumulated Profit</span>
+                  <span>Retained Earnings (Beginning)</span>
+                  <span className="font-medium text-slate-700">{formatBDT(priorRetainedEarnings)}</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>Current Period Net Income (from P&amp;L)</span>
+                  <span className="font-bold text-emerald-700">{formatBDT(netOperatingProfit)}</span>
+                </div>
+                {ownerDrawings > 0 && (
+                  <div className="flex justify-between text-slate-600">
+                    <span>Less: Owner Drawings</span>
+                    <span className="font-medium text-rose-600">({formatBDT(ownerDrawings)})</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-slate-800 font-bold pt-1 border-t border-slate-100">
+                  <span>Accumulated Retained Earnings</span>
                   <span className="font-bold text-emerald-700">{formatBDT(retainedEarnings)}</span>
                 </div>
                 <div className="flex justify-between font-semibold text-slate-800 pt-1 border-t border-slate-100">

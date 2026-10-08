@@ -309,7 +309,130 @@ export const executeReconcileStatementEntry = (
   matchedSystemTxnId: string | undefined,
   ctx: AccountingContextBundle
 ) => {
-  const { setBankStatements, enqueueChange, addAudit } = ctx;
+  const {
+    bankStatements,
+    setBankStatements,
+    bankAccounts,
+    setBankAccounts,
+    expenses,
+    setExpenses,
+    journalEntries,
+    setJournalEntries,
+    currentUserRole,
+    enqueueChange,
+    addAudit
+  } = ctx;
+  const existingEntry = bankStatements.find(s => s.id === id);
+  if (!existingEntry) return;
+
+  const today = todayStr();
+  const bankId = existingEntry.bankAccountId || bankAccounts[0]?.id;
+  const bankAcc = bankAccounts.find(b => b.id === bankId);
+
+  // If marked as Bank Charge
+  if (status === 'Bank Charge') {
+    const chargeAmount = existingEntry.debit || existingEntry.credit || 0;
+    if (chargeAmount > 0 && bankAcc) {
+      // 1. Deduct bank balance
+      const updatedBalance = bankAcc.currentBalance - chargeAmount;
+      setBankAccounts(prev => prev.map(b => b.id === bankAcc.id ? { ...b, currentBalance: updatedBalance } : b));
+      enqueueChange('bank_accounts', 'UPDATE', bankAcc.id, { ...bankAcc, currentBalance: updatedBalance }, `ব্যাংক চার্জ কর্তন (${bankAcc.bankName})`);
+
+      // 2. Record Expense
+      const expNo = generateDocNumber('EXP', expenses.length);
+      const newExpense: Expense = {
+        id: `exp-bc-${Date.now()}`,
+        expenseNo: expNo,
+        date: existingEntry.date || today,
+        categoryId: 'cat-bank-charge',
+        categoryName: 'Bank Charges & Fees',
+        amount: chargeAmount,
+        paymentMethod: 'Bank Transfer',
+        bankAccountId: bankAcc.id,
+        recipientName: bankAcc.bankName,
+        description: `Bank Charge: ${existingEntry.description} (Ref: ${existingEntry.referenceNo})`,
+        approvedBy: currentUserRole,
+        createdAt: new Date().toISOString()
+      };
+      setExpenses(prev => [newExpense, ...prev]);
+      enqueueChange('expenses', 'INSERT', newExpense.id, newExpense, `ব্যাংক চার্জ খরচ #${expNo}`);
+
+      // 3. Post Double-Entry Journal Voucher
+      const jvNo = generateDocNumber('JV', journalEntries.length);
+      const newJv: JournalEntry = {
+        id: `jv-bc-${Date.now()}`,
+        voucherNo: jvNo,
+        date: existingEntry.date || today,
+        voucherType: 'Payment Voucher',
+        referenceNo: existingEntry.referenceNo,
+        description: `Bank Charges Debited: ${existingEntry.description}`,
+        lines: [
+          {
+            accountCode: '5080',
+            accountName: 'Bank Charges & Commissions',
+            debit: chargeAmount,
+            credit: 0,
+            memo: `Statement reconciliation fee`
+          },
+          {
+            accountCode: '1010',
+            accountName: `Bank Account (${bankAcc.bankName})`,
+            debit: 0,
+            credit: chargeAmount,
+            memo: `Auto-debited from account`
+          }
+        ],
+        totalDebit: chargeAmount,
+        totalCredit: chargeAmount,
+        createdBy: currentUserRole,
+        createdAt: today
+      };
+      setJournalEntries(prev => [newJv, ...prev]);
+      enqueueChange('journal_entries', 'INSERT', newJv.id, newJv, `ব্যাংক চার্জ জার্নাল #${jvNo}`);
+    }
+  } else if (status === 'Interest') {
+    const interestAmount = existingEntry.credit || existingEntry.debit || 0;
+    if (interestAmount > 0 && bankAcc) {
+      // 1. Credit bank balance
+      const updatedBalance = bankAcc.currentBalance + interestAmount;
+      setBankAccounts(prev => prev.map(b => b.id === bankAcc.id ? { ...b, currentBalance: updatedBalance } : b));
+      enqueueChange('bank_accounts', 'UPDATE', bankAcc.id, { ...bankAcc, currentBalance: updatedBalance }, `ব্যাংক সুদ জমা (${bankAcc.bankName})`);
+
+      // 2. Post Double-Entry Journal Voucher
+      const jvNo = generateDocNumber('JV', journalEntries.length);
+      const newJv: JournalEntry = {
+        id: `jv-int-${Date.now()}`,
+        voucherNo: jvNo,
+        date: existingEntry.date || today,
+        voucherType: 'Receipt Voucher',
+        referenceNo: existingEntry.referenceNo,
+        description: `Bank Interest Credited: ${existingEntry.description}`,
+        lines: [
+          {
+            accountCode: '1010',
+            accountName: `Bank Account (${bankAcc.bankName})`,
+            debit: interestAmount,
+            credit: 0,
+            memo: `Interest earned credited to bank`
+          },
+          {
+            accountCode: '4060',
+            accountName: 'Bank Interest & Other Income',
+            debit: 0,
+            credit: interestAmount,
+            memo: `Savings / Current deposit interest`
+          }
+        ],
+        totalDebit: interestAmount,
+        totalCredit: interestAmount,
+        createdBy: currentUserRole,
+        createdAt: today
+      };
+      setJournalEntries(prev => [newJv, ...prev]);
+      enqueueChange('journal_entries', 'INSERT', newJv.id, newJv, `ব্যাংক সুদ জার্নাল #${jvNo}`);
+    }
+  }
+
   let updatedEntry: BankStatementEntry | undefined;
   setBankStatements(prev =>
     prev.map(s => {

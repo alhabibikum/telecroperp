@@ -2931,9 +2931,29 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteStockTransfer = (id: string) => {
     const trf = stockTransfers.find(t => t.id === id);
     if (!trf) return { success: false, error: 'ট্রান্সফার রেকর্ড পাওয়া যায়নি।' };
+
+    // Revert IMEI warehouse assignment back to source warehouse
+    const allTransferImeis = trf.items ? trf.items.flatMap(it => it.imeis || []) : [];
+    if (allTransferImeis.length > 0) {
+      const fromWh = warehouses.find(w => w.id === trf.sourceWarehouseId);
+      const originName = fromWh ? fromWh.name : trf.sourceWarehouseName;
+      setImeis(prev => prev.map(im => {
+        if (allTransferImeis.includes(im.imei1)) {
+          const reverted = {
+            ...im,
+            warehouseId: trf.sourceWarehouseId,
+            warehouseName: originName
+          };
+          enqueueChange('imeis', 'UPDATE', im.id, reverted, `ট্রান্সফার ডিলিট: ওয়্যারহাউজ রিভার্সাল (${originName})`);
+          return reverted;
+        }
+        return im;
+      }));
+    }
+
     setStockTransfers(prev => prev.filter(t => t.id !== id));
     enqueueChange('stock_transfers', 'DELETE', id, null, `স্টক ট্রান্সফার মুছে ফেলা হয়েছে (${trf.transferNo})`);
-    addAudit('INVENTORY', `স্টক ট্রান্সফার ডিলিট করা হয়েছে: ${trf.transferNo}`, trf.transferNo);
+    addAudit('INVENTORY', `স্টক ট্রান্সফার ডিলিট ও রিভার্স করা হয়েছে: ${trf.transferNo}`, trf.transferNo);
     return { success: true };
   };
 
@@ -2949,9 +2969,40 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteCustomerReturn = (id: string) => {
     const ret = customerReturns.find(r => r.id === id);
     if (!ret) return { success: false, error: 'কাস্টমার রিটার্ন রেকর্ড পাওয়া যায়নি।' };
+
+    // 1. Revert Customer credit/due
+    if (ret.customerId && ret.refundOrCreditAmount > 0) {
+      setCustomers(prev => prev.map(c => {
+        if (c.id === ret.customerId) {
+          const revertedCust = { ...c, currentDue: c.currentDue + ret.refundOrCreditAmount };
+          enqueueChange('customers', 'UPDATE', c.id, revertedCust, `কাস্টমার রিটার্ন ডিলিট: বকেয়া রিভার্সাল (${c.shopName})`);
+          return revertedCust;
+        }
+        return c;
+      }));
+    }
+
+    // 2. Revert restocked IMEI back to Sold
+    if (ret.imei) {
+      setImeis(prev => prev.map(im => {
+        if (im.imei1 === ret.imei) {
+          const revertedIm: IMEIRecord = {
+            ...im,
+            status: 'Sold',
+            customerId: ret.customerId,
+            customerName: ret.customerName,
+            salesInvoiceNo: ret.originalInvoiceNo
+          };
+          enqueueChange('imeis', 'UPDATE', im.id, revertedIm, `কাস্টমার রিটার্ন ডিলিট: আইএমইআই রিভার্সাল (#${im.imei1})`);
+          return revertedIm;
+        }
+        return im;
+      }));
+    }
+
     setCustomerReturns(prev => prev.filter(r => r.id !== id));
     enqueueChange('customer_returns', 'DELETE', id, null, `কাস্টমার রিটার্ন মুছে ফেলা হয়েছে (${ret.returnNo})`);
-    addAudit('RETURNS', `কাস্টমার রিটার্ন ডিলিট করা হয়েছে: ${ret.returnNo}`, ret.returnNo);
+    addAudit('RETURNS', `কাস্টমার রিটার্ন ডিলিট ও রিভার্স করা হয়েছে: ${ret.returnNo}`, ret.returnNo);
     return { success: true };
   };
 

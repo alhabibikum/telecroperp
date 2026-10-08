@@ -543,9 +543,35 @@ export const executeUpdatePriceDropStatus = (
   id: string,
   status: PriceDropClaim['claimStatus'],
   creditNoteNo: string | undefined,
-  ctx: Pick<PurchaseContextBundle, 'setPriceDropClaims' | 'setSuppliers' | 'enqueueChange' | 'addAudit'>
+  ctx: Pick<
+    PurchaseContextBundle,
+    | 'setPriceDropClaims'
+    | 'setSuppliers'
+    | 'imeis'
+    | 'setImeis'
+    | 'products'
+    | 'setProducts'
+    | 'journalEntries'
+    | 'setJournalEntries'
+    | 'currentUserRole'
+    | 'enqueueChange'
+    | 'addAudit'
+  >
 ) => {
-  const { setPriceDropClaims, setSuppliers, enqueueChange, addAudit } = ctx;
+  const {
+    setPriceDropClaims,
+    setSuppliers,
+    imeis,
+    setImeis,
+    setProducts,
+    journalEntries,
+    setJournalEntries,
+    currentUserRole,
+    enqueueChange,
+    addAudit
+  } = ctx;
+  const today = todayStr();
+
   setPriceDropClaims(prev => prev.map(c => {
     if (c.id === id) {
       const updated = {
@@ -555,6 +581,7 @@ export const executeUpdatePriceDropStatus = (
       };
 
       if (status === 'Approved & Credited') {
+        // 1. Deduct Supplier Due Balance
         setSuppliers(sups => sups.map(s => {
           if (s.id === c.supplierId) {
             const updatedSup = { ...s, currentDue: Math.max(0, s.currentDue - c.totalClaimAmount) };
@@ -563,6 +590,85 @@ export const executeUpdatePriceDropStatus = (
           }
           return s;
         }));
+
+        // 2. Adjust purchaseCost of all In-Stock IMEIs of this model
+        if (setImeis && imeis) {
+          setImeis(prevImeis => prevImeis.map(im => {
+            if (im.productId === c.productId && im.status === 'In Stock') {
+              const adjustedCost = Math.max(0, im.purchaseCost - c.dropPerUnit);
+              const updatedIm = {
+                ...im,
+                purchaseCost: adjustedCost,
+                history: [
+                  ...im.history,
+                  {
+                    date: `${today} 12:00`,
+                    action: 'Price Drop Protection Cost Reduced',
+                    description: `Purchase cost adjusted down by ৳${c.dropPerUnit} (from ৳${im.purchaseCost} to ৳${adjustedCost}) under Claim #${c.claimNo}`,
+                    user: currentUserRole,
+                    referenceNo: c.claimNo
+                  }
+                ]
+              };
+              enqueueChange('imeis', 'UPDATE', im.id, updatedIm, `প্রাইস ড্রপ আইএমইআই কস্ট রিডাকশন (${im.imei1})`);
+              return updatedIm;
+            }
+            return im;
+          }));
+        }
+
+        // 3. Adjust Product Catalog Variant default purchasePrice
+        if (setProducts) {
+          setProducts(prevProds => prevProds.map(p => {
+            if (p.id === c.productId) {
+              const updatedVariants = p.variants.map(v => ({
+                ...v,
+                purchasePrice: Math.max(0, v.purchasePrice - c.dropPerUnit),
+                dealerPrice: Math.max(0, v.dealerPrice - c.dropPerUnit),
+                wholesalePrice: Math.max(0, v.wholesalePrice - c.dropPerUnit)
+              }));
+              const updatedP = { ...p, variants: updatedVariants };
+              enqueueChange('products', 'UPDATE', p.id, updatedP, `প্রাইস ড্রপ প্রোডাক্ট ক্যাটালগ প্রাইস রিডাকশন (${p.model})`);
+              return updatedP;
+            }
+            return p;
+          }));
+        }
+
+        // 4. Post Accounting Double-Entry Journal Voucher (JV)
+        if (setJournalEntries) {
+          const jvNo = generateDocNumber('JV', (journalEntries?.length || 0) + 1);
+          const newJv: JournalEntry = {
+            id: `jv-pdc-${Date.now()}`,
+            voucherNo: jvNo,
+            date: today,
+            voucherType: 'Journal Voucher',
+            referenceNo: c.claimNo,
+            description: `Brand Price Drop Protection Credit Note #${c.creditNoteNo || c.claimNo} for ${c.productModel}`,
+            lines: [
+              {
+                accountCode: '2000',
+                accountName: 'Accounts Payable (Supplier Due)',
+                debit: c.totalClaimAmount,
+                credit: 0,
+                memo: `Credit note applied against supplier ${c.supplierName}`
+              },
+              {
+                accountCode: '1050',
+                accountName: 'Merchandise Inventory (Stock Cost Reduction)',
+                debit: 0,
+                credit: c.totalClaimAmount,
+                memo: `Inventory cost basis reduced for ${c.eligibleStockCount} units of ${c.productModel}`
+              }
+            ],
+            totalDebit: c.totalClaimAmount,
+            totalCredit: c.totalClaimAmount,
+            createdBy: currentUserRole,
+            createdAt: today
+          };
+          setJournalEntries(prevJvs => [newJv, ...prevJvs]);
+          enqueueChange('journal_entries', 'INSERT', newJv.id, newJv, `প্রাইস ড্রপ ক্লেইম ভাউচার #${jvNo}`);
+        }
       }
 
       enqueueChange('price_drop_claims', 'UPDATE', id, updated, `প্রাইস ড্রপ ক্লেইম আপডেট #${c.claimNo}`);

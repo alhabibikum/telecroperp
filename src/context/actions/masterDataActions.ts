@@ -637,14 +637,14 @@ export const executeUpdateWarrantyStatus = (
       let actionDesc = `RMA ${targetClaim.rmaNumber} changed to ${status}.`;
 
       if (status === 'Delivered to Customer') {
-        newStatus = 'Sold';
-        actionDesc = `Repaired unit returned & delivered to customer (${targetClaim.customerName}). RMA ${targetClaim.rmaNumber} closed.`;
+        newStatus = targetClaim.customerId ? 'Sold' : 'In Stock';
+        actionDesc = `Repaired unit returned & delivered (${targetClaim.customerName || 'Store Inventory'}). RMA ${targetClaim.rmaNumber} closed.`;
       } else if (status === 'Rejected') {
-        newStatus = 'Sold';
-        actionDesc = `Warranty claim rejected. Handset returned to customer (${targetClaim.customerName}).`;
+        newStatus = targetClaim.customerId ? 'Sold' : 'In Stock';
+        actionDesc = `Warranty claim rejected. Handset returned (${targetClaim.customerName || 'Store Inventory'}).`;
       } else if (status === 'Replaced') {
         newStatus = 'Damaged';
-        actionDesc = `Replaced with new handset (${repImei || 'Issued'}). Defective unit retained in store.`;
+        actionDesc = `Replaced with replacement handset (${repImei || 'Issued'}). Defective unit retained as scrap/RMA parts.`;
       } else if (status === 'Dispatched to Service Center') {
         newStatus = 'Warranty';
         actionDesc = `Dispatched to care/service center: ${targetClaim.serviceCenterName || 'Brand Care'}`;
@@ -652,8 +652,8 @@ export const executeUpdateWarrantyStatus = (
         newStatus = 'Warranty';
         actionDesc = `Under technical repair at ${targetClaim.serviceCenterName || 'Care Center'}`;
       } else if (status === 'Repaired') {
-        newStatus = 'Warranty';
-        actionDesc = `Repair completed. Ready for customer delivery.`;
+        newStatus = targetClaim.customerId ? 'Warranty' : 'In Stock';
+        actionDesc = `Repair completed. ${targetClaim.customerId ? 'Ready for customer delivery' : 'Returned to active store stock'}.`;
       }
 
       const updatedRecord: IMEIRecord = {
