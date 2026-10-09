@@ -192,11 +192,11 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
         <div className="min-w-0">
           <div className="flex items-center">
-            <span className="font-black text-slate-900 tracking-tight text-sm sm:text-base md:text-lg uppercase whitespace-nowrap">
-              DEALERFLOW <span className="text-teal-600 font-black">ERP</span>
+            <span className="font-black text-slate-900 dark:text-white tracking-tight text-sm sm:text-base md:text-lg uppercase whitespace-nowrap">
+              DEALERFLOW <span className="text-teal-600 dark:text-teal-400 font-black">ERP</span>
             </span>
           </div>
-          <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium hidden md:block truncate">
+          <p className="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-400 font-medium hidden md:block truncate">
             Multi-Brand Smartphone & Dealer Distribution
           </p>
           </div>
@@ -287,7 +287,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="relative">
           <button
             onClick={() => setShowAlertDropdown(!showAlertDropdown)}
-            className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 relative transition"
+            className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 relative transition cursor-pointer"
             title="Real-Time Notifications, Stock Warnings & Approvals"
           >
             <Bell className="w-4 h-4" />
@@ -314,12 +314,12 @@ export const Header: React.FC<HeaderProps> = ({
             setPingResult(null);
           }}
           className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl border transition cursor-pointer shadow-2xs font-extrabold ${isSyncing
-              ? 'bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-300'
+              ? 'bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-700'
               : pendingSyncCount > 0
-                ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-400 animate-pulse'
+                ? 'bg-amber-100 dark:bg-amber-950/60 hover:bg-amber-200 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-200 border-amber-400 dark:border-amber-700 animate-pulse'
                 : isOnline
-                  ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200/80'
-                  : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800'
+                  : 'bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700'
             }`}
           title={
             isSyncing
@@ -333,7 +333,7 @@ export const Header: React.FC<HeaderProps> = ({
         >
           {isSyncing ? (
             <>
-              <RefreshCw className="w-3.5 h-3.5 text-blue-600 animate-spin" />
+              <RefreshCw className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 animate-spin" />
               <span>সিঙ্ক হচ্ছে...</span>
             </>
           ) : pendingSyncCount > 0 ? (
@@ -345,13 +345,13 @@ export const Header: React.FC<HeaderProps> = ({
             <>
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="hidden sm:inline">অনলাইন</span>
-              <Wifi className="w-3.5 h-3.5 text-emerald-600 sm:hidden" />
+              <Wifi className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 sm:hidden" />
             </>
           ) : (
             <>
               <span className="w-2 h-2 rounded-full bg-amber-500" />
               <span>অফলাইন</span>
-              <WifiOff className="w-3.5 h-3.5 text-amber-600 sm:hidden" />
+              <WifiOff className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 sm:hidden" />
             </>
           )}
         </button>
@@ -396,15 +396,19 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Dark/Light Mode Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold transition cursor-pointer shadow-2xs"
+          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border transition-all cursor-pointer shadow-2xs font-extrabold ${
+            theme === 'dark'
+              ? 'bg-slate-800 hover:bg-slate-700 text-amber-300 border-slate-700 hover:border-amber-400/50 shadow-amber-500/10'
+              : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-slate-900/5'
+          }`}
           title={theme === 'dark' ? "লাইট মোডে ফিরুন (Switch to Light Mode)" : "ডার্ক মোড সক্রিয় করুন (Switch to Dark Mode)"}
         >
           {theme === 'dark' ? (
-            <Sun className="w-3.5 h-3.5 text-amber-500" />
+            <Sun className="w-3.5 h-3.5 text-amber-400 animate-spin-slow" />
           ) : (
             <Moon className="w-3.5 h-3.5 text-slate-700" />
           )}
-          <span className="hidden sm:inline">{theme === 'dark' ? 'লাইট' : 'ডার্ক'}</span>
+          <span className="hidden sm:inline font-black">{theme === 'dark' ? 'লাইট মোড' : 'ডার্ক মোড'}</span>
         </button>
 
         {/* Check for Software Updates */}

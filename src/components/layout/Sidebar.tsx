@@ -393,28 +393,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside
       className={`relative z-20 shrink-0 h-full flex flex-col transition-all duration-300 ease-in-out select-none ${
         isExpanded
-          ? 'w-76 md:w-84 opacity-100 border-r border-slate-200/80 shadow-[4px_0_35px_rgba(15,23,42,0.06)]'
+          ? 'w-76 md:w-84 opacity-100 border-r border-slate-200/80 dark:border-slate-800/80 shadow-[4px_0_35px_rgba(15,23,42,0.06)] dark:shadow-[4px_0_40px_rgba(0,0,0,0.5)]'
           : 'w-0 opacity-0 overflow-hidden border-r-0 pointer-events-none'
-      } bg-white/90 backdrop-blur-3xl`}
+      } bg-white/85 dark:bg-slate-900/90 backdrop-blur-3xl`}
     >
       {/* Top Glossy Highlight Sheen */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500/30 via-indigo-500/40 to-teal-500/30 pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500/40 via-indigo-500/50 to-teal-500/40 dark:from-blue-400/30 dark:via-indigo-400/40 dark:to-teal-400/30 pointer-events-none z-10" />
 
       {/* Top Header: Search & Collapse Button */}
-      <div className="p-3.5 border-b border-slate-200/70 flex items-center justify-between gap-2 bg-white/50 backdrop-blur-md">
+      <div className="p-3.5 border-b border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between gap-2 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder={isBn ? 'মেন্যু সার্চ করুন...' : 'Search menu...'}
             value={filterSearch}
             onChange={(e) => setFilterSearch(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 text-xs font-bold text-slate-800 bg-slate-100/90 hover:bg-slate-100 border border-slate-200/70 rounded-2xl focus:outline-hidden focus:ring-2 focus:ring-blue-600/40 focus:bg-white transition-all shadow-inner"
+            className="w-full pl-9 pr-8 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/70 dark:border-slate-700/80 rounded-2xl focus:outline-hidden focus:ring-2 focus:ring-blue-600/40 focus:bg-white dark:focus:bg-slate-900 transition-all shadow-inner"
           />
           {filterSearch && (
             <button
               onClick={() => setFilterSearch('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-300 hover:bg-slate-400 text-slate-700 flex items-center justify-center text-[10px] font-bold"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-300 dark:bg-slate-600 hover:bg-slate-400 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 flex items-center justify-center text-[10px] font-bold cursor-pointer"
             >
               ✕
             </button>
@@ -425,10 +425,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={onToggleExpand}
-            className="p-2 rounded-2xl text-slate-600 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200/80 active:scale-95 transition-all cursor-pointer shadow-2xs border border-slate-200/60 shrink-0"
+            className="p-2 rounded-2xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 active:scale-95 transition-all cursor-pointer shadow-2xs border border-slate-200/60 dark:border-slate-700/60 shrink-0"
             title="সাইডবার লুকান (Collapse Sidebar - <)"
           >
-            <ChevronLeft className="w-5 h-5 text-slate-700 stroke-[2.5]" />
+            <ChevronLeft className="w-5 h-5 text-slate-700 dark:text-slate-300 stroke-[2.5]" />
           </button>
         )}
       </div>
@@ -436,7 +436,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Quick Launch Action Bar (Widget Dock) when not collapsed */}
       {!isCollapsed && !filterSearch && (
         <div className="px-3 pt-3 pb-1">
-          <div className="p-2 rounded-2xl bg-gradient-to-r from-slate-100/80 via-blue-50/50 to-indigo-50/50 border border-slate-200/60 flex items-center justify-around shadow-2xs">
+          <div className="p-2 rounded-2xl bg-gradient-to-r from-slate-100/80 via-blue-50/50 to-indigo-50/50 dark:from-slate-800/60 dark:via-blue-950/40 dark:to-indigo-950/40 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-around shadow-2xs">
             <button
               onClick={() => onSelectView('imei-trace')}
               className="flex flex-col items-center gap-1 group cursor-pointer"
@@ -445,10 +445,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
                 <Smartphone className="w-4 h-4" />
               </div>
-              <span className="text-[10px] font-bold text-slate-600 group-hover:text-blue-700">আইএমইআই</span>
+              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-blue-700 dark:group-hover:text-blue-400">আইএমইআই</span>
             </button>
 
-            <div className="w-px h-6 bg-slate-200" />
+            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
 
             <button
               onClick={() => onSelectView('wholesale-sales')}
@@ -458,10 +458,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
                 <ShoppingBag className="w-4 h-4" />
               </div>
-              <span className="text-[10px] font-bold text-slate-600 group-hover:text-emerald-700">নতুন সেলস</span>
+              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-emerald-700 dark:group-hover:text-emerald-400">নতুন সেলস</span>
             </button>
 
-            <div className="w-px h-6 bg-slate-200" />
+            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
 
             <button
               onClick={() => onSelectView('due-collection')}
@@ -471,7 +471,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
                 <Receipt className="w-4 h-4" />
               </div>
-              <span className="text-[10px] font-bold text-slate-600 group-hover:text-indigo-700">বকেয়া জমা</span>
+              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-indigo-700 dark:group-hover:text-indigo-400">বকেয়া জমা</span>
             </button>
           </div>
         </div>
@@ -490,10 +490,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => toggleSection(sec.title)}
                   className="px-2.5 py-1 flex items-center justify-between cursor-pointer group select-none"
                 >
-                  <span className="text-[11px] font-black uppercase text-slate-400 group-hover:text-slate-600 tracking-wider transition-colors">
+                  <span className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 tracking-wider transition-colors">
                     {sec.title}
                   </span>
-                  <span className="p-0.5 rounded-md text-slate-400 group-hover:text-slate-700 group-hover:bg-slate-100 transition-colors">
+                  <span className="p-0.5 rounded-md text-slate-400 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
                     {isSectionCollapsed ? (
                       <ChevronDown className="w-3.5 h-3.5" />
                     ) : (
@@ -505,7 +505,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               {/* Grouped Inset Card (iOS Style Grouped Table) */}
               {!isSectionCollapsed && (
-                <div className="space-y-1 bg-slate-50/50 rounded-3xl p-1 border border-slate-200/50 shadow-2xs">
+                <div className="space-y-1 bg-slate-50/60 dark:bg-slate-950/40 rounded-3xl p-1 border border-slate-200/60 dark:border-slate-800/60 shadow-2xs">
                   {sec.items.map(item => {
                     const IconComponent = item.icon;
                     const isActive = currentView === item.id;
@@ -516,8 +516,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         onClick={() => onSelectView(item.id)}
                         className={`w-full flex items-center gap-3.5 px-3 py-2.5 rounded-2xl text-left transition-all duration-200 group cursor-pointer ${
                           isActive
-                            ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white font-black shadow-[0_6px_20px_rgba(79,70,229,0.35)] scale-[1.01]'
-                            : 'text-slate-700 hover:text-slate-950 hover:bg-white/90 font-bold hover:translate-x-1 hover:shadow-xs'
+                            ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white font-black shadow-[0_6px_20px_rgba(79,70,229,0.35)] dark:shadow-[0_6px_24px_rgba(99,102,241,0.45)] scale-[1.01]'
+                            : 'text-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-white/90 dark:hover:bg-slate-800/90 font-bold hover:translate-x-1 hover:shadow-xs'
                         }`}
                         title={isCollapsed ? item.label : undefined}
                       >
@@ -526,7 +526,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 shadow-sm ${
                             isActive
                               ? 'bg-white/25 text-white shadow-inner scale-105 backdrop-blur-md border border-white/30'
-                              : `bg-gradient-to-br ${item.accent} text-white group-hover:scale-105 group-hover:shadow-md border border-white/20`
+                              : `bg-gradient-to-br ${item.accent} text-white group-hover:scale-105 group-hover:shadow-md border border-white/20 dark:border-white/10`
                           }`}
                         >
                           <IconComponent className="w-5 h-5 stroke-[2.2]" />
@@ -536,7 +536,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         {!isCollapsed && (
                           <div className="flex-1 flex items-center justify-between min-w-0">
                             <span className={`text-[15px] font-black truncate tracking-tight ${
-                              isActive ? 'text-white' : 'text-slate-800 group-hover:text-blue-900'
+                              isActive ? 'text-white' : 'text-slate-800 dark:text-slate-100 group-hover:text-blue-900 dark:group-hover:text-white'
                             }`}>
                               {item.label}
                             </span>
@@ -546,7 +546,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 className={`text-[11px] font-black px-2.5 py-0.5 rounded-full ml-2 shadow-2xs shrink-0 ${
                                   isActive
                                     ? 'bg-white text-blue-700 shadow-sm'
-                                    : (item.badgeColor || 'bg-blue-100 text-blue-800')
+                                    : (item.badgeColor || 'bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60')
                                 }`}
                               >
                                 {item.badge}
@@ -566,18 +566,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Bottom iOS Profile & Direct Logout Dock */}
       {!isCollapsed && currentUser && (
-        <div className="p-3 border-t border-slate-200/80 bg-white/70 backdrop-blur-xl">
-          <div className="p-3 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/40 border border-slate-200/70 shadow-xs space-y-2.5">
+        <div className="p-3 border-t border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl">
+          <div className="p-3 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/40 dark:from-slate-800/60 dark:to-blue-950/30 border border-slate-200/70 dark:border-slate-700/70 shadow-xs space-y-2.5">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-900 text-white flex items-center justify-center font-bold text-base shadow-sm shrink-0 border border-white/40">
+                <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-900 dark:from-blue-600 dark:to-indigo-700 text-white flex items-center justify-center font-bold text-base shadow-sm shrink-0 border border-white/40 dark:border-white/20">
                   {currentUser.avatar || '👨‍💼'}
                 </div>
                 <div className="min-w-0">
-                  <div className="font-black text-xs text-slate-900 truncate">
+                  <div className="font-black text-xs text-slate-900 dark:text-white truncate">
                     {currentUser.name}
                   </div>
-                  <div className="text-[10px] text-blue-600 font-extrabold truncate">
+                  <div className="text-[10px] text-blue-600 dark:text-blue-400 font-extrabold truncate">
                     {currentUser.role}
                   </div>
                 </div>
@@ -589,12 +589,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             {/* Quick Role Switcher (Admin/Owner) or Role Badge (Staff) + Direct Logout Row */}
-            <div className="flex items-center gap-2 pt-1 border-t border-slate-200/60">
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
               {['Super Admin', 'Owner', 'General Manager'].includes(currentUserRole) ? (
                 <select
                   value={currentUser.id}
                   onChange={(e) => loginAsDemoUser(e.target.value)}
-                  className="flex-1 py-1.5 px-2 bg-white border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700 focus:outline-hidden cursor-pointer hover:border-blue-400 transition"
+                  className="flex-1 py-1.5 px-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] font-bold text-slate-700 dark:text-slate-200 focus:outline-hidden cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition"
                   title="রোল পরিবর্তন করুন (Switch Role)"
                 >
                   {(users.length > 0 ? users : demoUsers).map(u => (
@@ -604,7 +604,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   ))}
                 </select>
               ) : (
-                <div className="flex-1 py-1 px-2.5 bg-slate-100/90 rounded-xl text-[10px] font-extrabold text-slate-600 truncate border border-slate-200">
+                <div className="flex-1 py-1 px-2.5 bg-slate-100/90 dark:bg-slate-800/90 rounded-xl text-[10px] font-extrabold text-slate-600 dark:text-slate-300 truncate border border-slate-200 dark:border-slate-700">
                   📍 {currentUser.branchName ? currentUser.branchName.split('(')[0] : currentUser.role}
                 </div>
               )}
@@ -626,9 +626,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Collapsed State Quick User Avatar with Logout on Click */}
       {isCollapsed && currentUser && (
-        <div className="p-3 border-t border-slate-200/80 flex flex-col items-center gap-2 bg-white/70">
+        <div className="p-3 border-t border-slate-200/80 dark:border-slate-800/80 flex flex-col items-center gap-2 bg-white/70 dark:bg-slate-900/70">
           <div
-            className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-900 text-white flex items-center justify-center font-bold text-base shadow-sm shrink-0 border border-white/40 cursor-pointer"
+            className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-900 dark:from-blue-600 dark:to-indigo-700 text-white flex items-center justify-center font-bold text-base shadow-sm shrink-0 border border-white/40 dark:border-white/20 cursor-pointer"
             title={`${currentUser.name} (${currentUser.role})`}
           >
             {currentUser.avatar || '👨‍💼'}
@@ -636,7 +636,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={() => logout()}
-            className="p-2 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 rounded-xl transition cursor-pointer"
+            className="p-2 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-600 hover:text-white text-rose-600 dark:text-rose-400 rounded-xl transition cursor-pointer"
             title="লগআউট (Logout)"
           >
             <LogOut className="w-4 h-4" />

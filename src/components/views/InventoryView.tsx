@@ -81,16 +81,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   return (
     <div className="p-2 sm:p-2.5 md:p-3 space-y-2.5 sm:space-y-3 w-full">
       {/* Top Banner */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-blue-600" />
-            <h2 className="text-base font-bold text-slate-900">
+            <Layers className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
               Inventory & Multi-Warehouse Stock Valuation
             </h2>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Valuation Method: <b className="text-blue-700">{settings.valuationMethod}</b> • Reorder level alerts & Serialized IMEI tracking
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Valuation Method: <b className="text-blue-700 dark:text-blue-400">{settings.valuationMethod}</b> • Reorder level alerts & Serialized IMEI tracking
           </p>
         </div>
 
@@ -100,7 +100,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               setScannerMode('lookup');
               setShowScannerModal(true);
             }}
-            className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 rounded-xl text-xs font-bold transition cursor-pointer"
             title="মাল্টি-বারকোড / IMEI দিয়ে লাইভ স্টক স্ট্যাটাস ভেরিফাই করুন"
           >
             <Scan className="w-4 h-4" />
@@ -112,7 +112,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               setScannerMode('adjustment');
               setShowScannerModal(true);
             }}
-            className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs font-bold transition cursor-pointer"
             title="সিরিয়াল বা IMEI স্ক্যান করে স্টক স্ট্যাটাস সংশোধন (Damaged / Reserved / In Stock)"
           >
             <Wrench className="w-4 h-4" />
@@ -122,16 +122,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           {onSelectView && (
             <button
               onClick={() => onSelectView('barcode-labels')}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition cursor-pointer"
             >
-              <Barcode className="w-4 h-4 text-blue-600" />
+              <Barcode className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span>Barcode Labels</span>
             </button>
           )}
 
           <button
             onClick={onOpenStockTransfer}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow-xs transition"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
           >
             <ArrowRightLeft className="w-4 h-4" />
             <span>Transfer Stock</span>
@@ -139,7 +139,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
           <button
             onClick={() => setShowNewProductModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition"
+            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>+ Add Product & Variants</span>
@@ -149,39 +149,39 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* Notification Toast */}
       {notificationMsg && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2 animate-in fade-in">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/70 text-emerald-800 dark:text-emerald-300 rounded-xl text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <span>{notificationMsg}</span>
         </div>
       )}
 
       {/* Financial KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
-        <div className="p-4 rounded-xl border border-slate-200 bg-white">
-          <div className="text-slate-500 uppercase font-semibold text-[10px]">Net Stock Valuation ({settings.valuationMethod})</div>
-          <div className="text-lg font-black text-slate-900 mt-1">{formatBDT(totalValuation)}</div>
+        <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs">
+          <div className="text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px]">Net Stock Valuation ({settings.valuationMethod})</div>
+          <div className="text-lg font-black text-slate-900 dark:text-white mt-1">{formatBDT(totalValuation)}</div>
         </div>
-        <div className="p-4 rounded-xl border border-slate-200 bg-white">
-          <div className="text-slate-500 uppercase font-semibold text-[10px]">Total Physical Handsets</div>
-          <div className="text-lg font-black text-blue-700 mt-1">{inStockImeis.length} In-Stock Units</div>
+        <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs">
+          <div className="text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px]">Total Physical Handsets</div>
+          <div className="text-lg font-black text-blue-700 dark:text-blue-400 mt-1">{inStockImeis.length} In-Stock Units</div>
         </div>
-        <div className="p-4 rounded-xl border border-slate-200 bg-white">
-          <div className="text-slate-500 uppercase font-semibold text-[10px]">Low Stock SKU Alerts</div>
-          <div className="text-lg font-black text-rose-600 mt-1">
+        <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs">
+          <div className="text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px]">Low Stock SKU Alerts</div>
+          <div className="text-lg font-black text-rose-600 dark:text-rose-400 mt-1">
             {allVariants.filter(v => v.isLowStock).length} SKUs Approaching Reorder
           </div>
         </div>
-        <div className="p-4 rounded-xl border border-slate-200 bg-white">
-          <div className="text-slate-500 uppercase font-semibold text-[10px]">Active Hubs & Outlets</div>
-          <div className="text-lg font-black text-emerald-700 mt-1">{warehouses.length} Facilities</div>
+        <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs">
+          <div className="text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px]">Active Hubs & Outlets</div>
+          <div className="text-lg font-black text-emerald-700 dark:text-emerald-400 mt-1">{warehouses.length} Facilities</div>
         </div>
       </div>
 
       {/* Filter and Search */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap gap-3 items-center justify-between">
+      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs flex flex-wrap gap-3 items-center justify-between">
         <div className="flex-1 min-w-[260px] flex items-center gap-2">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               id="inventory-search-input"
               data-search-input="true"
@@ -189,9 +189,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               placeholder="Search SKU, model name, color, specs (Ctrl+F)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-14 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:bg-white"
+              className="w-full pl-9 pr-14 py-1.5 text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-600 focus:bg-white dark:focus:bg-slate-800 transition"
             />
-            <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-slate-200/60 px-1 py-0.5 rounded border border-slate-300/80 pointer-events-none">
+            <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-slate-700/60 px-1 py-0.5 rounded border border-slate-300/80 dark:border-slate-600 pointer-events-none">
               ^F
             </kbd>
           </div>
@@ -201,7 +201,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               setScannerMode('lookup');
               setShowScannerModal(true);
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition shrink-0 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 rounded-lg text-xs font-bold transition shrink-0 cursor-pointer"
             title="বারকোড বা IMEI স্ক্যান করে ইনভেন্টরি ফিল্টার করুন"
           >
             <Scan className="w-3.5 h-3.5" />
@@ -210,11 +210,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2 text-xs">
-          <label className="text-slate-500 font-semibold">Filter Brand:</label>
+          <label className="text-slate-500 dark:text-slate-400 font-semibold">Filter Brand:</label>
           <select
             value={selectedBrand}
             onChange={(e) => setSelectedBrand(e.target.value)}
-            className="p-1.5 bg-slate-50 border border-slate-300 rounded-lg font-semibold text-slate-700"
+            className="p-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg font-semibold text-slate-700 dark:text-slate-200"
           >
             <option value="All">All Brands</option>
             {brands.map(b => (
@@ -225,11 +225,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       </div>
 
       {/* Stock Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-bold">
+              <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 uppercase text-[10px] font-bold">
                 <th className="p-3">Model / Description</th>
                 <th className="p-3">SKU & Specs</th>
                 <th className="p-3">Region & Approval</th>
@@ -242,48 +242,48 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {allVariants.map(({ product, variant, liveStockCount, isLowStock, totalVariantValue }) => (
-                <tr key={variant.id} className="hover:bg-slate-50 transition">
-                  <td className="p-3 font-semibold text-slate-900">
+                <tr key={variant.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition">
+                  <td className="p-3 font-semibold text-slate-900 dark:text-slate-100">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-bold">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/50 font-bold">
                         {product.brandName}
                       </span>
                       <span>{product.model}</span>
                     </div>
                   </td>
                   <td className="p-3">
-                    <div className="font-mono text-slate-800 font-semibold">{variant.sku}</div>
-                    <div className="text-[10px] text-slate-500">{variant.ram}/{variant.storage} • {variant.color}</div>
+                    <div className="font-mono text-slate-800 dark:text-slate-200 font-semibold">{variant.sku}</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400">{variant.ram}/{variant.storage} • {variant.color}</div>
                   </td>
-                  <td className="p-3 text-slate-600">
-                    <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full border border-slate-200">
+                  <td className="p-3 text-slate-600 dark:text-slate-400">
+                    <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
                       {product.networkRegion}
                     </span>
                   </td>
-                  <td className="p-3 text-right font-medium text-slate-700">
+                  <td className="p-3 text-right font-medium text-slate-700 dark:text-slate-300">
                     {formatBDT(variant.purchasePrice)}
                   </td>
-                  <td className="p-3 text-right font-bold text-blue-700">
+                  <td className="p-3 text-right font-bold text-blue-700 dark:text-blue-400">
                     {formatBDT(variant.wholesalePrice)}
                   </td>
-                  <td className="p-3 text-right font-bold text-slate-900">
+                  <td className="p-3 text-right font-bold text-slate-900 dark:text-slate-100">
                     {formatBDT(variant.retailPrice)}
                   </td>
-                  <td className="p-3 text-center text-slate-500 font-medium">
+                  <td className="p-3 text-center text-slate-500 dark:text-slate-400 font-medium">
                     {variant.reorderLevel}
                   </td>
                   <td className="p-3 text-center">
                     <span className={`inline-block font-extrabold text-xs px-2.5 py-0.5 rounded-full ${
                       isLowStock
-                        ? 'bg-rose-100 text-rose-800 border border-rose-300 animate-pulse'
-                        : 'bg-emerald-100 text-emerald-800'
+                        ? 'bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800/60 animate-pulse'
+                        : 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/50'
                     }`}>
                       {liveStockCount} Units
                     </span>
                   </td>
-                  <td className="p-3 text-right font-black text-slate-900">
+                  <td className="p-3 text-right font-black text-slate-900 dark:text-white">
                     {formatBDT(totalVariantValue)}
                   </td>
                   <td className="p-3 text-right">

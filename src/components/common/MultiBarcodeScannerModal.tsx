@@ -512,31 +512,31 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
       onClick={e => e.stopPropagation()}
     >
       <div
-        className="relative bg-white/95 backdrop-blur-2xl rounded-3xl shadow-[0_25px_70px_-15px_rgba(0,0,0,0.4)] w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden border border-white/70 animate-in zoom-in-95 duration-200"
+        className="relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-3xl shadow-[0_25px_70px_-15px_rgba(0,0,0,0.5)] w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden border border-white/70 dark:border-slate-800 animate-in zoom-in-95 duration-200"
         onClick={e => e.stopPropagation()}
       >
         {/* Top Gloss Sheen */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-teal-500 via-blue-600 to-indigo-600 pointer-events-none z-20" />
 
         {/* Modal Header */}
-        <div className="px-5 py-4 border-b border-slate-200/80 bg-white/70 backdrop-blur-md flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/80 backdrop-blur-md flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-700 text-white flex items-center justify-center font-bold shadow-md shadow-blue-500/20">
               <Barcode className="w-6 h-6 stroke-[2.2]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
                   {displayTitle}
                 </h2>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
                   {mode.toUpperCase()}
                 </span>
-                <span className="text-[9px] bg-blue-50 text-blue-700 font-black px-1.5 py-0.5 rounded uppercase">
+                <span className="text-[9px] bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-black px-1.5 py-0.5 rounded uppercase">
                   সাব-উইন্ডো
                 </span>
               </div>
-              <p className="text-xs text-slate-500 font-medium line-clamp-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
                 {displayDescription}
               </p>
             </div>
@@ -547,10 +547,10 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
             <button
               onClick={handleToggleSound}
               title={soundOn ? 'স্ক্যানার সাউন্ড চালু (মিউট করতে ক্লিক করুন)' : 'স্ক্যানার সাউন্ড বন্ধ (সাউন্ড চালু করতে ক্লিক করুন)'}
-              className={`p-2 rounded-xl border transition ${
+              className={`p-2 rounded-xl border transition cursor-pointer ${
                 soundOn
-                  ? 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100'
-                  : 'bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200'
+                  ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/60 hover:bg-blue-100 dark:hover:bg-blue-900/40'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
               {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
@@ -563,7 +563,7 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
                 stopCamera();
                 onClose();
               }}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-800 hover:text-slate-950 border border-amber-300 font-black text-xs transition cursor-pointer"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-800 dark:text-amber-300 hover:text-slate-950 dark:hover:text-slate-950 border border-amber-300 dark:border-amber-700 font-black text-xs transition cursor-pointer"
               title="উইন্ডোটি স্কিপ করুন"
             >
               <span>স্কিপ (Skip)</span>
@@ -583,13 +583,13 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
         </div>
 
         {/* 4 Input Tabs */}
-        <div className="flex border-b border-slate-200 bg-slate-50/80 px-5 pt-2 gap-2 overflow-x-auto">
+        <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 px-5 pt-2 gap-2 overflow-x-auto">
           <button
             onClick={() => setActiveTab('hardware')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition border-b-2 cursor-pointer ${
               activeTab === 'hardware'
-                ? 'bg-white text-blue-700 border-blue-600 shadow-xs'
-                : 'text-slate-600 border-transparent hover:text-slate-900 hover:bg-white/50'
+                ? 'bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 border-blue-600 dark:border-blue-500 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 border-transparent hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800'
             }`}
           >
             <Barcode className="w-4 h-4" />
@@ -601,8 +601,8 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
             onClick={() => setActiveTab('camera')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition border-b-2 cursor-pointer ${
               activeTab === 'camera'
-                ? 'bg-white text-blue-700 border-blue-600 shadow-xs'
-                : 'text-slate-600 border-transparent hover:text-slate-900 hover:bg-white/50'
+                ? 'bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 border-blue-600 dark:border-blue-500 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 border-transparent hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800'
             }`}
           >
             <Camera className="w-4 h-4" />
@@ -614,8 +614,8 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
             onClick={() => setActiveTab('keyboard')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition border-b-2 cursor-pointer ${
               activeTab === 'keyboard'
-                ? 'bg-white text-blue-700 border-blue-600 shadow-xs'
-                : 'text-slate-600 border-transparent hover:text-slate-900 hover:bg-white/50'
+                ? 'bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 border-blue-600 dark:border-blue-500 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 border-transparent hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800'
             }`}
           >
             <Keyboard className="w-4 h-4" />
@@ -626,8 +626,8 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
             onClick={() => setActiveTab('paste')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition border-b-2 cursor-pointer ${
               activeTab === 'paste'
-                ? 'bg-white text-blue-700 border-blue-600 shadow-xs'
-                : 'text-slate-600 border-transparent hover:text-slate-900 hover:bg-white/50'
+                ? 'bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 border-blue-600 dark:border-blue-500 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 border-transparent hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800'
             }`}
           >
             <ClipboardPaste className="w-4 h-4" />
@@ -636,21 +636,21 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
         </div>
 
         {/* Upper Input Engine Box */}
-        <div className="p-4 sm:p-5 bg-slate-50 border-b border-slate-200">
+        <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800">
           {/* TAB 1: Hardware Barcode Gun */}
           {activeTab === 'hardware' && (
-            <div className="flex flex-col md:flex-row items-center gap-4 bg-white p-4 rounded-2xl border border-blue-200 shadow-xs">
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 shadow-inner">
+            <div className="flex flex-col md:flex-row items-center gap-4 bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-blue-200 dark:border-blue-800/60 shadow-xs">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-800/60 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 shadow-inner">
                 <Barcode className="w-7 h-7" />
               </div>
               <div className="flex-1 text-center md:text-left">
                 <div className="flex items-center justify-center md:justify-start gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <h4 className="font-black text-slate-800 text-sm">
+                  <h4 className="font-black text-slate-800 dark:text-slate-200 text-sm">
                     হ্যান্ডহেল্ড বারকোড গান / USB স্ক্যানার সক্রিয় (Listening)
                   </h4>
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   ডিভাইসের বক্সে থাকা বারকোড বা IMEI-এর দিকে স্ক্যানার তাক করে ট্রিগার প্রেস করুন। কোডগুলো স্বয়ংক্রিয়ভাবে নিচে তালিকাভুক্ত হবে।
                 </p>
               </div>
@@ -669,7 +669,7 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
                       setHardwareBufferInput('');
                     }
                   }}
-                  className="w-full md:w-64 px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white font-mono"
+                  className="w-full md:w-64 px-3 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:bg-white dark:focus:bg-slate-900 font-mono"
                   autoFocus
                 />
                 <button
@@ -811,7 +811,7 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
                     placeholder="Enter or paste single 15-digit IMEI or Barcode and press Enter..."
                     value={keyboardSingleInput}
                     onChange={(e) => setKeyboardSingleInput(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-hidden font-mono"
+                    className="w-full pl-9 pr-3 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden font-mono"
                     autoFocus
                   />
                 </div>
@@ -823,8 +823,8 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
                   <span>Add Code</span>
                 </button>
               </div>
-              <p className="text-[11px] text-slate-500">
-                টিপস: আপনি টাইপ বা স্ক্যান করার পর সরাসরি <kbd className="px-1.5 py-0.5 bg-slate-200 rounded text-slate-800 font-semibold font-mono">Enter</kbd> চাপলেই ডিভাইসটি ব্যাচে যুক্ত হবে।
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                টিপস: আপনি টাইপ বা স্ক্যান করার পর সরাসরি <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-slate-800 dark:text-slate-200 font-semibold font-mono">Enter</kbd> চাপলেই ডিভাইসটি ব্যাচে যুক্ত হবে।
               </p>
             </form>
           )}
@@ -837,17 +837,17 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
                 placeholder="Paste multiple Barcodes or IMEIs separated by newlines, commas, semicolons, or spaces (e.g. from Excel or Supplier Invoice)..."
                 value={rawPastedText}
                 onChange={(e) => setRawPastedText(e.target.value)}
-                className="w-full p-3 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:outline-hidden font-mono"
+                className="w-full p-3 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:outline-hidden font-mono"
               />
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="text-[11px] text-slate-500">
-                  Detected Tokens: <b>{extractTokensFromRaw(rawPastedText).length}</b>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Detected Tokens: <b className="text-slate-800 dark:text-slate-200">{extractTokensFromRaw(rawPastedText).length}</b>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setRawPastedText('')}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition cursor-pointer"
+                    className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold transition cursor-pointer"
                   >
                     Clear Text
                   </button>
@@ -866,21 +866,21 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
           )}
 
           {/* Rapid Test Buttons */}
-          <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-3 border-t border-slate-200 text-xs text-slate-500">
+          <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
             <div className="flex items-center gap-2">
               <Zap className="w-3.5 h-3.5 text-amber-500" />
               <span>দ্রুত টেস্ট স্যাম্পল:</span>
               <button
                 type="button"
                 onClick={handleFillSampleValid}
-                className="px-2.5 py-1 bg-white hover:bg-slate-100 text-blue-600 font-semibold rounded-lg border border-slate-200 transition cursor-pointer"
+                className="px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-blue-600 dark:text-blue-400 font-semibold rounded-lg border border-slate-200 dark:border-slate-700 transition cursor-pointer"
               >
                 + Valid Sample Units
               </button>
               <button
                 type="button"
                 onClick={handleFillSampleMixed}
-                className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 font-semibold rounded-lg border border-slate-200 transition cursor-pointer"
+                className="px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 font-semibold rounded-lg border border-slate-200 dark:border-slate-700 transition cursor-pointer"
               >
                 + Mixed Test (With Duplicates)
               </button>
@@ -890,7 +890,7 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
               <button
                 type="button"
                 onClick={handleClearAll}
-                className="text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1 cursor-pointer"
+                className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 font-semibold flex items-center gap-1 cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>সব মুছুন ({totalCount})</span>
@@ -900,37 +900,37 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
         </div>
 
         {/* Lower Scanned Verification & Selection Dashboard */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-white">
+        <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-900">
           {/* Status Metrics Bar */}
-          <div className="px-5 py-3 border-b border-slate-200 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3">
+          <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-slate-700 mr-1">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mr-1">
                 ব্যাচ বিশ্লেষণ:
               </span>
 
               {/* Total */}
-              <div className="px-2.5 py-1 rounded-xl bg-slate-200/80 text-slate-800 text-xs font-semibold">
-                মোট: <b className="font-mono text-slate-900">{totalCount}</b>
+              <div className="px-2.5 py-1 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-800 dark:text-slate-300 text-xs font-semibold">
+                মোট: <b className="font-mono text-slate-900 dark:text-white">{totalCount}</b>
               </div>
 
               {/* Valid */}
-              <div className="px-2.5 py-1 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-semibold border border-emerald-200 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <div className="px-2.5 py-1 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 text-xs font-semibold border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>বৈধ: <b className="font-mono">{validCount}</b></span>
               </div>
 
               {/* Duplicates in Batch */}
               {duplicateBatchCount > 0 && (
-                <div className="px-2.5 py-1 rounded-xl bg-amber-100 text-amber-800 text-xs font-semibold border border-amber-200 flex items-center gap-1">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                <div className="px-2.5 py-1 rounded-xl bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 text-xs font-semibold border border-amber-200 dark:border-amber-800/60 flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                   <span>ডুপ্লিকেট: <b className="font-mono">{duplicateBatchCount}</b></span>
                 </div>
               )}
 
               {/* Other Issues */}
               {issueCount - duplicateBatchCount > 0 && (
-                <div className="px-2.5 py-1 rounded-xl bg-rose-100 text-rose-800 text-xs font-semibold border border-rose-200 flex items-center gap-1">
-                  <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                <div className="px-2.5 py-1 rounded-xl bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 text-xs font-semibold border border-rose-200 dark:border-rose-800/60 flex items-center gap-1">
+                  <XCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
                   <span>ত্রুটি: <b className="font-mono">{issueCount - duplicateBatchCount}</b></span>
                 </div>
               )}
@@ -938,27 +938,33 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
 
             {/* Filter Pills & Actions */}
             <div className="flex items-center gap-2">
-              <div className="flex rounded-xl bg-slate-200/70 p-0.5 text-xs font-semibold">
+              <div className="flex rounded-xl bg-slate-200/70 dark:bg-slate-800 p-0.5 text-xs font-semibold">
                 <button
                   onClick={() => setResultFilter('all')}
-                  className={`px-2.5 py-1 rounded-lg transition ${
-                    resultFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                    resultFilter === 'all'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
                   সব ({totalCount})
                 </button>
                 <button
                   onClick={() => setResultFilter('valid')}
-                  className={`px-2.5 py-1 rounded-lg transition ${
-                    resultFilter === 'valid' ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                    resultFilter === 'valid'
+                      ? 'bg-white dark:bg-slate-700 text-emerald-800 dark:text-emerald-300 shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
                   বৈধ ({validCount})
                 </button>
                 <button
                   onClick={() => setResultFilter('issues')}
-                  className={`px-2.5 py-1 rounded-lg transition ${
-                    resultFilter === 'issues' ? 'bg-white text-rose-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                    resultFilter === 'issues'
+                      ? 'bg-white dark:bg-slate-700 text-rose-800 dark:text-rose-300 shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
                   সতর্কতা ({issueCount})
@@ -968,7 +974,7 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
               {issueCount > 0 && (
                 <button
                   onClick={handleRemoveInvalidAndDuplicates}
-                  className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-xs font-semibold transition"
+                  className="px-2.5 py-1 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 rounded-lg text-xs font-semibold transition cursor-pointer"
                 >
                   সমস্যাযুক্তগুলো সরান
                 </button>
@@ -978,25 +984,25 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
 
           {/* Quick Sub-toolbar: Search & Select */}
           {totalCount > 0 && (
-            <div className="px-5 py-2.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs bg-white">
+            <div className="px-5 py-2.5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs bg-white dark:bg-slate-900">
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleSelectAll}
-                  className="text-blue-600 hover:underline font-semibold"
+                  className="text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
                 >
                   সব নির্বাচন ({filteredResults.length})
                 </button>
-                <span className="text-slate-300">|</span>
+                <span className="text-slate-300 dark:text-slate-700">|</span>
                 <button
                   onClick={handleDeselectAll}
-                  className="text-slate-500 hover:underline"
+                  className="text-slate-500 dark:text-slate-400 hover:underline cursor-pointer"
                 >
                   নির্বাচন বাতিল
                 </button>
-                <span className="text-slate-300">|</span>
+                <span className="text-slate-300 dark:text-slate-700">|</span>
                 <button
                   onClick={handleCopyTokens}
-                  className="text-slate-600 hover:text-slate-900 font-semibold flex items-center gap-1"
+                  className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-semibold flex items-center gap-1 cursor-pointer"
                 >
                   <Copy className="w-3.5 h-3.5" />
                   <span>কপি ({selectedTokenIds.size})</span>
@@ -1010,34 +1016,34 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
                   placeholder="Filter scanned list..."
                   value={searchFilterText}
                   onChange={(e) => setSearchFilterText(e.target.value)}
-                  className="w-full pl-8 pr-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-600 focus:bg-white"
+                  className="w-full pl-8 pr-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 focus:ring-1 focus:ring-blue-600 focus:bg-white dark:focus:bg-slate-800 placeholder-slate-400 dark:placeholder-slate-500"
                 />
               </div>
             </div>
           )}
 
           {/* Table / List of Scanned Items */}
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
             {totalCount === 0 ? (
               <div className="p-10 text-center space-y-3">
-                <div className="w-14 h-14 mx-auto rounded-3xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500 shadow-inner">
+                <div className="w-14 h-14 mx-auto rounded-3xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/50 flex items-center justify-center text-blue-500 dark:text-blue-400 shadow-inner">
                   <Barcode className="w-7 h-7" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-700 text-sm">
+                  <h4 className="font-bold text-slate-700 dark:text-slate-200 text-sm">
                     কোনো বারকোড বা IMEI স্ক্যান করা হয়নি
                   </h4>
-                  <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
+                  <p className="text-xs text-slate-400 dark:text-slate-500 max-w-sm mx-auto mt-1">
                     হ্যান্ডহেল্ড বারকোড গান ব্যবহার করে স্ক্যান করুন, ক্যামেরা চালু করুন, অথবা বাল্ক টেক্সট পেস্ট করুন।
                   </p>
                 </div>
               </div>
             ) : filteredResults.length === 0 ? (
-              <div className="p-8 text-center text-xs text-slate-400">
+              <div className="p-8 text-center text-xs text-slate-400 dark:text-slate-500">
                 ফিল্টারের সাথে মেলে এমন কোনো রেকর্ড নেই।
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredResults.map((item, idx) => {
                   const isSelected = selectedTokenIds.has(item.id);
                   return (
@@ -1046,9 +1052,9 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
                       className={`px-5 py-3 flex items-center justify-between gap-3 transition text-xs ${
                         item.status === 'valid'
                           ? isSelected
-                            ? 'bg-blue-50/40 hover:bg-blue-50/70'
-                            : 'hover:bg-slate-50'
-                          : 'bg-rose-50/30 hover:bg-rose-50/50'
+                            ? 'bg-blue-50/40 dark:bg-blue-950/40 hover:bg-blue-50/70 dark:hover:bg-blue-950/60'
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                          : 'bg-rose-50/30 dark:bg-rose-950/30 hover:bg-rose-50/50 dark:hover:bg-rose-950/40'
                       }`}
                     >
                       {/* Left: Checkbox + Code info */}
@@ -1060,16 +1066,16 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
                           className="w-4 h-4 rounded text-blue-600 accent-blue-600 cursor-pointer"
                         />
 
-                        <span className="text-slate-400 font-mono text-[11px] w-5 text-right shrink-0">
+                        <span className="text-slate-400 dark:text-slate-500 font-mono text-[11px] w-5 text-right shrink-0">
                           {idx + 1}.
                         </span>
 
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-mono font-bold text-slate-900 tracking-wider text-xs">
+                            <span className="font-mono font-bold text-slate-900 dark:text-slate-100 tracking-wider text-xs">
                               {item.cleanToken}
                             </span>
-                            <span className="text-[10px] uppercase font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                            <span className="text-[10px] uppercase font-bold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                               {item.formatType}
                             </span>
                             <span
@@ -1081,29 +1087,29 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
 
                           {/* Device / DB Details */}
                           {item.dbRecord ? (
-                            <div className="text-[11px] text-slate-600 mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
-                              <span className="font-medium text-slate-800">
+                            <div className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                              <span className="font-medium text-slate-800 dark:text-slate-200">
                                 {item.dbRecord.productName}
                               </span>
-                              <span className="text-slate-400">•</span>
-                              <span className="text-slate-500">
+                              <span className="text-slate-400 dark:text-slate-600">•</span>
+                              <span className="text-slate-500 dark:text-slate-400">
                                 {item.dbRecord.variantDesc}
                               </span>
-                              <span className="text-slate-400">•</span>
-                              <span className="text-blue-700 font-medium">
+                              <span className="text-slate-400 dark:text-slate-600">•</span>
+                              <span className="text-blue-700 dark:text-blue-400 font-medium">
                                 {item.dbRecord.warehouseName}
                               </span>
                               {item.dbRecord.customerName && (
                                 <>
-                                  <span className="text-slate-400">•</span>
-                                  <span className="text-purple-700">
+                                  <span className="text-slate-400 dark:text-slate-600">•</span>
+                                  <span className="text-purple-700 dark:text-purple-400">
                                     Customer: {item.dbRecord.customerName}
                                   </span>
                                 </>
                               )}
                             </div>
                           ) : item.statusDetails ? (
-                            <div className="text-[11px] text-slate-500 mt-0.5">
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                               {item.statusDetails}
                             </div>
                           ) : null}
@@ -1115,7 +1121,7 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
                         <button
                           type="button"
                           onClick={() => handleRemoveToken(idx)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition cursor-pointer"
                           title="এই আইটেমটি সরান"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1130,10 +1136,10 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
         </div>
 
         {/* Modal Footer */}
-        <div className="px-5 py-3.5 border-t border-slate-200 bg-slate-50/90 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-xs text-slate-600">
-            নির্বাচিত: <b className="font-mono text-blue-700">{selectedTokenIds.size}</b> / মোট:{' '}
-            <b className="font-mono">{totalCount}</b>
+        <div className="px-5 py-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/70 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-xs text-slate-600 dark:text-slate-400">
+            নির্বাচিত: <b className="font-mono text-blue-700 dark:text-blue-400">{selectedTokenIds.size}</b> / মোট:{' '}
+            <b className="font-mono text-slate-900 dark:text-slate-200">{totalCount}</b>
           </div>
 
           <div className="flex items-center gap-2">
@@ -1143,7 +1149,7 @@ export const MultiBarcodeScannerModal: React.FC<MultiBarcodeScannerModalProps> =
                 stopCamera();
                 onClose();
               }}
-              className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition cursor-pointer"
+              className="px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
             >
               বাতিল (Close)
             </button>

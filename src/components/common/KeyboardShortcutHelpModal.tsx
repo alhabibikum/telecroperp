@@ -113,26 +113,26 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
       aria-modal="true"
     >
       <div
-        className="relative bg-white/95 backdrop-blur-2xl rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)] w-full max-w-4xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150"
+        className="relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5)] w-full max-w-4xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150"
         onClick={e => e.stopPropagation()}
       >
         {/* Header bar */}
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+        <div className="p-5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/60">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                 টেলিকর্প ইআরপি • অপারেশনাল সেন্টার ও সহায়িকা
-                <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full border border-indigo-200">
+                <span className="text-[10px] bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold px-2 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800/60">
                   v3.2 Enterprise
                 </span>
-                <span className="text-[9px] bg-blue-100 text-blue-700 font-black px-1.5 py-0.5 rounded uppercase">
+                <span className="text-[9px] bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-black px-1.5 py-0.5 rounded uppercase">
                   সাব-উইন্ডো
                 </span>
               </h3>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                 Complete User Operation SOP, Keyboard Engine & Staff Training Curriculum
               </p>
             </div>
@@ -143,10 +143,10 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
               download="TeleCorp_ERP_Operation_Guide.pdf"
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold border border-red-200 transition-colors shadow-xs"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-bold border border-red-200 dark:border-red-900/50 transition-colors shadow-xs"
               title="Download Full User Guide in PDF format"
             >
-              <FileText className="w-3.5 h-3.5 text-red-600" />
+              <FileText className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
               <span>PDF গাইড</span>
               <Download className="w-3 h-3 text-red-500" />
             </a>
@@ -155,10 +155,10 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
               download="TeleCorp_ERP_Operation_Guide.docx"
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 transition-colors shadow-xs"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-900/50 transition-colors shadow-xs"
               title="Download Full User Guide in Microsoft Word (.docx) format"
             >
-              <FileText className="w-3.5 h-3.5 text-blue-600" />
+              <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
               <span>Word গাইড</span>
               <Download className="w-3 h-3 text-blue-500" />
             </a>
@@ -167,7 +167,7 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
             <button
               type="button"
               onClick={onClose}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-800 hover:text-slate-950 border border-amber-300 font-black text-xs transition cursor-pointer"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-800 dark:text-amber-300 hover:text-slate-950 dark:hover:text-slate-950 border border-amber-300 dark:border-amber-700 font-black text-xs transition cursor-pointer"
               title="উইন্ডোটি স্কিপ করুন"
             >
               <span>স্কিপ (Skip)</span>
@@ -186,14 +186,14 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
         </div>
 
         {/* Tab Navigation */}
-        <div className="px-5 pt-3 border-b border-slate-100 bg-white flex items-center gap-2">
+        <div className="px-5 pt-3 border-b border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-900 flex items-center gap-2">
           <button
             type="button"
             onClick={() => setActiveTab('shortcuts')}
             className={`flex items-center gap-2 pb-3 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer ${
               activeTab === 'shortcuts'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             <Keyboard className="w-4 h-4" />
@@ -205,8 +205,8 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
             onClick={() => setActiveTab('guide')}
             className={`flex items-center gap-2 pb-3 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer ${
               activeTab === 'guide'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             <Zap className="w-4 h-4" />
@@ -218,13 +218,13 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
             onClick={() => setActiveTab('training')}
             className={`flex items-center gap-2 pb-3 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer ${
               activeTab === 'training'
-                ? 'border-emerald-600 text-emerald-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             <GraduationCap className="w-4 h-4" />
             <span>নতুন কর্মী ট্রেনিং মোড (Training Checklist)</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 font-black">
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-black">
               {completedCount}/{TRAINING_MODULES.length}
             </span>
           </button>
@@ -232,9 +232,9 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
 
         {/* TAB CONTENT 1: SHORTCUTS */}
         {activeTab === 'shortcuts' && (
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-900">
             {/* Filter & Search Bar */}
-            <div className="p-4 border-b border-slate-100 bg-white flex flex-col sm:flex-row items-center gap-3">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-900 flex flex-col sm:flex-row items-center gap-3">
               <div className="relative w-full sm:flex-1">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
@@ -242,7 +242,7 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="শর্টকাট বা কমান্ড সার্চ করুন (যেমন: Enter, Save, Print)..."
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-hidden focus:border-blue-500 focus:bg-white transition-all"
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-hidden focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
                 />
               </div>
 
@@ -255,7 +255,7 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                       selectedCategory === cat
                         ? 'bg-blue-600 text-white shadow-xs'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                     }`}
                   >
                     {cat === 'All' ? 'সকল' : cat}
@@ -267,14 +267,14 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
             {/* Shortcuts Grid */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {/* Key Principle Notice Banner */}
-              <div className="p-3.5 rounded-2xl bg-linear-to-r from-blue-50 via-indigo-50 to-teal-50 border border-blue-200/80 flex items-start gap-3">
-                <Zap className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+              <div className="p-3.5 rounded-2xl bg-linear-to-r from-blue-50 via-indigo-50 to-teal-50 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-teal-950/40 border border-blue-200/80 dark:border-blue-800/60 flex items-start gap-3">
+                <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
                 <div className="text-xs space-y-1">
-                  <span className="font-bold text-slate-800">
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
                     স্মার্ট ফর্ম ট্রাভার্সাল (Auto-Focus & Enter Navigation):
                   </span>
-                  <p className="text-slate-600 leading-relaxed text-[11px]">
-                    যে কোনো ফর্মে <kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded-md font-mono font-bold text-slate-800 text-[10px]">Enter</kbd> চাপলে স্বয়ংক্রিয়ভাবে পরবর্তী ফিল্ডে ফোকাস চলে যাবে। শেষ ফিল্ডে অথবা যে কোনো ফিল্ড থেকে <kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded-md font-mono font-bold text-slate-800 text-[10px]">Ctrl + Enter</kbd> চাপলে সরাসরি সেভ/কনফার্ম হবে।
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-[11px]">
+                    যে কোনো ফর্মে <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md font-mono font-bold text-slate-800 dark:text-slate-200 text-[10px]">Enter</kbd> চাপলে স্বয়ংক্রিয়ভাবে পরবর্তী ফিল্ডে ফোকাস চলে যাবে। শেষ ফিল্ডে অথবা যে কোনো ফিল্ড থেকে <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md font-mono font-bold text-slate-800 dark:text-slate-200 text-[10px]">Ctrl + Enter</kbd> চাপলে সরাসরি সেভ/কনফার্ম হবে।
                   </p>
                 </div>
               </div>
@@ -283,13 +283,13 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
                 {filteredShortcuts.map((item, idx) => (
                   <div
                     key={idx}
-                    className="p-3 bg-white rounded-2xl border border-slate-200 hover:border-blue-300 hover:shadow-xs transition-all flex items-center justify-between gap-3 group"
+                    className="p-3 bg-white dark:bg-slate-800/70 rounded-2xl border border-slate-200 dark:border-slate-700/80 hover:border-blue-300 dark:hover:border-blue-500/50 hover:shadow-xs transition-all flex items-center justify-between gap-3 group"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {item.labelBn}
                       </div>
-                      <div className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">
                         {item.labelEn}
                       </div>
                     </div>
@@ -297,7 +297,7 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
                     <div className="shrink-0 flex items-center gap-1 font-mono">
                       {item.keys.map((k, kIdx) => (
                         <React.Fragment key={kIdx}>
-                          <kbd className="px-2 py-1 bg-slate-100 group-hover:bg-blue-50 group-hover:border-blue-300 text-slate-700 group-hover:text-blue-700 font-bold text-[11px] rounded-lg border border-slate-300 shadow-2xs">
+                          <kbd className="px-2 py-1 bg-slate-100 dark:bg-slate-900/80 group-hover:bg-blue-50 dark:group-hover:bg-blue-950/60 group-hover:border-blue-300 dark:group-hover:border-blue-700 text-slate-700 dark:text-slate-300 group-hover:text-blue-700 dark:group-hover:text-blue-300 font-bold text-[11px] rounded-lg border border-slate-300 dark:border-slate-700 shadow-2xs">
                             {k}
                           </kbd>
                           {kIdx < item.keys.length - 1 && (
@@ -311,7 +311,7 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
               </div>
 
               {filteredShortcuts.length === 0 && (
-                <div className="text-center py-12 text-slate-400 text-xs font-medium">
+                <div className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs font-medium">
                   কোনো শর্টকাট খুঁজে পাওয়া যায়নি।
                 </div>
               )}
@@ -321,88 +321,88 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
 
         {/* TAB CONTENT 2: MANAGER SOP GUIDE */}
         {activeTab === 'guide' && (
-          <div className="flex-1 overflow-y-auto p-5 space-y-5 text-slate-700 text-xs leading-relaxed">
+          <div className="flex-1 overflow-y-auto p-5 space-y-5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs leading-relaxed">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Step 1 */}
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
-                <div className="flex items-center gap-2 text-indigo-600 font-bold text-sm">
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 shadow-xs space-y-2">
+                <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                   <Smartphone className="w-4 h-4" />
                   ১. পারচেজ ও আইএমইআই ইনওয়ার্ড (Purchase Bill)
                 </div>
-                <p className="text-slate-600 text-[11px]">
-                  <strong>মেন্যু:</strong> সাপ্লায়ার পারচেজ বিল (+ Purchase)<br />
-                  <strong>নিয়ম:</strong> ১৫ ডিজিটের প্রতিটি হ্যান্ডসেট আইএমইআই স্ক্যান করতে হবে। সিস্টেম ডুপ্লিকেট আইএমইআই স্বয়ংক্রিয়ভাবে ব্লক করে। কোয়ান্টিটি এবং স্ক্যান করা আইএমইআই সংখ্যা হুবহু সমান হতে হবে।
+                <p className="text-slate-600 dark:text-slate-400 text-[11px]">
+                  <strong className="text-slate-800 dark:text-slate-200">মেন্যু:</strong> সাপ্লায়ার পারচেজ বিল (+ Purchase)<br />
+                  <strong className="text-slate-800 dark:text-slate-200">নিয়ম:</strong> ১৫ ডিজিটের প্রতিটি হ্যান্ডসেট আইএমইআই স্ক্যান করতে হবে। সিস্টেম ডুপ্লিকেট আইএমইআই স্বয়ংক্রিয়ভাবে ব্লক করে। কোয়ান্টিটি এবং স্ক্যান করা আইএমইআই সংখ্যা হুবহু সমান হতে হবে।
                 </p>
               </div>
 
               {/* Step 2 */}
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
-                <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm">
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 shadow-xs space-y-2">
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
                   <ShoppingBag className="w-4 h-4" />
                   ২. পাইকারি সেলস ও ইনভয়েস (Wholesale POS)
                 </div>
-                <p className="text-slate-600 text-[11px]">
-                  <strong>মেন্যু:</strong> পাইকারি সেলস ও ইনভয়েস (+ Wholesale Sale)<br />
-                  <strong>নিয়ম:</strong> ডিলার নির্বাচন করলে তার ক্রেডিট লিমিট ও বাকি ব্যালেন্স দেখাবে। আইএমইআই স্ক্যান করে সেল হবে। লিমিট অতিক্রম করলে সিস্টেম হার্ড-ব্লক করবে।
+                <p className="text-slate-600 dark:text-slate-400 text-[11px]">
+                  <strong className="text-slate-800 dark:text-slate-200">মেন্যু:</strong> পাইকারি সেলস ও ইনভয়েস (+ Wholesale Sale)<br />
+                  <strong className="text-slate-800 dark:text-slate-200">নিয়ম:</strong> ডিলার নির্বাচন করলে তার ক্রেডিট লিমিট ও বাকি ব্যালেন্স দেখাবে। আইএমইআই স্ক্যান করে সেল হবে। লিমিট অতিক্রম করলে সিস্টেম হার্ড-ব্লক করবে।
                 </p>
               </div>
 
               {/* Step 3 */}
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
-                <div className="flex items-center gap-2 text-amber-600 font-bold text-sm">
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 shadow-xs space-y-2">
+                <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-sm">
                   <CreditCard className="w-4 h-4" />
                   ৩. বকেয়া কালেকশন ও মানি রসিদ (Due Collection)
                 </div>
-                <p className="text-slate-600 text-[11px]">
-                  <strong>মেন্যু:</strong> বকেয়া কালেকশন ও রসিদ (+ নতুন মানি রসিদ)<br />
-                  <strong>নিয়ম:</strong> ক্যাশ, ব্যাংক বা চেকে কালেকশন এন্ট্রি দিলে ডিলারের বাকি সঙ্গে সঙ্গে কমে যাবে এবং ক্যাশ বা ব্যাংকে টাকা জমা হবে। সরাসরি এন্ট্রি ডিলিট নিষিদ্ধ; প্রয়োজনে 'Void' করুন।
+                <p className="text-slate-600 dark:text-slate-400 text-[11px]">
+                  <strong className="text-slate-800 dark:text-slate-200">মেন্যু:</strong> বকেয়া কালেকশন ও রসিদ (+ নতুন মানি রসিদ)<br />
+                  <strong className="text-slate-800 dark:text-slate-200">নিয়ম:</strong> ক্যাশ, ব্যাংক বা চেকে কালেকশন এন্ট্রি দিলে ডিলারের বাকি সঙ্গে সঙ্গে কমে যাবে এবং ক্যাশ বা ব্যাংকে টাকা জমা হবে। সরাসরি এন্ট্রি ডিলিট নিষিদ্ধ; প্রয়োজনে 'Void' করুন।
                 </p>
               </div>
 
               {/* Step 4 */}
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
-                <div className="flex items-center gap-2 text-purple-600 font-bold text-sm">
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 shadow-xs space-y-2">
+                <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 font-bold text-sm">
                   <Truck className="w-4 h-4" />
                   ৪. ওয়্যারহাউজ ট্রান্সফার (Branch Transfers)
                 </div>
-                <p className="text-slate-600 text-[11px]">
-                  <strong>মেন্যু:</strong> ইন্টার-ওয়্যারহাউজ ট্রান্সফার (+ স্টক ট্রান্সফার)<br />
-                  <strong>নিয়ম:</strong> সেন্ট্রাল ব্রাঞ্চ ডিসপ্যাচ করলে হ্যান্ডসেট ইন-ট্রানজিটে থাকে। গন্তব্য ব্রাঞ্চ আইএমইআই মিলিয়ে রিসিভ না করা পর্যন্ত সেল করা যায় না।
+                <p className="text-slate-600 dark:text-slate-400 text-[11px]">
+                  <strong className="text-slate-800 dark:text-slate-200">মেন্যু:</strong> ইন্টার-ওয়্যারহাউজ ট্রান্সফার (+ স্টক ট্রান্সফার)<br />
+                  <strong className="text-slate-800 dark:text-slate-200">নিয়ম:</strong> সেন্ট্রাল ব্রাঞ্চ ডিসপ্যাচ করলে হ্যান্ডসেট ইন-ট্রানজিটে থাকে। গন্তব্য ব্রাঞ্চ আইএমইআই মিলিয়ে রিসিভ না করা পর্যন্ত সেল করা যায় না।
                 </p>
               </div>
 
               {/* Step 5 */}
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
-                <div className="flex items-center gap-2 text-rose-600 font-bold text-sm">
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 shadow-xs space-y-2">
+                <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-sm">
                   <RotateCcw className="w-4 h-4" />
                   ৫. কাস্টমার ও সাপ্লায়ার রিটার্ন (RMA Returns)
                 </div>
-                <p className="text-slate-600 text-[11px]">
-                  <strong>মেন্যু:</strong> কাস্টমার ও ভেন্ডর রিটার্ন<br />
-                  <strong>নিয়ম:</strong> ৭ দিনের মধ্যে বক্স অক্ষত বা DOA থাকলে সেলস রিটার্ন নিন। আইএমইআই স্টকে ফিরে আসবে, কাস্টমারের ক্রেডিট নোট তৈরি হবে এবং সেলসম্যান কমিশন রিভার্স হবে।
+                <p className="text-slate-600 dark:text-slate-400 text-[11px]">
+                  <strong className="text-slate-800 dark:text-slate-200">মেন্যু:</strong> কাস্টমার ও ভেন্ডর রিটার্ন<br />
+                  <strong className="text-slate-800 dark:text-slate-200">নিয়ম:</strong> ৭ দিনের মধ্যে বক্স অক্ষত বা DOA থাকলে সেলস রিটার্ন নিন। আইএমইআই স্টকে ফিরে আসবে, কাস্টমারের ক্রেডিট নোট তৈরি হবে এবং সেলসম্যান কমিশন রিভার্স হবে।
                 </p>
               </div>
 
               {/* Step 6 */}
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
-                <div className="flex items-center gap-2 text-blue-600 font-bold text-sm">
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 shadow-xs space-y-2">
+                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold text-sm">
                   <Clock className="w-4 h-4" />
                   ৬. দৈনিক ডে ক্লোজিং ও ক্যাশ ভল্ট লক (Day Closing)
                 </div>
-                <p className="text-slate-600 text-[11px]">
-                  <strong>মেন্যু:</strong> দৈনিক ডে ক্লোজিং ও ভল্ট<br />
-                  <strong>নিয়ম:</strong> প্রতিদিন দোকান বন্ধের পূর্বে ক্যাশিয়ার ড্রয়ারের নোট গুনে এন্ট্রি দিবেন। প্রত্যাশিত ক্যাশ এবং বাস্তব ক্যাশের পার্থক্য (Discrepancy) শূন্য (৳০) হওয়া নিশ্চিত করে লক করুন।
+                <p className="text-slate-600 dark:text-slate-400 text-[11px]">
+                  <strong className="text-slate-800 dark:text-slate-200">মেন্যু:</strong> দৈনিক ডে ক্লোজিং ও ভল্ট<br />
+                  <strong className="text-slate-800 dark:text-slate-200">নিয়ম:</strong> প্রতিদিন দোকান বন্ধের পূর্বে ক্যাশিয়ার ড্রয়ারের নোট গুনে এন্ট্রি দিবেন। প্রত্যাশিত ক্যাশ এবং বাস্তব ক্যাশের পার্থক্য (Discrepancy) শূন্য (৳০) হওয়া নিশ্চিত করে লক করুন।
                 </p>
               </div>
             </div>
 
             {/* Error Rules Alert */}
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 space-y-1.5">
-              <div className="font-bold flex items-center gap-2 text-amber-800">
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
+            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 space-y-1.5">
+              <div className="font-bold flex items-center gap-2 text-amber-800 dark:text-amber-300">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 জরুরি সতর্কবার্তা ও নিরাপত্তা নিয়মাবলি:
               </div>
-              <ul className="list-disc list-inside space-y-1 text-[11px] text-amber-800/90 pl-1">
+              <ul className="list-disc list-inside space-y-1 text-[11px] text-amber-800/90 dark:text-amber-300/90 pl-1">
                 <li>কখনও লগইন পাসওয়ার্ড শেয়ার করবেন না; সকল লেনদেন অডিট ট্রেইলে ব্যবহারকারীর নামসহ রেকর্ড হয়।</li>
                 <li>আইএমইআই স্ক্যান না করে কোনো হ্যান্ডসেট সেল বা ডেলিভারি করা কঠোরভাবে নিষিদ্ধ।</li>
                 <li>ভুল এন্ট্রি হলে সরাসরি ডিলিট করবেন না; স্ট্যান্ডার্ড রিটার্ন বা ভল্ট রিভার্সাল মেথড ব্যবহার করুন।</li>
@@ -413,9 +413,9 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
 
         {/* TAB CONTENT 3: TRAINING CURRICULUM */}
         {activeTab === 'training' && (
-          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-white dark:bg-slate-900">
             {/* Progress Bar Header */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 dark:from-emerald-600 dark:to-teal-700 text-white shadow-md flex items-center justify-between">
               <div>
                 <span className="text-[10px] uppercase font-black tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full">
                   User Onboarding & Training Progress
@@ -443,8 +443,8 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
                     onClick={() => toggleLesson(mod.id)}
                     className={`p-3.5 rounded-2xl border transition-all flex items-start gap-3 cursor-pointer select-none ${
                       isDone
-                        ? 'bg-emerald-50/50 border-emerald-200'
-                        : 'bg-white border-slate-200 hover:border-slate-300'
+                        ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50'
+                        : 'bg-white dark:bg-slate-800/70 border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600'
                     }`}
                   >
                     <input
@@ -455,17 +455,17 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs font-bold ${isDone ? 'text-emerald-900 line-through' : 'text-slate-900'}`}>
+                        <span className={`text-xs font-bold ${isDone ? 'text-emerald-900 dark:text-emerald-300 line-through' : 'text-slate-900 dark:text-white'}`}>
                           {mod.titleBn}
                         </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold border border-slate-200">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700/80 text-slate-600 dark:text-slate-300 font-semibold border border-slate-200 dark:border-slate-600">
                           {mod.role}
                         </span>
                       </div>
-                      <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                         {mod.titleEn}
                       </div>
-                      <p className="text-[11px] text-slate-600 mt-1 leading-normal">
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 leading-normal">
                         {mod.summary}
                       </p>
                     </div>
@@ -477,7 +477,7 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
         )}
 
         {/* Footer */}
-        <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 px-5">
+        <div className="p-3 bg-slate-50 dark:bg-slate-800/70 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-5">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
             <span className="text-[11px] font-medium">TeleCorp Pro Interactive Training & Help Engine</span>

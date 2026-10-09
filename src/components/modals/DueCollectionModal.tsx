@@ -169,17 +169,17 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
         icon={<Receipt className="w-4 h-4 text-amber-400" />}
         maxWidth="max-w-4xl"
       >
-        <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto bg-white/40 backdrop-blur-md">
+        <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto bg-white/40 dark:bg-slate-900/40 backdrop-blur-md">
           {successMsg && (
-            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
+            <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span className="font-bold">{successMsg}</span>
               </div>
               <button
                 type="button"
                 onClick={handleRequestClose}
-                className="text-[11px] font-bold text-emerald-700 hover:text-emerald-950 underline cursor-pointer"
+                className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-950 dark:hover:text-emerald-200 underline cursor-pointer"
               >
                 উইন্ডো বন্ধ করুন
               </button>
@@ -187,7 +187,7 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
           )}
 
           {errorMsg && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
@@ -196,13 +196,13 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
           {/* Top row: Customer, Amount, Mode */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Select Dealer / Customer *
               </label>
               <select
                 value={customerId}
                 onChange={(e) => setCustomerId(e.target.value)}
-                className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-amber-500"
                 required
               >
                 {customers.map(c => (
@@ -214,7 +214,7 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Amount to Collect (৳) *
               </label>
               <input
@@ -223,27 +223,27 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
                 max={selectedCustomer?.currentDue || 10000000}
                 value={collectionAmount}
                 onChange={(e) => setCollectionAmount(parseFloat(e.target.value) || 0)}
-                className="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg font-bold text-slate-900 focus:ring-2 focus:ring-amber-500"
+                className="w-full text-xs p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Allocation Strategy
               </label>
-              <div className="flex bg-slate-100 p-1 rounded-lg text-xs font-semibold">
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg text-xs font-semibold">
                 <button
                   type="button"
                   onClick={() => setAllocationMode('Auto')}
-                  className={`flex-1 py-1 rounded-md transition ${allocationMode === 'Auto' ? 'bg-white text-amber-800 shadow-xs' : 'text-slate-600'}`}
+                  className={`flex-1 py-1 rounded-md transition cursor-pointer ${allocationMode === 'Auto' ? 'bg-white dark:bg-slate-700 text-amber-800 dark:text-amber-300 shadow-xs' : 'text-slate-600 dark:text-slate-400'}`}
                 >
                   Auto (Oldest First)
                 </button>
                 <button
                   type="button"
                   onClick={() => setAllocationMode('Manual')}
-                  className={`flex-1 py-1 rounded-md transition ${allocationMode === 'Manual' ? 'bg-white text-amber-800 shadow-xs' : 'text-slate-600'}`}
+                  className={`flex-1 py-1 rounded-md transition cursor-pointer ${allocationMode === 'Manual' ? 'bg-white dark:bg-slate-700 text-amber-800 dark:text-amber-300 shadow-xs' : 'text-slate-600 dark:text-slate-400'}`}
                 >
                   Manual Pick
                 </button>
@@ -253,12 +253,12 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
 
           {/* Customer Due Summary Banner */}
           {selectedCustomer && (
-            <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 text-xs flex items-center justify-between">
+            <div className="p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-xs flex items-center justify-between">
               <div>
-                <span className="font-bold text-slate-900">{selectedCustomer.shopName}</span>
-                <span className="text-slate-600 ml-2">Total Outstanding Due: <b>{formatBDT(selectedCustomer.currentDue)}</b></span>
+                <span className="font-bold text-slate-900 dark:text-white">{selectedCustomer.shopName}</span>
+                <span className="text-slate-600 dark:text-slate-400 ml-2">Total Outstanding Due: <b className="text-slate-800 dark:text-slate-200">{formatBDT(selectedCustomer.currentDue)}</b></span>
               </div>
-              <div className="text-amber-800 font-bold">
+              <div className="text-amber-800 dark:text-amber-300 font-bold">
                 Remaining Due After Collection: {formatBDT(Math.max(0, selectedCustomer.currentDue - collectionAmount))}
               </div>
             </div>
@@ -266,18 +266,18 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
 
           {/* Invoice Allocation Table */}
           <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               Outstanding Invoices & Payment Allocation Breakdown
             </h3>
 
             {customerInvoices.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-400 border border-dashed rounded-xl">
+              <div className="p-6 text-center text-xs text-slate-400 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
                 This customer has no outstanding unpaid invoices in the system.
               </div>
             ) : (
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-bold">
+                  <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 uppercase text-[10px] font-bold">
                     <tr>
                       <th className="p-3">Invoice #</th>
                       <th className="p-3">Invoice Date</th>
@@ -287,15 +287,15 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
                       <th className="p-3 text-center">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {allocations.map((alloc, idx) => (
-                      <tr key={alloc.invoiceId || idx} className="hover:bg-slate-50/60">
-                        <td className="p-3 font-mono font-bold text-blue-700">{alloc.invoiceNo}</td>
-                        <td className="p-3 text-slate-600">{formatDate(alloc.invoiceDate)}</td>
-                        <td className="p-3 font-semibold text-slate-800">{formatBDT(alloc.originalDue)}</td>
+                      <tr key={alloc.invoiceId || idx} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/50">
+                        <td className="p-3 font-mono font-bold text-blue-700 dark:text-blue-400">{alloc.invoiceNo}</td>
+                        <td className="p-3 text-slate-600 dark:text-slate-400">{formatDate(alloc.invoiceDate)}</td>
+                        <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">{formatBDT(alloc.originalDue)}</td>
                         <td className="p-3">
                           {allocationMode === 'Auto' ? (
-                            <span className="font-bold text-emerald-700">{formatBDT(alloc.allocatedAmount)}</span>
+                            <span className="font-bold text-emerald-700 dark:text-emerald-400">{formatBDT(alloc.allocatedAmount)}</span>
                           ) : (
                             <input
                               type="number"
@@ -316,22 +316,22 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
                                   )
                                 );
                               }}
-                              className="w-28 p-1 text-xs border border-slate-300 rounded font-bold text-emerald-700"
+                              className="w-28 p-1 text-xs border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded font-bold text-emerald-700 dark:text-emerald-400"
                             />
                           )}
                         </td>
-                        <td className="p-3 text-slate-600 font-medium">{formatBDT(alloc.remainingDue)}</td>
+                        <td className="p-3 text-slate-600 dark:text-slate-400 font-medium">{formatBDT(alloc.remainingDue)}</td>
                         <td className="p-3 text-center">
                           {alloc.allocatedAmount >= alloc.originalDue ? (
-                            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-full">
                               Fully Cleared
                             </span>
                           ) : alloc.allocatedAmount > 0 ? (
-                            <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 font-bold px-2 py-0.5 rounded-full">
                               Partial Adjusted
                             </span>
                           ) : (
-                            <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full">
                               Unpaid
                             </span>
                           )}
@@ -345,15 +345,15 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
           </div>
 
           {/* Payment Method & Depositing */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-xl border border-slate-200 bg-slate-50/70 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 items-end">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Payment Channel
               </label>
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value as PaymentMethodType)}
-                className="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg"
+                className="w-full text-xs p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100"
               >
                 <option value="Bank Transfer">Bank Transfer (NPSB/BEFTN)</option>
                 <option value="Cash">Cash in Hand</option>
@@ -365,13 +365,13 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
 
             {paymentMethod !== 'Cash' && (
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Deposited Bank Account
                 </label>
                 <select
                   value={bankAccountId}
                   onChange={(e) => setBankAccountId(e.target.value)}
-                  className="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg"
+                  className="w-full text-xs p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100"
                 >
                   {bankAccounts.map(b => (
                     <option key={b.id} value={b.id}>{b.bankName}</option>
@@ -381,13 +381,13 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Collecting Field Officer
               </label>
               <select
                 value={collectorSalesmanId}
                 onChange={(e) => setCollectorSalesmanId(e.target.value)}
-                className="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg"
+                className="w-full text-xs p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100"
               >
                 <option value="">Direct Office Deposit</option>
                 {salesmen.map(s => (
@@ -397,7 +397,7 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Transaction / Cheque Ref #
               </label>
               <HistoryInput
@@ -406,21 +406,21 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
                 placeholder="e.g. BEFTN-112299"
                 value={transactionRef}
                 onChange={(e) => setTransactionRef(e.target.value)}
-                className="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg"
+                className="w-full text-xs p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 placeholder-slate-400"
               />
             </div>
           </div>
 
           {/* Footer Submit */}
-          <div className="flex items-center justify-between pt-4 border-t border-slate-200/80 bg-white/60 backdrop-blur-xl -mx-6 -mb-6 p-6">
-            <div className="text-xs text-slate-500 font-medium">
+          <div className="flex items-center justify-between pt-4 border-t border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl -mx-6 -mb-6 p-6">
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               * Generates Money Receipt Voucher (Dr. Cash/Bank, Cr. Accounts Receivable).
             </div>
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={handleRequestClose}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-white/80 rounded-xl transition cursor-pointer"
+                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-white/80 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
               >
                 Cancel <kbd className="ml-1 text-[10px] font-mono opacity-60">Esc</kbd>
               </button>

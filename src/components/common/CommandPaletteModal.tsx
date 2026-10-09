@@ -1053,16 +1053,16 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
       aria-modal="true"
     >
       <div
-        className="relative bg-white/95 backdrop-blur-2xl rounded-3xl shadow-[0_25px_70px_-15px_rgba(0,0,0,0.5)] w-full max-w-4xl border border-slate-200 overflow-hidden flex flex-col max-h-[88vh] animate-in zoom-in-95 duration-150"
+        className="relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-3xl shadow-[0_25px_70px_-15px_rgba(0,0,0,0.5)] w-full max-w-4xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[88vh] animate-in zoom-in-95 duration-150"
         onClick={e => e.stopPropagation()}
       >
         {/* Top Header Accent Banner */}
         <div className="h-1.5 bg-gradient-to-r from-blue-600 via-teal-500 to-indigo-600 w-full" />
 
         {/* Global Search Box Section */}
-        <div className="p-4 md:p-5 border-b border-slate-200/80 bg-white/80">
+        <div className="p-4 md:p-5 border-b border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0 shadow-2xs">
+            <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 shadow-2xs">
               <Search className="w-5 h-5 stroke-[2.5]" />
             </div>
 
@@ -1077,7 +1077,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder="Product, Barcode, IMEI, Invoice, Customer, Supplier, Branch, Stock, Report বা Menu সার্চ করুন... (Ctrl+K)"
-                className="w-full bg-slate-50 border border-slate-300 rounded-2xl py-3 pl-4 pr-10 text-sm md:text-base font-bold text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl py-3 pl-4 pr-10 text-sm md:text-base font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:bg-white dark:focus:bg-slate-900 transition"
               />
               {query && (
                 <button
@@ -1087,7 +1087,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                     setSelectedIndex(0);
                     inputRef.current?.focus();
                   }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200 cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1098,7 +1098,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-2 rounded-2xl bg-amber-500/20 hover:bg-amber-500 text-amber-800 hover:text-slate-950 border border-amber-300 cursor-pointer font-black text-xs transition flex items-center gap-1 shrink-0"
+              className="px-3 py-2 rounded-2xl bg-amber-500/20 hover:bg-amber-500 text-amber-800 dark:text-amber-300 hover:text-slate-950 border border-amber-300 dark:border-amber-700 cursor-pointer font-black text-xs transition flex items-center gap-1 shrink-0"
               title="উইন্ডোটি স্কিপ করুন"
             >
               <span>স্কিপ (Skip)</span>
@@ -1107,11 +1107,11 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2.5 rounded-2xl text-slate-400 hover:text-white hover:bg-rose-600 border border-slate-200 cursor-pointer transition flex items-center gap-1 shrink-0"
+              className="p-2.5 rounded-2xl text-slate-400 hover:text-white hover:bg-rose-600 border border-slate-200 dark:border-slate-700 cursor-pointer transition flex items-center gap-1 shrink-0"
               title="বন্ধ করুন (Esc)"
             >
               <X className="w-4 h-4" />
-              <kbd className="hidden sm:inline-block px-1.5 py-0.5 bg-slate-200/80 rounded text-[10px] font-mono text-slate-600">Esc</kbd>
+              <kbd className="hidden sm:inline-block px-1.5 py-0.5 bg-slate-200/80 dark:bg-slate-700 rounded text-[10px] font-mono text-slate-600 dark:text-slate-300">Esc</kbd>
             </button>
           </div>
 
@@ -1124,7 +1124,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                 className={`px-3 py-1.5 rounded-xl transition cursor-pointer border shrink-0 ${
                   selectedGroupFilter === 'all'
                     ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                    : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
+                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700'
                 }`}
               >
                 ✨ সকল মডিউল (All)
@@ -1136,8 +1136,8 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                   onClick={() => setSelectedGroupFilter(g.id)}
                   className={`px-3 py-1.5 rounded-xl transition cursor-pointer border shrink-0 flex items-center gap-1.5 ${
                     selectedGroupFilter === g.id
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                      : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
+                      ? 'bg-slate-900 dark:bg-blue-600 text-white border-slate-900 dark:border-blue-600 shadow-xs'
+                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700'
                   }`}
                 >
                   <span>{g.emoji}</span>
@@ -1266,10 +1266,10 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
             /* B. When query is empty: Group-Wise Navigation Buttons */
             <div className="space-y-6">
               {/* Fast Operations Hero Strip */}
-              <div className="p-3.5 bg-gradient-to-r from-blue-50/80 via-indigo-50/80 to-teal-50/80 rounded-2xl border border-blue-200/80 flex flex-wrap items-center justify-between gap-2.5">
+              <div className="p-3.5 bg-gradient-to-r from-blue-50/80 via-indigo-50/80 to-teal-50/80 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-teal-950/40 rounded-2xl border border-blue-200/80 dark:border-blue-800/80 flex flex-wrap items-center justify-between gap-2.5">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-                  <span className="text-xs font-black text-slate-800">
+                  <span className="text-xs font-black text-slate-800 dark:text-slate-100">
                     তাত্ক্ষণিক অপারেশন (Instant Triggers):
                   </span>
                 </div>
@@ -1313,14 +1313,14 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
               {/* Group-Wise Modules */}
               {displayedGroups.map(group => (
                 <div key={group.id} className="space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-200/80 pb-1.5">
+                  <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 pb-1.5">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{group.emoji}</span>
-                      <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">
-                        {group.titleEn} • <span className="text-slate-500 font-bold">{group.titleBn}</span>
+                      <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wide">
+                        {group.titleEn} • <span className="text-slate-500 dark:text-slate-400 font-bold">{group.titleBn}</span>
                       </h4>
                     </div>
-                    <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                    <span className="text-[11px] font-bold text-slate-400 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
                       {group.items.length} Modules
                     </span>
                   </div>
@@ -1334,11 +1334,11 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                           key={item.id}
                           type="button"
                           onClick={item.action}
-                          className={`p-3 rounded-2xl border transition-all duration-150 flex flex-col items-start justify-between gap-2.5 text-left cursor-pointer group hover:scale-[1.02] hover:shadow-md ${item.bgColor}`}
+                          className={`p-3 rounded-2xl border transition-all duration-150 flex flex-col items-start justify-between gap-2.5 text-left cursor-pointer group hover:scale-[1.02] hover:shadow-md ${item.bgColor} dark:bg-slate-800/80 dark:border-slate-700/80`}
                           title={`${item.labelEn} (${item.labelBn})`}
                         >
                           <div className="w-full flex items-center justify-between">
-                            <div className="w-8 h-8 rounded-xl bg-white shadow-xs flex items-center justify-center shrink-0 border border-slate-200/60 group-hover:scale-110 transition-transform">
+                            <div className="w-8 h-8 rounded-xl bg-white dark:bg-slate-700 shadow-xs flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-600 group-hover:scale-110 transition-transform">
                               <Icon className={`w-4 h-4 ${item.accentColor}`} />
                             </div>
                             {item.badge && (
@@ -1347,17 +1347,17 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                               </span>
                             )}
                             {item.shortcut && !item.badge && (
-                              <span className="text-[9px] font-mono text-slate-400 font-bold bg-white/80 px-1 py-0.5 rounded border border-slate-200">
+                              <span className="text-[9px] font-mono text-slate-400 dark:text-slate-400 font-bold bg-white/80 dark:bg-slate-700 px-1 py-0.5 rounded border border-slate-200 dark:border-slate-600">
                                 {item.shortcut}
                               </span>
                             )}
                           </div>
 
                           <div className="min-w-0 w-full">
-                            <div className="text-xs font-black text-slate-800 group-hover:text-blue-900 truncate">
+                            <div className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-blue-900 dark:group-hover:text-blue-400 truncate">
                               {item.labelEn}
                             </div>
-                            <div className="text-[10px] text-slate-500 group-hover:text-slate-700 truncate font-medium">
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300 truncate font-medium">
                               {item.labelBn}
                             </div>
                           </div>
@@ -1372,19 +1372,19 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
         </div>
 
         {/* Bottom Footer Status & Keyboard Navigation Guide */}
-        <div className="p-3.5 bg-slate-50 border-t border-slate-200/80 flex flex-wrap items-center justify-between text-xs text-slate-500 px-5">
+        <div className="p-3.5 bg-slate-50 dark:bg-slate-950 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-5">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1 font-medium">
-              <kbd className="px-1.5 py-0.5 bg-white rounded-md border border-slate-300 text-[10px] font-mono shadow-2xs">↑</kbd>
-              <kbd className="px-1.5 py-0.5 bg-white rounded-md border border-slate-300 text-[10px] font-mono shadow-2xs">↓</kbd>
+              <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-[10px] font-mono shadow-2xs">↑</kbd>
+              <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-[10px] font-mono shadow-2xs">↓</kbd>
               <span>ন্যাভিগেট</span>
             </span>
             <span className="flex items-center gap-1 font-medium">
-              <kbd className="px-1.5 py-0.5 bg-white rounded-md border border-slate-300 text-[10px] font-mono shadow-2xs">Enter</kbd>
+              <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-[10px] font-mono shadow-2xs">Enter</kbd>
               <span>সিলেক্ট / ওপেন</span>
             </span>
             <span className="flex items-center gap-1 font-medium">
-              <kbd className="px-1.5 py-0.5 bg-white rounded-md border border-slate-300 text-[10px] font-mono shadow-2xs">Esc</kbd>
+              <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 rounded-md border border-slate-300 dark:border-slate-700 text-[10px] font-mono shadow-2xs">Esc</kbd>
               <span>বন্ধ করুন</span>
             </span>
           </div>
@@ -1396,7 +1396,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                 onClose();
                 onOpenShortcutsHelp();
               }}
-              className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline flex items-center gap-1 cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>সকল শর্টকাট সহায়িকা (Ctrl+/)</span>

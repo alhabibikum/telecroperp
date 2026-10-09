@@ -5,13 +5,18 @@
 
 @layer base {
   :root {
-    --ios-bg: #f4f6fa;
+    --ios-bg: #f1f5f9;
     --ios-card-bg: rgba(255, 255, 255, 0.88);
-    --ios-glass-border: rgba(255, 255, 255, 0.7);
+    --ios-glass-border: rgba(226, 232, 240, 0.85);
+    --ios-glass-shine: rgba(255, 255, 255, 0.95);
+    --ios-text-primary: #0f172a;
+    --ios-text-secondary: #475569;
+    --ios-text-muted: #64748b;
     --ios-green: #059669;
-    --ios-blue: #1d4ed8;
+    --ios-blue: #2563eb;
+    --ios-indigo: #4f46e5;
     --ios-amber: #d97706;
-    --ios-red: #be123c;
+    --ios-rose: #e11d48;
     color-scheme: light;
   }
 
@@ -19,6 +24,15 @@
     --ios-bg: #090d16;
     --ios-card-bg: rgba(15, 23, 42, 0.92);
     --ios-glass-border: rgba(51, 65, 85, 0.7);
+    --ios-glass-shine: rgba(255, 255, 255, 0.08);
+    --ios-text-primary: #f8fafc;
+    --ios-text-secondary: #cbd5e1;
+    --ios-text-muted: #94a3b8;
+    --ios-green: #10b981;
+    --ios-blue: #3b82f6;
+    --ios-indigo: #6366f1;
+    --ios-amber: #f59e0b;
+    --ios-rose: #f43f5e;
     color-scheme: dark;
   }
 
@@ -30,18 +44,18 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
     background-color: var(--ios-bg);
-    color: #0f172a;
+    color: var(--ios-text-primary);
     line-height: 1.55;
     letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .dark body,
   html.dark body {
     background-color: #090d16;
-    color: #f1f5f9;
+    color: #f8fafc;
   }
 
   /* Enhanced Readability for Financial and Tabular Data */
@@ -49,48 +63,118 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Universal Dark Mode Fallback Overrides for Unstyled Elements */
-  html.dark .bg-white:not([data-theme-ignore="true"]) {
-    background-color: #0f172a !important;
+  /* Universal Dark Mode Neutral Element Normalization */
+  /* Ensures existing components without explicit dark classes automatically adapt beautifully */
+  html.dark .bg-white:not([data-theme-ignore="true"]):not([class*="dark:bg-"]) {
+    background-color: #0f172a;
+  }
+  html.dark [class*="bg-white/"]:not([data-theme-ignore="true"]):not([class*="dark:bg-"]) {
+    background-color: rgba(15, 23, 42, 0.88);
+  }
+  html.dark .bg-slate-50:not([data-theme-ignore="true"]):not([class*="dark:bg-"]) {
+    background-color: #151f32;
+  }
+  html.dark [class*="bg-slate-50/"]:not([data-theme-ignore="true"]):not([class*="dark:bg-"]) {
+    background-color: rgba(21, 31, 50, 0.8);
+  }
+  html.dark .bg-slate-100:not([data-theme-ignore="true"]):not([class*="dark:bg-"]) {
+    background-color: #1e293b;
+  }
+  html.dark [class*="bg-slate-100/"]:not([data-theme-ignore="true"]):not([class*="dark:bg-"]) {
+    background-color: rgba(30, 41, 59, 0.75);
+  }
+
+  /* Borders Adaptation in Dark Mode */
+  html.dark .border-slate-200:not([data-theme-ignore="true"]):not([class*="dark:border-"]),
+  html.dark [class*="border-slate-200/"]:not([data-theme-ignore="true"]):not([class*="dark:border-"]) {
+    border-color: rgba(51, 65, 85, 0.85);
+  }
+  html.dark .border-slate-100:not([data-theme-ignore="true"]):not([class*="dark:border-"]),
+  html.dark [class*="border-slate-100/"]:not([data-theme-ignore="true"]):not([class*="dark:border-"]) {
+    border-color: rgba(30, 41, 59, 0.85);
+  }
+  html.dark .border-slate-300:not([data-theme-ignore="true"]):not([class*="dark:border-"]),
+  html.dark [class*="border-slate-300/"]:not([data-theme-ignore="true"]):not([class*="dark:border-"]) {
+    border-color: rgba(71, 85, 105, 0.75);
+  }
+
+  /* Text Contrast Normalization (Preserves explicit color classes like text-blue-*, text-emerald-*, etc.) */
+  html.dark .text-slate-900:not([data-theme-ignore="true"]):not([class*="dark:text-"]) {
+    color: #f8fafc;
+  }
+  html.dark .text-slate-800:not([data-theme-ignore="true"]):not([class*="dark:text-"]) {
     color: #f1f5f9;
   }
-  html.dark .bg-slate-50:not([data-theme-ignore="true"]) {
-    background-color: #1e293b !important;
+  html.dark .text-slate-700:not([data-theme-ignore="true"]):not([class*="dark:text-"]) {
+    color: #e2e8f0;
   }
-  html.dark .bg-slate-100:not([data-theme-ignore="true"]) {
-    background-color: #0b0f19 !important;
+  html.dark .text-slate-600:not([data-theme-ignore="true"]):not([class*="dark:text-"]) {
+    color: #cbd5e1;
   }
-  html.dark .border-slate-200:not([data-theme-ignore="true"]) {
-    border-color: #334155 !important;
+  html.dark .text-slate-500:not([data-theme-ignore="true"]):not([class*="dark:text-"]) {
+    color: #94a3b8;
   }
-  html.dark .border-slate-100:not([data-theme-ignore="true"]) {
-    border-color: #1e293b !important;
+  html.dark .text-slate-400:not([data-theme-ignore="true"]):not([class*="dark:text-"]) {
+    color: #94a3b8;
   }
-  html.dark .text-slate-900:not([data-theme-ignore="true"]),
-  html.dark .text-slate-800:not([data-theme-ignore="true"]),
-  html.dark .text-slate-700:not([data-theme-ignore="true"]) {
-    color: #f8fafc !important;
+
+  /* Form Elements Dark Contrast Fallback */
+  html.dark input:not([type="checkbox"]):not([type="radio"]):not([class*="dark:bg-"]):not([data-theme-ignore="true"]),
+  html.dark select:not([class*="dark:bg-"]):not([data-theme-ignore="true"]),
+  html.dark textarea:not([class*="dark:bg-"]):not([data-theme-ignore="true"]) {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #f8fafc;
   }
-  html.dark .text-slate-600:not([data-theme-ignore="true"]),
-  html.dark .text-slate-500:not([data-theme-ignore="true"]) {
-    color: #94a3b8 !important;
+  html.dark input::placeholder,
+  html.dark textarea::placeholder {
+    color: #64748b;
+  }
+
+  /* Table Striping and Dividers in Dark Mode */
+  html.dark thead:not([class*="dark:bg-"]) th:not([class*="dark:bg-"]) {
+    background-color: #0f172a;
+    color: #94a3b8;
+    border-color: #1e293b;
+  }
+  html.dark tbody tr:hover:not([class*="dark:hover:bg-"]) {
+    background-color: rgba(30, 41, 59, 0.4);
+  }
+  html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+  html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: rgba(51, 65, 85, 0.6);
   }
 }
 
-/* iOS Glassmorphic Utilities */
+/* iOS Glassmorphic Utilities - Light & Dark Mode */
 .ios-glass {
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.8);
+}
+.dark .ios-glass,
+[data-theme="dark"] .ios-glass {
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(51, 65, 85, 0.7);
 }
 
 .ios-glass-card {
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid rgba(226, 232, 240, 0.85);
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+}
+.dark .ios-glass-card,
+[data-theme="dark"] .ios-glass-card {
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(51, 65, 85, 0.75);
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.4);
 }
 
 .ios-dock {
@@ -100,12 +184,24 @@
   border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 12px 36px -4px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.03);
 }
+.dark .ios-dock,
+[data-theme="dark"] .ios-dock {
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(51, 65, 85, 0.8);
+  box-shadow: 0 12px 40px -4px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
 
 .ios-shadow-subtle {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
 }
+.dark .ios-shadow-subtle,
+[data-theme="dark"] .ios-shadow-subtle {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+}
 
-/* Custom Scrollbar */
+/* Custom Scrollbar - Light & Dark */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -116,8 +212,16 @@
 ::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 0.4);
   border-radius: 9999px;
+  transition: background 0.2s ease;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.6);
+  background: rgba(100, 116, 139, 0.7);
 }
-
+.dark ::-webkit-scrollbar-thumb,
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.5);
+}
+.dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.8);
+}

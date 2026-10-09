@@ -168,17 +168,17 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
         icon={<Smartphone className="w-4 h-4 text-blue-400" />}
         maxWidth="max-w-4xl"
       >
-        <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-6 space-y-5 text-xs max-h-[80vh] overflow-y-auto bg-white/40 backdrop-blur-md">
+        <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-6 space-y-5 text-xs max-h-[80vh] overflow-y-auto bg-white/40 dark:bg-slate-900/40 backdrop-blur-md">
           {successMsg && (
-            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between gap-3 animate-in fade-in">
+            <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between gap-3 animate-in fade-in">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span className="font-bold">{successMsg}</span>
               </div>
               <button
                 type="button"
                 onClick={handleRequestClose}
-                className="text-[11px] font-bold text-emerald-700 hover:text-emerald-950 underline shrink-0 cursor-pointer"
+                className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-950 dark:hover:text-emerald-200 underline shrink-0 cursor-pointer"
               >
                 উইন্ডো বন্ধ করুন
               </button>
@@ -187,37 +187,37 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Brand *</label>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Brand *</label>
               <select
                 value={brandId}
                 onChange={(e) => setBrandId(e.target.value)}
-                className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg font-bold"
+                className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 font-bold"
               >
                 {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Handset Model Name *</label>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Handset Model Name *</label>
               <HistoryInput
                 historyKey="model"
                 type="text"
                 placeholder="e.g. Galaxy A55 5G"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg font-bold"
+                className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 font-bold"
                 required
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Network & BTRC Approval</label>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Network & BTRC Approval</label>
               <HistoryInput
                 historyKey="networkRegion"
                 type="text"
                 value={networkRegion}
                 onChange={(e) => setNetworkRegion(e.target.value)}
-                className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg"
+                className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100"
               />
             </div>
           </div>
@@ -225,13 +225,13 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
           {/* Variants section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-700 uppercase tracking-wider text-[11px]">
+              <span className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[11px]">
                 Product Variations & Multi-Tier Pricing
               </span>
               <button
                 type="button"
                 onClick={handleAddVariant}
-                className="flex items-center gap-1 text-blue-600 font-bold hover:underline"
+                className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>+ Add Variant</span>
@@ -240,10 +240,10 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
 
             <div className="space-y-3">
               {variants.map((v, idx) => (
-                <div key={idx} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+                <div key={idx} className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 space-y-2">
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                     <div>
-                      <label className="block text-[10px] text-slate-500 font-semibold mb-0.5">SKU Code</label>
+                      <label className="block text-[10px] text-slate-500 dark:text-slate-400 font-semibold mb-0.5">SKU Code</label>
                       <HistoryInput
                         historyKey="sku"
                         type="text"
@@ -252,11 +252,11 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                           const val = e.target.value;
                           setVariants(prev => prev.map((item, i) => i === idx ? { ...item, sku: val } : item));
                         }}
-                        className="w-full p-1.5 bg-white border border-slate-300 rounded text-xs font-mono font-bold"
+                        className="w-full p-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-800 dark:text-slate-100"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-slate-500 font-semibold mb-0.5">RAM & ROM</label>
+                      <label className="block text-[10px] text-slate-500 dark:text-slate-400 font-semibold mb-0.5">RAM & ROM</label>
                       <div className="flex gap-1">
                         <HistoryInput
                           historyKey="ram"
@@ -267,7 +267,7 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                             setVariants(prev => prev.map((item, i) => i === idx ? { ...item, ram: val } : item));
                           }}
                           placeholder="8GB"
-                          className="w-1/2 p-1.5 bg-white border border-slate-300 rounded text-xs"
+                          className="w-1/2 p-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-800 dark:text-slate-100"
                         />
                         <HistoryInput
                           historyKey="storage"
@@ -278,12 +278,12 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                             setVariants(prev => prev.map((item, i) => i === idx ? { ...item, storage: val } : item));
                           }}
                           placeholder="128GB"
-                          className="w-1/2 p-1.5 bg-white border border-slate-300 rounded text-xs"
+                          className="w-1/2 p-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-800 dark:text-slate-100"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-[10px] text-slate-500 font-semibold mb-0.5">Color</label>
+                      <label className="block text-[10px] text-slate-500 dark:text-slate-400 font-semibold mb-0.5">Color</label>
                       <HistoryInput
                         historyKey="color"
                         type="text"
@@ -292,11 +292,11 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                           const val = e.target.value;
                           setVariants(prev => prev.map((item, i) => i === idx ? { ...item, color: val } : item));
                         }}
-                        className="w-full p-1.5 bg-white border border-slate-300 rounded text-xs"
+                        className="w-full p-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-800 dark:text-slate-100"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-slate-500 font-semibold mb-0.5">Reorder Level</label>
+                      <label className="block text-[10px] text-slate-500 dark:text-slate-400 font-semibold mb-0.5">Reorder Level</label>
                       <input
                         type="number"
                         value={v.reorderLevel}
@@ -304,15 +304,15 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                           const val = parseInt(e.target.value) || 0;
                           setVariants(prev => prev.map((item, i) => i === idx ? { ...item, reorderLevel: val } : item));
                         }}
-                        className="w-full p-1.5 bg-white border border-slate-300 rounded text-xs font-bold"
+                        className="w-full p-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold text-slate-800 dark:text-slate-100"
                       />
                     </div>
                   </div>
 
                   {/* Pricing Tiers */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-slate-200">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-slate-200 dark:border-slate-700">
                     <div>
-                      <label className="block text-[10px] text-slate-500 font-semibold mb-0.5">Purchase Cost (৳)</label>
+                      <label className="block text-[10px] text-slate-500 dark:text-slate-400 font-semibold mb-0.5">Purchase Cost (৳)</label>
                       <input
                         type="number"
                         value={v.purchasePrice}
@@ -320,11 +320,11 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                           const val = parseFloat(e.target.value) || 0;
                           setVariants(prev => prev.map((item, i) => i === idx ? { ...item, purchasePrice: val } : item));
                         }}
-                        className="w-full p-1.5 bg-white border border-slate-300 rounded text-xs font-bold text-slate-800"
+                        className="w-full p-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold text-slate-800 dark:text-slate-200"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-slate-500 font-semibold mb-0.5">Dealer Price (৳)</label>
+                      <label className="block text-[10px] text-slate-500 dark:text-slate-400 font-semibold mb-0.5">Dealer Price (৳)</label>
                       <input
                         type="number"
                         value={v.dealerPrice}
@@ -332,11 +332,11 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                           const val = parseFloat(e.target.value) || 0;
                           setVariants(prev => prev.map((item, i) => i === idx ? { ...item, dealerPrice: val } : item));
                         }}
-                        className="w-full p-1.5 bg-white border border-slate-300 rounded text-xs font-bold text-blue-700"
+                        className="w-full p-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold text-blue-700 dark:text-blue-400"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-slate-500 font-semibold mb-0.5">Wholesale Price (৳)</label>
+                      <label className="block text-[10px] text-slate-500 dark:text-slate-400 font-semibold mb-0.5">Wholesale Price (৳)</label>
                       <input
                         type="number"
                         value={v.wholesalePrice}
@@ -344,12 +344,12 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                           const val = parseFloat(e.target.value) || 0;
                           setVariants(prev => prev.map((item, i) => i === idx ? { ...item, wholesalePrice: val } : item));
                         }}
-                        className="w-full p-1.5 bg-white border border-slate-300 rounded text-xs font-bold text-indigo-700"
+                        className="w-full p-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold text-indigo-700 dark:text-indigo-400"
                       />
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
-                        <label className="block text-[10px] text-slate-500 font-semibold mb-0.5">Retail MRP (৳)</label>
+                        <label className="block text-[10px] text-slate-500 dark:text-slate-400 font-semibold mb-0.5">Retail MRP (৳)</label>
                         <input
                           type="number"
                           value={v.retailPrice}
@@ -357,14 +357,14 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                             const val = parseFloat(e.target.value) || 0;
                             setVariants(prev => prev.map((item, i) => i === idx ? { ...item, retailPrice: val } : item));
                           }}
-                          className="w-full p-1.5 bg-white border border-slate-300 rounded text-xs font-bold text-emerald-700"
+                          className="w-full p-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold text-emerald-700 dark:text-emerald-400"
                         />
                       </div>
                       {variants.length > 1 && (
                         <button
                           type="button"
                           onClick={() => handleRemoveVariant(idx)}
-                          className="text-slate-400 hover:text-rose-600 mt-4 p-1"
+                          className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 mt-4 p-1 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -376,11 +376,11 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200/80 bg-white/60 backdrop-blur-xl -mx-6 -mb-6 p-6">
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl -mx-6 -mb-6 p-6">
             <button
               type="button"
               onClick={handleRequestClose}
-              className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-white/80 rounded-xl transition cursor-pointer"
+              className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-white/80 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
             >
               Cancel <kbd className="ml-1 text-[10px] font-mono opacity-60">Esc</kbd>
             </button>
