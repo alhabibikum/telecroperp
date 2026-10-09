@@ -342,17 +342,17 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
         icon={<Truck className="w-4 h-4 text-blue-400" />}
         maxWidth="max-w-5xl"
       >
-        <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto bg-white/40 dark:bg-slate-900/60 backdrop-blur-md">
+        <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-3 space-y-3 max-h-[82vh] overflow-y-auto bg-[#f0f0f0] dark:bg-[#1e1e1e] text-[#000000] dark:text-[#ffffff]">
           {successMsg && (
-            <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/70 text-emerald-800 dark:text-emerald-300 text-xs flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span className="font-bold">{successMsg}</span>
+            <div className="p-2 border border-[#107c41] bg-[#e6f4ea] text-[#107c41] text-xs flex items-center justify-between font-bold">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{successMsg}</span>
               </div>
               <button
                 type="button"
                 onClick={handleRequestClose}
-                className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-950 dark:hover:text-emerald-200 underline cursor-pointer"
+                className="text-xs text-[#0055ea] underline cursor-pointer"
               >
                 উইন্ডো বন্ধ করুন
               </button>
@@ -360,111 +360,111 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
           )}
 
           {errorMsg && (
-            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/70 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+            <div className="p-2 border border-[#a80000] bg-[#fde7e9] text-[#a80000] text-xs flex items-center gap-2 font-bold">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
 
-          {/* Supplier, Warehouse, Dates */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Supplier / Brand Distributor *
-              </label>
-              <select
-                value={supplierId}
-                onChange={(e) => setSupplierId(e.target.value)}
-                className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-600"
-                required
-              >
-                {suppliers.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} (Due: {formatBDT(s.currentDue)})
-                  </option>
-                ))}
-              </select>
-            </div>
+          {/* GroupBox 1: Supplier, Warehouse, Dates */}
+          <fieldset className="win-groupbox">
+            <legend className="win-legend">১. ভেন্ডর ও চালান তথ্য (Vendor & Consignment Info)</legend>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5">
+              <div>
+                <label className="block text-xs font-bold mb-1">
+                  Supplier / Brand Distributor *
+                </label>
+                <select
+                  value={supplierId}
+                  onChange={(e) => setSupplierId(e.target.value)}
+                  className="w-full text-xs"
+                  required
+                >
+                  {suppliers.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} (Due: {formatBDT(s.currentDue)})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Receiving Warehouse *
-              </label>
-              <select
-                value={warehouseId}
-                onChange={(e) => setWarehouseId(e.target.value)}
-                className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-600"
-                required
-              >
-                {warehouses.map(w => (
-                  <option key={w.id} value={w.id}>
-                    {w.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div>
+                <label className="block text-xs font-bold mb-1">
+                  Receiving Warehouse *
+                </label>
+                <select
+                  value={warehouseId}
+                  onChange={(e) => setWarehouseId(e.target.value)}
+                  className="w-full text-xs"
+                  required
+                >
+                  {warehouses.map(w => (
+                    <option key={w.id} value={w.id}>
+                      {w.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Purchase / Inward Date *
-              </label>
-              <input
-                type="date"
-                value={purchaseDate}
-                onChange={(e) => setPurchaseDate(e.target.value)}
-                className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-600"
-                required
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-bold mb-1">
+                  Purchase / Inward Date *
+                </label>
+                <input
+                  type="date"
+                  value={purchaseDate}
+                  onChange={(e) => setPurchaseDate(e.target.value)}
+                  className="w-full text-xs"
+                  required
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Payment Due Date *
-              </label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-600"
-                required
-              />
+              <div>
+                <label className="block text-xs font-bold mb-1">
+                  Payment Due Date *
+                </label>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full text-xs"
+                  required
+                />
+              </div>
             </div>
-          </div>
+          </fieldset>
 
-          {/* Line Items */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                <Barcode className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Consignment Items & Bulk IMEI Registration</span>
-              </h3>
+          {/* GroupBox 2: Line Items & IMEIs */}
+          <fieldset className="win-groupbox">
+            <legend className="win-legend flex items-center justify-between w-full">
+              <span>২. পণ্য তালিকা ও আইএমইআই এন্ট্রি (Products & Stock Inward)</span>
               <button
                 type="button"
                 onClick={handleAddItem}
-                className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-semibold hover:text-emerald-700 dark:hover:text-emerald-300 cursor-pointer"
+                className="win-button text-xs ml-4"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Add Item Line</span>
+                <span>+ Add Item Line [F3]</span>
               </button>
-            </div>
+            </legend>
 
-            <div className="space-y-4">
+            <div className="space-y-3 pt-1">
               {items.map((item, idx) => {
                 const prod = products.find(p => p.id === item.productId);
                 const parsedIMEIs = parseBulkIMEIs(item.bulkIMEIText);
                 const isCountMatched = parsedIMEIs.valid.length === item.quantity;
 
                 return (
-                  <div key={idx} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/70 space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                  <div key={idx} className="p-2 border border-[#7f9db9] dark:border-[#3f3f46] bg-white dark:bg-[#252526] space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
                       <div className="md:col-span-4">
-                        <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">
+                        <label className="block text-[11px] font-bold mb-0.5">
                           Product Model
                         </label>
                         <select
                           value={item.productId}
                           onChange={(e) => handleProductChange(idx, e.target.value)}
-                          className="w-full text-xs p-1.5 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-slate-900 dark:text-slate-100"
+                          className="w-full text-xs"
                         >
                           {products.map(p => (
                             <option key={p.id} value={p.id}>{p.brandName} - {p.model}</option>
@@ -473,13 +473,13 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                       </div>
 
                       <div className="md:col-span-3">
-                        <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">
+                        <label className="block text-[11px] font-bold mb-0.5">
                           Variant / Specs
                         </label>
                         <select
                           value={item.variantId}
                           onChange={(e) => handleVariantChange(idx, e.target.value)}
-                          className="w-full text-xs p-1.5 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-slate-900 dark:text-slate-100"
+                          className="w-full text-xs"
                         >
                           {prod?.variants.map(v => (
                             <option key={v.id} value={v.id}>
@@ -490,8 +490,8 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                       </div>
 
                       <div className="md:col-span-2">
-                        <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">
-                          Inward Quantity
+                        <label className="block text-[11px] font-bold mb-0.5">
+                          Quantity
                         </label>
                         <input
                           type="number"
@@ -502,12 +502,12 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                             const val = parseInt(e.target.value) || 1;
                             setItems(prev => prev.map((it, i) => i === idx ? { ...it, quantity: val } : it));
                           }}
-                          className="w-full text-xs p-1.5 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg font-bold text-slate-900 dark:text-slate-100"
+                          className="w-full text-xs font-bold font-mono"
                         />
                       </div>
 
                       <div className="md:col-span-2">
-                        <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">
+                        <label className="block text-[11px] font-bold mb-0.5">
                           Unit Cost (৳)
                         </label>
                         <input
@@ -517,7 +517,7 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                             const val = parseFloat(e.target.value) || 0;
                             setItems(prev => prev.map((it, i) => i === idx ? { ...it, unitCost: val } : it));
                           }}
-                          className="w-full text-xs p-1.5 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg font-bold text-slate-800 dark:text-slate-100"
+                          className="w-full text-xs font-bold font-mono"
                         />
                       </div>
 
@@ -526,43 +526,43 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                           type="button"
                           onClick={() => handleRemoveItem(idx)}
                           disabled={items.length === 1}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 disabled:opacity-20 cursor-pointer"
+                          className="win-button text-xs py-1 text-red-600 disabled:opacity-20"
+                          title="Remove Line"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
 
                     {/* Bulk IMEI Input Box */}
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                          <span>Paste {item.quantity} IMEI 1 Numbers (Comma or Newline separated)</span>
+                    <div className="p-2 border border-[#d0d0d0] dark:border-[#333337] bg-[#f9f9f9] dark:bg-[#1e1e1e]">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-bold flex items-center gap-1.5">
+                          <span>Paste {item.quantity} IMEI 1 Numbers (Comma or Newline separated):</span>
                         </label>
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-2">
                           <button
                             type="button"
                             onClick={() => {
                               setActiveScanItemIdx(idx);
                               setShowMultiScanner(true);
                             }}
-                            className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-700 dark:text-indigo-300 hover:text-indigo-800 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-2.5 py-1 rounded-md border border-indigo-200 dark:border-indigo-800 transition cursor-pointer"
-                            title="Camera, Barcode Gun, বা বাল্ক পেস্টের মাধ্যমে একসাথে একাধিক IMEI স্ক্যান করুন"
+                            className="win-button text-[11px]"
                           >
-                            <Camera className="w-3.5 h-3.5" />
-                            <span>Multi-Scan (Gun/Camera)</span>
+                            <Camera className="w-3 h-3 text-[#0055ea]" />
+                            <span>Scan Gun / Camera</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => handleAutoFillSampleIMEIs(idx)}
-                            className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
+                            className="win-button text-[11px]"
                           >
                             + Auto-Gen (Test)
                           </button>
-                          <span className={`text-[11px] font-bold ${
+                          <span className={`text-[11px] font-mono font-bold px-1.5 py-0.2 border ${
                             isCountMatched 
-                              ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/50 px-2 py-0.5 rounded' 
-                              : 'text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/50 px-2 py-0.5 rounded'
+                              ? 'border-[#107c41] bg-[#e6f4ea] text-[#107c41]' 
+                              : 'border-[#d83b01] bg-[#fff4ce] text-[#d83b01]'
                           }`}>
                             {parsedIMEIs.valid.length} / {item.quantity} Valid IMEIs
                           </span>
@@ -570,24 +570,24 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                       </div>
 
                       <textarea
-                        rows={3}
+                        rows={2}
                         placeholder={`358921104592011\n358921104592022\n...or scan with barcode reader`}
                         value={item.bulkIMEIText}
                         onChange={(e) => {
                           const val = e.target.value;
                           setItems(prev => prev.map((it, i) => i === idx ? { ...it, bulkIMEIText: val } : it));
                         }}
-                        className="w-full text-xs font-mono p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
+                        className="w-full text-xs font-mono"
                       />
 
                       {parsedIMEIs.invalid.length > 0 && (
-                        <div className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 font-mono">
+                        <div className="text-[11px] text-red-600 mt-1 font-mono">
                           Invalid IMEI formats (must be 14-16 digits): {parsedIMEIs.invalid.join(', ')}
                         </div>
                       )}
                       {parsedIMEIs.duplicates.length > 0 && (
-                        <div className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 font-mono">
-                          Duplicate IMEIs within input: {parsedIMEIs.duplicates.join(', ')}
+                        <div className="text-[11px] text-red-600 mt-1 font-mono">
+                          Duplicate IMEIs: {parsedIMEIs.duplicates.join(', ')}
                         </div>
                       )}
                     </div>
@@ -595,23 +595,21 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                 );
               })}
             </div>
-          </div>
+          </fieldset>
 
-          {/* Payment & Payout */}
-          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Payment Settlement to Supplier
-            </h4>
+          {/* GroupBox 3: Payment Settlement & Summary */}
+          <fieldset className="win-groupbox">
+            <legend className="win-legend">৩. পেমেন্ট ও সেটেলমেন্ট হিসাব (Payment Settlement)</legend>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 items-end">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-bold mb-1">
                   Payment Mode
                 </label>
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value as PaymentMethodType)}
-                  className="w-full text-xs p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100"
+                  className="w-full text-xs"
                 >
                   <option value="Bank Transfer">Bank Transfer (RTGS / BEFTN)</option>
                   <option value="Cash">Cash Payout</option>
@@ -621,13 +619,13 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
 
               {paymentMethod !== 'Cash' && (
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-bold mb-1">
                     Debit Bank Account
                   </label>
                   <select
                     value={bankAccountId}
                     onChange={(e) => setBankAccountId(e.target.value)}
-                    className="w-full text-xs p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100"
+                    className="w-full text-xs"
                   >
                     {bankAccounts.map(b => (
                       <option key={b.id} value={b.id}>
@@ -639,8 +637,8 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Advance / Immediate Paid (৳)
+                <label className="block text-xs font-bold mb-1">
+                  Immediate Paid (৳)
                 </label>
                 <input
                   type="number"
@@ -648,12 +646,12 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                   max={grandTotal}
                   value={paidAmount}
                   onChange={(e) => setPaidAmount(parseFloat(e.target.value) || 0)}
-                  className="w-full text-xs p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg font-bold text-emerald-700 dark:text-emerald-400"
+                  className="w-full text-xs font-mono font-bold text-green-700 dark:text-green-400"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-bold mb-1">
                   Supplier Chalan / PO Ref #
                 </label>
                 <HistoryInput
@@ -662,64 +660,62 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                   placeholder="e.g. FAIR-CH-2026-90"
                   value={referenceNo}
                   onChange={(e) => setReferenceNo(e.target.value)}
-                  className="w-full text-xs p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
+                  className="w-full text-xs"
                 />
               </div>
             </div>
 
             {/* Financial Summary */}
-            <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-700 text-xs">
+            <div className="flex items-center justify-between pt-2 mt-2 border-t border-[#7f9db9] dark:border-[#3f3f46] text-xs font-mono">
               <div>
-                <span className="text-slate-500 dark:text-slate-400">Total Purchase Value: </span>
-                <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100">{formatBDT(grandTotal)}</span>
+                <span>Total Purchase: </span>
+                <span className="font-bold text-sm text-[#000000] dark:text-[#ffffff]">{formatBDT(grandTotal)}</span>
               </div>
               <div className="flex items-center gap-6">
                 <div>
-                  <span className="text-slate-500 dark:text-slate-400">Paid Amount: </span>
-                  <span className="font-bold text-emerald-700 dark:text-emerald-400">{formatBDT(paidAmount)}</span>
+                  <span>Paid: </span>
+                  <span className="font-bold text-green-700 dark:text-green-400">{formatBDT(paidAmount)}</span>
                 </div>
-                <div className="pl-4 border-l border-slate-300 dark:border-slate-700">
-                  <span className="text-slate-500 dark:text-slate-400">Supplier Payable Due: </span>
-                  <span className="text-sm font-black text-rose-700 dark:text-rose-400">{formatBDT(dueAmount)}</span>
+                <div className="pl-4 border-l border-[#808080]">
+                  <span>Supplier Due: </span>
+                  <span className="font-bold text-sm text-red-600 dark:text-red-400">{formatBDT(dueAmount)}</span>
                 </div>
               </div>
             </div>
-          </div>
+          </fieldset>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Internal Notes
-            </label>
+          {/* GroupBox 4: Notes */}
+          <fieldset className="win-groupbox">
+            <legend className="win-legend">৪. নোট / রিমার্কস (Notes)</legend>
             <HistoryInput
               historyKey="notes"
               type="text"
               placeholder="e.g. BTRC certified official lot, warranty slip registered."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
+              className="w-full text-xs"
             />
-          </div>
+          </fieldset>
 
-          {/* Footer Submit */}
-          <div className="flex items-center justify-between pt-4 border-t border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl -mx-6 -mb-6 p-6">
-            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-              * Inwarding stock automatically posts Dr. Merchandise Inventory, Cr. Supplier Payable.
+          {/* Classic WinForms Action Buttons Tray */}
+          <div className="flex items-center justify-between pt-2 border-t border-[#7f9db9] dark:border-[#3f3f46] bg-[#e1e1e1] dark:bg-[#252526] -mx-3 -mb-3 p-3 select-none">
+            <div className="text-[11px] font-mono text-slate-600 dark:text-[#858585]">
+              * ডাবল এন্ট্রি: Dr. Merchandise Inventory, Cr. Supplier Payable
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleRequestClose}
-                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-white/80 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
+                className="win-button"
               >
-                Cancel <kbd className="ml-1 text-[10px] font-mono opacity-60">Esc</kbd>
+                Cancel [Esc]
               </button>
               <button
                 type="submit"
                 data-action="save"
-                className="px-5 py-2.5 text-xs font-black bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-95 text-white rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                className="win-button win-button-primary"
               >
-                <span>Receive Goods & Save Purchase</span>
-                <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-[10px] font-mono">Ctrl+Enter</kbd>
+                Save Consignment [F2 / Enter]
               </button>
             </div>
           </div>
