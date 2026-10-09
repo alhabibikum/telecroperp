@@ -73,13 +73,9 @@ export const FunctionKeyBar: React.FC<FunctionKeyBarProps> = ({
   return (
     <aside
       aria-label="ফাংশন কীবোর্ড বার"
-      className="fixed bottom-[26px] left-0 right-0 h-[28px] bg-[#ece9d8] dark:bg-[#252526] border-t border-[#999999] dark:border-[#333333] border-b border-[#ffffff] dark:border-[#1e1e1e] flex items-center px-1 overflow-x-auto select-none z-35"
-      style={{
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)',
-        fontFamily: '"Segoe UI", Tahoma, Arial, sans-serif'
-      }}
+      className="fixed bottom-[32px] left-0 right-0 h-8 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 flex items-center px-2 overflow-x-auto select-none z-35"
     >
-      <div className="flex items-center gap-1 min-w-max w-full">
+      <div className="flex items-center gap-1.5 min-w-max w-full">
         {keys.map((item) => {
           const isPressed = pressedKey === item.key;
           return (
@@ -88,20 +84,22 @@ export const FunctionKeyBar: React.FC<FunctionKeyBarProps> = ({
               type="button"
               onClick={item.action}
               title={`${item.key}: ${item.tooltip}`}
-              className={`h-5 px-1.5 flex items-center gap-1 text-[11px] font-sans rounded-none transition-all cursor-pointer ${
+              className={`h-6 px-2 flex items-center gap-1.5 text-xs rounded-lg transition-all cursor-pointer ${
                 isPressed
-                  ? 'bg-[#d0ccc0] dark:bg-[#37373d] shadow-[inset_1px_1px_2px_rgba(0,0,0,0.4)] translate-y-[1px]'
-                  : 'bg-[#f4f2e8] dark:bg-[#2d2d30] hover:bg-[#ffffff] dark:hover:bg-[#3e3e42] shadow-[1px_1px_0_#ffffff_inset,-1px_-1px_0_#999999_inset]'
-              } border border-[#7f9db9] dark:border-[#454545] text-[#000000] dark:text-[#cccccc] active:scale-95`}
+                  ? 'bg-sky-500 text-white shadow-inner scale-95'
+                  : 'bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/60 dark:border-slate-700/60 hover:shadow-xs active:scale-95'
+              }`}
             >
-              <span className="font-bold text-[10px] font-mono px-1 py-[0.5px] bg-[#005a9e] text-white dark:bg-[#007acc] rounded-[2px] leading-none">
+              <span className={`font-bold text-[10px] font-mono px-1 py-0.5 rounded-md leading-none ${
+                isPressed ? 'bg-white/30 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100'
+              }`}>
                 {item.key}
               </span>
-              <span className={`font-semibold truncate leading-none ${item.color || ''}`}>
+              <span className="font-medium truncate leading-none">
                 {item.label}
               </span>
               {item.subLabel && (
-                <span className="text-[9.5px] opacity-60 leading-none hidden xl:inline">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 leading-none hidden 2xl:inline">
                   {item.subLabel}
                 </span>
               )}
@@ -114,12 +112,12 @@ export const FunctionKeyBar: React.FC<FunctionKeyBarProps> = ({
             type="button"
             onClick={onEscapeClose}
             title="Esc: উইন্ডো বন্ধ করুন (Close Active Window)"
-            className="h-5 ml-auto px-1.5 flex items-center gap-1 text-[11px] font-sans bg-[#f4f2e8] dark:bg-[#2d2d30] hover:bg-[#ffebee] hover:text-[#c62828] border border-[#7f9db9] dark:border-[#454545] shadow-[1px_1px_0_#ffffff_inset,-1px_-1px_0_#999999_inset] rounded-none cursor-pointer"
+            className="h-6 ml-auto px-2 flex items-center gap-1 text-xs rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-800/60 transition cursor-pointer"
           >
-            <span className="font-bold text-[10px] font-mono px-1 py-[0.5px] bg-[#c62828] text-white rounded-[2px] leading-none">
+            <span className="font-bold text-[10px] font-mono px-1 py-0.5 bg-rose-200 dark:bg-rose-800 text-rose-800 dark:text-rose-100 rounded leading-none">
               Esc
             </span>
-            <span className="font-semibold text-[10.5px]">বন্ধ</span>
+            <span className="font-medium text-[11px]">বন্ধ</span>
           </button>
         )}
       </div>

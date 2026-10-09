@@ -120,27 +120,27 @@ export const WindowsTaskbar: React.FC<WindowsTaskbarProps> = ({
 
   return (
     <>
-      {/* Start Menu / App Launcher Popup */}
+      {/* Apple Launchpad / SAP Fiori App Drawer */}
       {showStartMenu && (
         <div
           onClick={() => setShowStartMenu(false)}
-          className="fixed inset-0 z-[60] bg-black/50 select-none"
+          className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-xs select-none"
         >
           <div
             onClick={e => e.stopPropagation()}
-            className="fixed bottom-8 left-2 z-[70] w-full max-w-md bg-[#252526] text-[#d4d4d4] border border-[#007acc] shadow-2xl overflow-hidden flex flex-col max-h-[80vh] font-mono"
+            className="fixed bottom-10 left-3 z-[70] w-full max-w-md bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-slate-100 border border-slate-200/80 dark:border-slate-800 shadow-2xl rounded-2xl overflow-hidden flex flex-col max-h-[80vh] font-sans"
           >
             {/* Search Box */}
-            <div className="p-2.5 bg-[#1e1e1e] border-b border-[#3f3f46]">
+            <div className="p-3 bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800">
               <div className="relative">
-                <Search className="w-3.5 h-3.5 text-[#858585] absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search Solution Modules & Windows..."
+                  placeholder="মডিউল বা ফিচার সার্চ করুন..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   autoFocus
-                  className="w-full pl-8 pr-3 py-1.5 bg-[#252526] border border-[#3f3f46] text-xs text-white placeholder-[#717171] focus:border-[#007acc] focus:outline-hidden"
+                  className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 focus:outline-hidden"
                 />
               </div>
             </div>
@@ -153,63 +153,61 @@ export const WindowsTaskbar: React.FC<WindowsTaskbarProps> = ({
                   <div
                     key={app.id}
                     onClick={() => handleLaunchApp(app.id)}
-                    className="p-1.5 flex items-center justify-between hover:bg-[#007acc] hover:text-white rounded-xs cursor-pointer transition"
+                    className="p-2 flex items-center justify-between hover:bg-sky-50 dark:hover:bg-slate-800/80 rounded-xl cursor-pointer transition group"
                   >
-                    <div className="flex items-center gap-2">
-                      <IconComponent className="w-4 h-4 text-[#9cdcfe]" />
-                      <span className="font-semibold">{app.title}</span>
-                      <span className="text-[10px] text-[#858585] group-hover:text-white">({app.sub})</span>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-sky-100/70 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+                        <IconComponent className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition">{app.title}</div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500">{app.sub}</div>
+                      </div>
                     </div>
-                    <span className="text-[10px] text-[#717171] font-mono">{app.category}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800">{app.category}</span>
                   </div>
                 );
               })}
             </div>
 
             {/* Bottom Footer */}
-            <div className="p-2 bg-[#1e1e1e] border-t border-[#3f3f46] flex items-center justify-between text-[11px] text-[#858585]">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#4ec9b0]" />
-                <span>{currentUser?.name || 'Administrator'}</span>
+            <div className="p-3 bg-slate-50/80 dark:bg-slate-800/80 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="font-medium text-slate-700 dark:text-slate-300">{currentUser?.name || 'Administrator'}</span>
               </div>
               <button
                 type="button"
                 onClick={() => logout()}
-                className="hover:text-[#f14c4c] flex items-center gap-1 transition cursor-pointer"
+                className="hover:text-rose-600 flex items-center gap-1 transition cursor-pointer font-medium"
               >
-                <LogOut className="w-3 h-3" />
-                <span>Log Out</span>
+                <LogOut className="w-3.5 h-3.5" />
+                <span>লগআউট</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Visual Studio Status Bar / Windows Taskbar Strip */}
-      <footer className="fixed bottom-0 left-0 right-0 h-6.5 bg-[#007acc] text-white z-40 px-2 flex items-center justify-between border-t border-[#005a9e] select-none text-[11.5px] font-mono shadow-md">
-        {/* Left Section: Status & Ready Glyph */}
+      {/* Apple macOS / SAP Fiori Bottom Status Strip */}
+      <footer className="fixed bottom-0 left-0 right-0 h-8 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl text-slate-700 dark:text-slate-300 z-40 px-3 flex items-center justify-between border-t border-slate-200/80 dark:border-slate-800 select-none text-xs font-sans shadow-xs">
+        {/* Left Section: Launchpad & Running Apps */}
         <div className="flex items-center gap-2 min-w-0 overflow-x-auto py-0.5">
-          {/* Start / Solution Launcher */}
+          {/* Launchpad Button */}
           <button
             type="button"
             onClick={() => setShowStartMenu(prev => !prev)}
-            className="h-5 px-2 bg-[#005a9e] hover:bg-[#1c97ea] text-white font-bold flex items-center gap-1 text-[11px] rounded-xs transition cursor-pointer shrink-0"
-            title="TeleCorp Solution Launcher"
+            className="h-6 px-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-sky-600 dark:text-sky-400 font-semibold flex items-center gap-1.5 text-xs rounded-lg transition cursor-pointer shrink-0"
+            title="Launchpad Modules"
           >
-            <span>VS</span>
-            <span>Modules</span>
+            <span>❖</span>
+            <span>মডিউলসমূহ</span>
           </button>
 
-          {/* Status Indicator */}
-          <div className="flex items-center gap-1.5 px-2 text-[11px] shrink-0 font-sans">
-            <span className="w-2 h-2 rounded-full bg-[#4ec9b0] animate-pulse" />
-            <span className="font-semibold">Ready</span>
-          </div>
-
-          <div className="h-3 w-px bg-white/20 shrink-0" />
+          <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 shrink-0" />
 
           {/* Open Windows / Tasks */}
-          <div className="flex items-center gap-1 min-w-0 overflow-x-auto py-0.5">
+          <div className="flex items-center gap-1.5 min-w-0 overflow-x-auto py-0.5">
             {windows.map(win => {
               const isActive = activeWindowId === win.id && !win.isMinimized;
               const isMin = win.isMinimized;
@@ -221,24 +219,25 @@ export const WindowsTaskbar: React.FC<WindowsTaskbarProps> = ({
                     if (isActive) toggleMinimizeWindow(win.id);
                     else focusWindow(win.id);
                   }}
-                  className={`h-5 px-2 flex items-center gap-1.5 rounded-xs cursor-pointer transition shrink-0 max-w-[180px] text-[11px] ${
+                  className={`h-6 px-2.5 flex items-center gap-1.5 rounded-lg cursor-pointer transition shrink-0 max-w-[190px] text-xs ${
                     isActive
-                      ? 'bg-[#1e1e1e] text-white border-b-2 border-white font-bold'
+                      ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/70 font-semibold shadow-xs'
                       : isMin
-                      ? 'bg-[#005a9e]/70 text-[#ce9178] hover:bg-[#005a9e]'
-                      : 'bg-[#005a9e] text-white hover:bg-[#1c97ea]'
+                      ? 'bg-slate-100/70 dark:bg-slate-800/50 text-slate-400 hover:bg-slate-200'
+                      : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
                   }`}
                   title={win.title}
                 >
+                  <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
                   <span className="truncate">{win.title.split(' ')[0]}</span>
-                  {isMin && <span className="text-[9px] text-[#ce9178]">[min]</span>}
+                  {isMin && <span className="text-[10px] text-slate-400">(min)</span>}
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       closeWindow(win.id);
                     }}
-                    className="hover:text-[#f14c4c] ml-1"
+                    className="hover:text-rose-500 ml-1 text-slate-400"
                   >
                     ✕
                   </button>
@@ -249,37 +248,21 @@ export const WindowsTaskbar: React.FC<WindowsTaskbarProps> = ({
         </div>
 
         {/* Right Section: System Metrics & Clock */}
-        <div className="flex items-center gap-2 shrink-0 text-[10.5px]">
-          {/* Supabase Connection */}
-          <div className="hidden lg:flex items-center gap-1 opacity-90">
-            {isOnline ? <Wifi className="w-3 h-3 text-[#4ec9b0]" /> : <WifiOff className="w-3 h-3 text-[#f14c4c]" />}
-            <span>{isOnline ? 'Online (Supabase)' : 'Offline'}</span>
+        <div className="flex items-center gap-3 shrink-0 text-xs">
+          {/* Cloud Connection */}
+          <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-[11px] font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>{isOnline ? 'ক্লাউড কানেক্টেড' : 'অফলাইন'}</span>
           </div>
-
-          <div className="h-3 w-px bg-white/20 hidden sm:block" />
-
-          {/* Warnings & Alerts */}
-          <div className="hidden sm:flex items-center gap-1">
-            <span className="text-[#f14c4c] font-bold">⊗ 0</span>
-            <span className="text-[#ce9178] font-bold">▲ {unreadAlerts}</span>
-          </div>
-
-          <div className="h-3 w-px bg-white/20 hidden md:block" />
-
-          {/* Encoding & Zoom */}
-          <span className="hidden md:inline opacity-80">UTF-8</span>
-          <span className="hidden md:inline opacity-80">100%</span>
-
-          <div className="h-3 w-px bg-white/20" />
 
           {/* Clock */}
-          <span className="font-bold">{formattedTime}</span>
+          <span className="font-semibold text-slate-700 dark:text-slate-300 font-mono text-[11.5px]">{formattedTime}</span>
 
-          {/* Show Desktop Peek Bar */}
+          {/* Minimize All */}
           <button
             type="button"
             onClick={minimizeAll}
-            className="w-2.5 h-4 bg-white/30 hover:bg-white/60 rounded-xs transition cursor-pointer ml-1"
+            className="w-3 h-5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded transition cursor-pointer"
             title="Minimize All to Desktop"
           />
         </div>

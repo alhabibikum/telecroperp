@@ -5,46 +5,44 @@
 
 @layer base {
   :root {
-    /* Classic Windows Forms / VB.NET / Tally Business Accounting Light Theme (1998-2008) */
-    --win-form-bg: #f0f0f0;
-    --win-canvas: #ffffff;
-    --win-titlebar-start: #0055ea;
-    --win-titlebar-end: #104a7b;
-    --win-border: #7f9db9;
-    --win-border-dark: #808080;
-    --win-border-light: #ffffff;
-    --win-btn-bg: #e1e1e1;
-    --win-btn-border: #707070;
-    --win-btn-hover: #e5f1fb;
-    --win-accent: #0055ea;
-    --win-text: #000000;
-    --win-text-secondary: #333333;
-    --win-text-muted: #555555;
-    --win-table-header: #e0e0e0;
-    --win-grid-line: #d0d0d0;
-    --win-selection: #cce8ff;
+    /* Apple macOS & SAP Fiori Corporate Enterprise Theme (Light) */
+    --fiori-bg: #f5f7fa;
+    --fiori-canvas: #ffffff;
+    --fiori-surface: #ffffff;
+    --fiori-header: #ffffff;
+    --fiori-border: #e2e8f0;
+    --fiori-border-subtle: #edf2f7;
+    --fiori-primary: #0066cc;
+    --fiori-primary-hover: #0052a3;
+    --fiori-accent: #0284c7;
+    --fiori-success: #10b981;
+    --fiori-warning: #f59e0b;
+    --fiori-danger: #ef4444;
+    --fiori-text-main: #0f172a;
+    --fiori-text-muted: #64748b;
+    --fiori-table-hover: #f1f5f9;
+    --fiori-table-header: #f8fafc;
     color-scheme: light;
   }
 
   .dark, [data-theme="dark"] {
-    /* Classic Windows Forms Dark Theme */
-    --win-form-bg: #1e1e1e;
-    --win-canvas: #1e1e1e;
-    --win-titlebar-start: #1b3864;
-    --win-titlebar-end: #2b579a;
-    --win-border: #3f3f46;
-    --win-border-dark: #333333;
-    --win-border-light: #555555;
-    --win-btn-bg: #2d2d30;
-    --win-btn-border: #555555;
-    --win-btn-hover: #3e3e42;
-    --win-accent: #007acc;
-    --win-text: #ffffff;
-    --win-text-secondary: #cccccc;
-    --win-text-muted: #858585;
-    --win-table-header: #2d2d30;
-    --win-grid-line: #333337;
-    --win-selection: #094771;
+    /* Apple macOS & SAP Fiori Horizon Dark Theme */
+    --fiori-bg: #0b0f19;
+    --fiori-canvas: #111827;
+    --fiori-surface: #131c2e;
+    --fiori-header: #101726;
+    --fiori-border: #232f48;
+    --fiori-border-subtle: #1a2438;
+    --fiori-primary: #38bdf8;
+    --fiori-primary-hover: #0284c7;
+    --fiori-accent: #38bdf8;
+    --fiori-success: #34d399;
+    --fiori-warning: #fbbf24;
+    --fiori-danger: #f87171;
+    --fiori-text-main: #f8fafc;
+    --fiori-text-muted: #94a3b8;
+    --fiori-table-hover: #172338;
+    --fiori-table-header: #0f172a;
     color-scheme: dark;
   }
 
@@ -54,319 +52,218 @@
   }
 
   body {
-    /* Classic Enterprise System font: Segoe UI, Tahoma, MS Sans Serif */
-    font-family: "Segoe UI", "Tahoma", "MS Sans Serif", Arial, sans-serif;
-    background-color: var(--win-form-bg);
-    color: var(--win-text);
-    line-height: 1.4;
-    letter-spacing: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", "Inter", Roboto, sans-serif;
+    background-color: var(--fiori-bg);
+    color: var(--fiori-text-main);
+    line-height: 1.5;
+    letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   .dark body,
   html.dark body {
-    background-color: #1e1e1e;
-    color: #ffffff;
+    background-color: #0b0f19;
+    color: #f8fafc;
   }
 
   /* Monospace for Numbers, BDT Currency, and IMEIs */
   table, .font-mono, [data-tabular="true"] {
-    font-family: "Consolas", "Courier New", monospace;
+    font-family: "SF Mono", "Fira Code", "Consolas", monospace;
     font-variant-numeric: tabular-nums;
   }
 
-  /* =========================================================================
-     GLOBAL RESET: Flatten all modern curved bubbles into classic square WinForms
-     ========================================================================= */
-  [class*="rounded-3xl"],
-  [class*="rounded-2xl"],
-  [class*="rounded-xl"],
-  [class*="rounded-lg"],
-  [class*="rounded-md"] {
-    border-radius: 2px !important;
-  }
-
-  /* Remove blurry web glass and glowing shadows */
-  [class*="shadow-2xl"],
-  [class*="shadow-xl"],
-  [class*="shadow-lg"] {
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.25) !important;
-  }
-  [class*="backdrop-blur"] {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-
-  /* Flatten gradient badges to solid enterprise colors */
-  [class*="bg-gradient-to-"] {
-    background-image: none !important;
-  }
-
-  /* Classic Windows Form Input Fields (TextBox, ComboBox) */
+  /* Apple macOS / SAP Fiori Input Fields */
   input:not([type="checkbox"]):not([type="radio"]),
   select,
   textarea {
-    border: 1px solid #7f9db9 !important;
-    border-radius: 1px !important;
-    padding: 3px 6px !important;
-    font-size: 12px !important;
-    font-family: "Segoe UI", Tahoma, sans-serif !important;
-    background-color: #ffffff !important;
-    color: #000000 !important;
-    box-shadow: inset 1px 1px 1px rgba(0,0,0,0.1) !important;
+    border: 1px solid var(--fiori-border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+    background-color: #ffffff;
+    color: var(--fiori-text-main);
+    transition: all 0.15s ease-in-out;
   }
 
   html.dark input:not([type="checkbox"]):not([type="radio"]),
   html.dark select,
   html.dark textarea {
-    border: 1px solid #555555 !important;
-    background-color: #2b2b2b !important;
-    color: #ffffff !important;
-    box-shadow: inset 1px 1px 1px rgba(0,0,0,0.4) !important;
+    border: 1px solid var(--fiori-border);
+    background-color: #131c2e;
+    color: #f8fafc;
   }
 
   input:focus,
   select:focus,
   textarea:focus {
-    border-color: #0055ea !important;
-    outline: 1px solid #0055ea !important;
+    border-color: #0284c7;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
   }
   html.dark input:focus,
   html.dark select:focus,
   html.dark textarea:focus {
-    border-color: #007acc !important;
-    outline: 1px solid #007acc !important;
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
   }
 
-  /* Classic Windows GroupBox & Fieldset */
-  fieldset,
-  .win-groupbox {
-    border: 1px solid #7f9db9 !important;
-    border-radius: 2px !important;
-    padding: 10px 12px !important;
-    margin-bottom: 12px !important;
-    background-color: transparent !important;
-  }
-  html.dark fieldset,
-  html.dark .win-groupbox {
-    border: 1px solid #444448 !important;
-  }
-
-  legend,
-  .win-legend {
-    padding: 0 6px !important;
-    font-weight: 700 !important;
-    font-size: 11.5px !important;
-    color: #003399 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.03em !important;
-  }
-  html.dark legend,
-  html.dark .win-legend {
-    color: #9cdcfe !important;
-  }
-
-  /* Classic Windows Buttons */
-  button:not([class*="no-win-btn"]) {
-    border-radius: 2px !important;
-  }
-
-  /* Classic Windows DataGridView Tables */
+  /* SAP Fiori Smart Table Styling */
   table {
-    border-collapse: collapse !important;
-    border: 1px solid #808080 !important;
-    width: 100% !important;
-    background-color: #ffffff !important;
-  }
-  html.dark table {
-    background-color: #1e1e1e !important;
-    border: 1px solid #404040 !important;
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
   }
 
   thead th {
-    background-color: #e8e8e8 !important;
-    border: 1px solid #a0a0a0 !important;
-    color: #000000 !important;
-    font-size: 11.5px !important;
-    font-weight: 700 !important;
-    padding: 4px 8px !important;
-    text-align: left !important;
-    user-select: none !important;
-  }
-  html.dark thead th {
-    background-color: #2d2d30 !important;
-    border: 1px solid #3f3f46 !important;
-    color: #9cdcfe !important;
+    background-color: var(--fiori-table-header);
+    color: var(--fiori-text-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--fiori-border);
+    user-select: none;
   }
 
   tbody td {
-    border: 1px solid #d0d0d0 !important;
-    padding: 3px 8px !important;
-    font-size: 11.5px !important;
-  }
-  html.dark tbody td {
-    border: 1px solid #333337 !important;
-    color: #cccccc !important;
-  }
-
-  tbody tr:nth-child(even) {
-    background-color: #f8f8f8 !important;
-  }
-  html.dark tbody tr:nth-child(even) {
-    background-color: #252526 !important;
+    padding: 8px 12px;
+    font-size: 12.5px;
+    border-bottom: 1px solid var(--fiori-border-subtle);
+    color: var(--fiori-text-main);
+    transition: background-color 0.1s ease;
   }
 
   tbody tr:hover {
-    background-color: #cce8ff !important;
-    color: #000000 !important;
-  }
-  html.dark tbody tr:hover {
-    background-color: #094771 !important;
-    color: #ffffff !important;
-  }
-
-  /* Classic Form Cards Replacement */
-  html.dark .bg-white:not([data-theme-ignore="true"]):not([class*="dark:bg-"]) {
-    background-color: #252526 !important;
-  }
-  html.dark .bg-slate-50:not([data-theme-ignore="true"]):not([class*="dark:bg-"]) {
-    background-color: #1e1e1e !important;
-  }
-  html.dark .bg-slate-100:not([data-theme-ignore="true"]):not([class*="dark:bg-"]) {
-    background-color: #2d2d30 !important;
-  }
-  html.dark .border-slate-200:not([data-theme-ignore="true"]),
-  html.dark .border-slate-300:not([data-theme-ignore="true"]) {
-    border-color: #3f3f46 !important;
+    background-color: var(--fiori-table-hover);
   }
 }
 
 /* =========================================================================
-   Classic Windows Forms & Accounting Classes
+   Apple macOS & SAP Fiori Design Utilities
    ========================================================================= */
 
-/* Classic Windows Push Button */
-.win-button {
-  background: #e1e1e1;
-  border: 1px solid #707070;
-  color: #000000;
-  padding: 3px 12px;
-  font-size: 11.5px;
-  font-weight: 600;
-  border-radius: 2px;
-  cursor: pointer;
+/* Apple macOS Glassmorphism Surfaces */
+.macos-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 0 1px 1px rgba(0, 0, 0, 0.02);
+}
+
+.dark .macos-glass {
+  background: rgba(19, 28, 46, 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.4), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Apple macOS Traffic Light Dots */
+.traffic-light-close {
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background-color: #ff5f56;
+  border: 1px solid #e0443e;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  user-select: none;
-}
-.win-button:hover {
-  background: #e5f1fb;
-  border-color: #0078d7;
-}
-.win-button:active {
-  background: #cce4f7;
-  border-color: #005499;
-}
-.dark .win-button {
-  background: #2d2d30;
-  border-color: #555555;
-  color: #ffffff;
-}
-.dark .win-button:hover {
-  background: #3e3e42;
-  border-color: #007acc;
-}
-.win-button-primary {
-  background: #0055ea !important;
-  border-color: #003bb0 !important;
-  color: #ffffff !important;
-  font-weight: 700 !important;
-}
-.win-button-primary:hover {
-  background: #1a6bf0 !important;
-}
-.dark .win-button-primary {
-  background: #007acc !important;
-  border-color: #005a9e !important;
-}
-
-/* Classic Bottom Function Key Bar (Tally / FoxPro / Accounting Software) */
-.win-fkey-bar {
-  background-color: #e0e0e0;
-  border-top: 1px solid #707070;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 6px;
-  overflow-x: auto;
-  user-select: none;
-}
-.dark .win-fkey-bar {
-  background-color: #252526;
-  border-top: 1px solid #3f3f46;
-}
-.win-fkey-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-family: "Consolas", monospace;
-  font-weight: 700;
-  border: 1px solid #707070;
-  background-color: #f0f0f0;
-  color: #000000;
-  border-radius: 2px;
+  font-size: 8px;
+  color: rgba(0, 0, 0, 0.6);
   cursor: pointer;
+  transition: transform 0.1s ease, filter 0.15s ease;
 }
-.dark .win-fkey-btn {
-  background-color: #2d2d30;
-  border-color: #555555;
-  color: #ffffff;
+.traffic-light-close:hover {
+  filter: brightness(0.9);
 }
-.win-fkey-btn:hover {
-  background-color: #e5f1fb;
-  border-color: #0055ea;
-}
-.dark .win-fkey-btn:hover {
-  background-color: #3e3e42;
-  border-color: #007acc;
+.traffic-light-close:active {
+  transform: scale(0.9);
 }
 
-/* Classic Form Bevel Border */
-.win-bevel-inset {
-  border: 1px solid #7f9db9;
-  background: #ffffff;
-}
-.dark .win-bevel-inset {
-  border: 1px solid #3f3f46;
-  background: #1e1e1e;
-}
-
-/* Classic Scrollbars */
-::-webkit-scrollbar {
+.traffic-light-min {
   width: 12px;
   height: 12px;
+  border-radius: 9999px;
+  background-color: #ffbd2e;
+  border: 1px solid #dea123;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  transition: transform 0.1s ease, filter 0.15s ease;
+}
+.traffic-light-min:hover {
+  filter: brightness(0.9);
+}
+.traffic-light-min:active {
+  transform: scale(0.9);
+}
+
+.traffic-light-zoom {
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background-color: #27c93f;
+  border: 1px solid #1aab29;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  transition: transform 0.1s ease, filter 0.15s ease;
+}
+.traffic-light-zoom:hover {
+  filter: brightness(0.9);
+}
+.traffic-light-zoom:active {
+  transform: scale(0.9);
+}
+
+/* SAP Fiori Corporate Cards */
+.fiori-card {
+  background-color: #ffffff;
+  border: 1px solid var(--fiori-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.fiori-card:hover {
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.08);
+}
+.dark .fiori-card {
+  background-color: #131c2e;
+  border-color: #232f48;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+.dark .fiori-card:hover {
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.4);
+  border-color: #2d3d5c;
+}
+
+/* Apple Smooth Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: #ece9d8;
-}
-.dark ::-webkit-scrollbar-track {
-  background: #1e1e1e;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #c0c0c0;
-  border: 1px solid #ffffff;
-}
-.dark ::-webkit-scrollbar-thumb {
-  background: #404040;
-  border: 1px solid #2b2b2b;
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #a0a0a0;
+  background: rgba(148, 163, 184, 0.7);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
 }
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #505050;
+  background: rgba(255, 255, 255, 0.35);
 }

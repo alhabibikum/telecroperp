@@ -54,70 +54,75 @@ export const WindowsWindowFrame: React.FC<WindowsWindowFrameProps> = ({
 
   return (
     <div
-      className={`h-full flex flex-col transition-all duration-100 ${
-        isMaximized
-          ? 'w-full'
-          : 'p-0.5 bg-[#d0d0d0] dark:bg-[#141414]'
+      className={`h-full flex flex-col transition-all duration-150 ${
+        isMaximized ? 'w-full p-0' : 'p-2'
       }`}
     >
       <div
-        className={`flex-1 flex flex-col bg-[#f0f0f0] dark:bg-[#1e1e1e] text-[#000000] dark:text-[#ffffff] overflow-hidden border border-[#7f9db9] dark:border-[#3f3f46] ${className}`}
+        className={`flex-1 flex flex-col bg-white dark:bg-[#131c2e] text-slate-800 dark:text-slate-100 overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xl ${className}`}
       >
-        {/* Classic Windows Titlebar */}
-        <div className="h-6.5 bg-gradient-to-r from-[#0055ea] via-[#104a7b] to-[#002d62] dark:from-[#1b3864] dark:to-[#2b579a] text-white flex items-center justify-between px-2 shrink-0 select-none text-[11.5px] font-bold">
-          {/* Title & Icon */}
-          <div className="flex items-center gap-1.5 min-w-0 pr-2">
-            <span className="text-xs shrink-0">🗔</span>
-            <span className="truncate">{title}</span>
+        {/* Apple macOS Frosted Window Header */}
+        <div className="h-10 px-4 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0 select-none">
+          {/* Left: macOS Traffic Light Dots */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="traffic-light-close group"
+              title="Close Window (Ctrl+W / Esc)"
+            >
+              <span className="opacity-0 group-hover:opacity-100 font-bold leading-none">✕</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => minimizeWindow(id)}
+              className="traffic-light-min group"
+              title="Minimize Window"
+            >
+              <span className="opacity-0 group-hover:opacity-100 font-bold leading-none">−</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleMaximizeWindow(id)}
+              className="traffic-light-zoom group"
+              title={isMaximized ? 'Restore Window' : 'Zoom Window'}
+            >
+              <span className="opacity-0 group-hover:opacity-100 font-bold leading-none">⤢</span>
+            </button>
+          </div>
+
+          {/* Center: Title & Subtitle */}
+          <div className="flex items-center gap-2 min-w-0 px-2">
+            {icon && <span className="text-sm shrink-0">{icon}</span>}
+            <span className="font-semibold text-xs tracking-tight text-slate-800 dark:text-slate-200 truncate">
+              {title}
+            </span>
             {subtitle && (
-              <span className="hidden lg:inline text-[10.5px] font-normal text-[#cce8ff] truncate">
-                - {subtitle}
+              <span className="hidden md:inline text-[11px] font-normal text-slate-400 dark:text-slate-500 truncate">
+                • {subtitle}
               </span>
             )}
           </div>
 
-          {/* Windows Titlebar Controls */}
-          <div className="flex items-center gap-0.5 shrink-0">
+          {/* Right: Window Layout Actions */}
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={() => toggleSplitView()}
-              className="w-5 h-4.5 bg-[#e1e1e1] hover:bg-[#ffffff] text-[#000000] border border-[#707070] flex items-center justify-center transition cursor-pointer"
+              className={`p-1.5 rounded-lg text-xs transition cursor-pointer ${
+                isSplitView
+                  ? 'bg-sky-100 text-sky-700 dark:bg-sky-950/70 dark:text-sky-300'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
               title="Split 50/50 View"
             >
-              <Columns2 className="w-2.5 h-2.5" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => minimizeWindow(id)}
-              className="w-5 h-4.5 bg-[#e1e1e1] hover:bg-[#ffffff] text-[#000000] border border-[#707070] flex items-center justify-center transition cursor-pointer"
-              title="Minimize"
-            >
-              <Minus className="w-2.5 h-2.5" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => toggleMaximizeWindow(id)}
-              className="w-5 h-4.5 bg-[#e1e1e1] hover:bg-[#ffffff] text-[#000000] border border-[#707070] flex items-center justify-center transition cursor-pointer"
-              title={isMaximized ? 'Restore' : 'Maximize'}
-            >
-              {isMaximized ? <Copy className="w-2.5 h-2.5" /> : <Square className="w-2.5 h-2.5" />}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleClose}
-              className="w-6 h-4.5 bg-[#e81123] hover:bg-[#f1707a] text-white border border-[#b80c1b] flex items-center justify-center font-bold text-[11px] transition cursor-pointer"
-              title="Close (Ctrl+F4)"
-            >
-              ✕
+              <Columns2 className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* View Content Viewport */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#f0f0f0] dark:bg-[#1e1e1e] p-1">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#f8fafc]/60 dark:bg-[#0b0f19]/60 p-2 sm:p-4">
           {children}
         </div>
       </div>

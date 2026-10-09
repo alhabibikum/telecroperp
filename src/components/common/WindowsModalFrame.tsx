@@ -89,84 +89,87 @@ export const WindowsModalFrame: React.FC<WindowsModalFrameProps> = ({
     >
       {/* Visual notice popup when user clicks outside */}
       {shakeNotice && !isMinimized && (
-        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[80] bg-[#ffffcc] text-[#000000] px-3 py-1 font-bold text-xs flex items-center gap-2 border border-[#808080] shadow-md">
-          <ShieldAlert className="w-4 h-4 shrink-0 text-[#cc0000]" />
-          <span>উইন্ডোর বাইরে ক্লিকে ডাটা হারাবে না। বন্ধ করতে [✕] চাপুন।</span>
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[80] bg-amber-500 text-white px-4 py-2 rounded-xl font-medium text-xs flex items-center gap-2 shadow-xl animate-bounce">
+          <ShieldAlert className="w-4 h-4 shrink-0" />
+          <span>উইন্ডোর বাইরে ক্লিকে ডাটা হারাবে না। বন্ধ করতে লাল [✕] বোতাম চাপুন।</span>
         </div>
       )}
 
-      {/* Classic Windows Form Dialog Box */}
+      {/* Apple macOS & SAP Fiori Modal Dialog */}
       <div
         onClick={e => e.stopPropagation()}
-        className={`relative bg-[#f0f0f0] dark:bg-[#1e1e1e] text-[#000000] dark:text-[#ffffff] shadow-[2px_2px_10px_rgba(0,0,0,0.5)] flex flex-col border-2 border-[#0055ea] dark:border-[#336699] transition-all overflow-hidden ${
+        className={`relative bg-white dark:bg-[#131c2e] text-slate-800 dark:text-slate-100 shadow-2xl flex flex-col rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all overflow-hidden ${
           isLocalMaximized
-            ? 'w-full h-full max-w-none max-h-none'
-            : `w-full ${maxWidth} max-h-[92vh]`
-        } ${shakeNotice ? 'ring-2 ring-[#cc0000]' : ''}`}
+            ? 'w-full h-full max-w-none max-h-none rounded-none'
+            : `w-full ${maxWidth} max-h-[90vh]`
+        } ${shakeNotice ? 'ring-2 ring-amber-500' : ''}`}
       >
-        {/* Classic Windows Blue Titlebar */}
-        <div className="h-7 bg-gradient-to-r from-[#0055ea] via-[#104a7b] to-[#002d62] dark:from-[#1b3864] dark:to-[#2b579a] text-white flex items-center justify-between px-2 shrink-0 select-none text-[12px] font-bold">
-          {/* Title and Icon */}
-          <div className="flex items-center gap-1.5 min-w-0 pr-2">
-            <span className="text-[12px] shrink-0">🗔</span>
-            <span className="truncate">
-              {title}
-            </span>
-            {subtitle && (
-              <span className="hidden md:inline font-normal text-[11px] text-[#cce8ff] truncate">
-                - {subtitle}
-              </span>
-            )}
-          </div>
-
-          {/* Windows Classic Controls Box */}
-          <div className="flex items-center gap-0.5 shrink-0">
-            {showSkipButton && (
-              <button
-                type="button"
-                onClick={handleSkip}
-                className="h-5 px-2 bg-[#e1e1e1] hover:bg-[#ffffff] text-[#000000] text-[10.5px] font-bold border border-[#707070] transition cursor-pointer mr-1"
-                title="Skip / Dismiss"
-              >
-                Skip
-              </button>
-            )}
+        {/* Apple macOS Frosted Header */}
+        <div className="h-11 px-4 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0 select-none">
+          {/* Left: macOS Traffic Light Controls */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="traffic-light-close group"
+              title="Close Dialog (Esc)"
+            >
+              <span className="opacity-0 group-hover:opacity-100 font-bold leading-none">✕</span>
+            </button>
 
             {isDesktop && (
               <>
                 <button
                   type="button"
                   onClick={() => minimizeWindow(effectiveId)}
-                  className="w-5 h-5 bg-[#e1e1e1] hover:bg-[#ffffff] text-[#000000] border border-[#707070] flex items-center justify-center text-[10px] font-bold cursor-pointer"
+                  className="traffic-light-min group"
                   title="Minimize"
                 >
-                  <Minus className="w-2.5 h-2.5" />
+                  <span className="opacity-0 group-hover:opacity-100 font-bold leading-none">−</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setIsLocalMaximized(prev => !prev)}
-                  className="w-5 h-5 bg-[#e1e1e1] hover:bg-[#ffffff] text-[#000000] border border-[#707070] flex items-center justify-center text-[10px] font-bold cursor-pointer"
-                  title={isLocalMaximized ? 'Restore' : 'Maximize'}
+                  className="traffic-light-zoom group"
+                  title={isLocalMaximized ? 'Restore' : 'Zoom'}
                 >
-                  {isLocalMaximized ? <Copy className="w-2.5 h-2.5" /> : <Square className="w-2.5 h-2.5" />}
+                  <span className="opacity-0 group-hover:opacity-100 font-bold leading-none">⤢</span>
                 </button>
               </>
             )}
+          </div>
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-6 h-5 bg-[#e81123] hover:bg-[#f1707a] text-white border border-[#b80c1b] flex items-center justify-center font-bold text-xs cursor-pointer"
-              title="Close Dialog"
-            >
-              ✕
-            </button>
+          {/* Center: Title and Subtitle */}
+          <div className="flex items-center gap-2 min-w-0 px-3">
+            {icon && <span className="text-base shrink-0">{icon}</span>}
+            <span className="font-semibold text-xs tracking-tight text-slate-800 dark:text-slate-200 truncate">
+              {title}
+            </span>
+            {subtitle && (
+              <span className="hidden sm:inline font-normal text-[11px] text-slate-400 dark:text-slate-500 truncate">
+                • {subtitle}
+              </span>
+            )}
+          </div>
+
+          {/* Right: Quick actions (Skip button) */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {showSkipButton && (
+              <button
+                type="button"
+                onClick={handleSkip}
+                className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition cursor-pointer"
+                title="Skip / Dismiss"
+              >
+                স্কিপ (Skip)
+              </button>
+            )}
           </div>
         </div>
 
         {/* Dialog Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-2 bg-[#f0f0f0] dark:bg-[#1e1e1e] text-[#000000] dark:text-[#ffffff]">
+        <div className="flex-1 min-h-0 overflow-y-auto bg-slate-50/50 dark:bg-[#0b0f19]/50">
           {children}
         </div>
       </div>

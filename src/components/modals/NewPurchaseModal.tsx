@@ -342,17 +342,17 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
         icon={<Truck className="w-4 h-4 text-blue-400" />}
         maxWidth="max-w-5xl"
       >
-        <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-3 space-y-3 max-h-[82vh] overflow-y-auto bg-[#f0f0f0] dark:bg-[#1e1e1e] text-[#000000] dark:text-[#ffffff]">
+        <form ref={containerRef as any} onKeyDown={onKeyDown} onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 max-h-[82vh] overflow-y-auto bg-slate-50/50 dark:bg-[#0b0f19]/50 text-slate-800 dark:text-slate-100">
           {successMsg && (
-            <div className="p-2 border border-[#107c41] bg-[#e6f4ea] text-[#107c41] text-xs flex items-center justify-between font-bold">
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <div className="p-3 rounded-xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between font-medium">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
                 <span>{successMsg}</span>
               </div>
               <button
                 type="button"
                 onClick={handleRequestClose}
-                className="text-xs text-[#0055ea] underline cursor-pointer"
+                className="text-xs text-sky-600 hover:underline cursor-pointer"
               >
                 উইন্ডো বন্ধ করুন
               </button>
@@ -360,15 +360,17 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
           )}
 
           {errorMsg && (
-            <div className="p-2 border border-[#a80000] bg-[#fde7e9] text-[#a80000] text-xs flex items-center gap-2 font-bold">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
+            <div className="p-3 rounded-xl border border-rose-200 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 text-xs flex items-center gap-2 font-medium">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
               <span>{errorMsg}</span>
             </div>
           )}
 
-          {/* GroupBox 1: Supplier, Warehouse, Dates */}
-          <fieldset className="win-groupbox">
-            <legend className="win-legend">১. ভেন্ডর ও চালান তথ্য (Vendor & Consignment Info)</legend>
+          {/* Fiori Card 1: Supplier, Warehouse, Dates */}
+          <div className="fiori-card p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#131c2e] shadow-xs space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
+              ১. ভেন্ডর ও চালান তথ্য (Vendor & Consignment Info)
+            </h4>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5">
               <div>
                 <label className="block text-xs font-bold mb-1">
@@ -432,21 +434,23 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                 />
               </div>
             </div>
-          </fieldset>
+          </div>
 
-          {/* GroupBox 2: Line Items & IMEIs */}
-          <fieldset className="win-groupbox">
-            <legend className="win-legend flex items-center justify-between w-full">
-              <span>২. পণ্য তালিকা ও আইএমইআই এন্ট্রি (Products & Stock Inward)</span>
+          {/* Fiori Card 2: Line Items & IMEIs */}
+          <div className="fiori-card p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#131c2e] shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
+                ২. পণ্য তালিকা ও আইএমইআই এন্ট্রি (Products & Stock Inward)
+              </h4>
               <button
                 type="button"
                 onClick={handleAddItem}
-                className="win-button text-xs ml-4"
+                className="px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-xs font-semibold hover:bg-sky-100 flex items-center gap-1.5 transition cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>+ Add Item Line [F3]</span>
+                <span>+ নতুন পণ্য যুক্ত করুন [F3]</span>
               </button>
-            </legend>
+            </div>
 
             <div className="space-y-3 pt-1">
               {items.map((item, idx) => {
@@ -595,15 +599,17 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                 );
               })}
             </div>
-          </fieldset>
+          </div>
 
-          {/* GroupBox 3: Payment Settlement & Summary */}
-          <fieldset className="win-groupbox">
-            <legend className="win-legend">৩. পেমেন্ট ও সেটেলমেন্ট হিসাব (Payment Settlement)</legend>
+          {/* Fiori Card 3: Payment Settlement & Summary */}
+          <div className="fiori-card p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#131c2e] shadow-xs space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
+              ৩. পেমেন্ট ও সেটেলমেন্ট হিসাব (Payment Settlement)
+            </h4>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
               <div>
-                <label className="block text-xs font-bold mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Payment Mode
                 </label>
                 <select
@@ -619,7 +625,7 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
 
               {paymentMethod !== 'Cash' && (
                 <div>
-                  <label className="block text-xs font-bold mb-1">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Debit Bank Account
                   </label>
                   <select
@@ -637,7 +643,7 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
               )}
 
               <div>
-                <label className="block text-xs font-bold mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Immediate Paid (৳)
                 </label>
                 <input
@@ -646,12 +652,12 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                   max={grandTotal}
                   value={paidAmount}
                   onChange={(e) => setPaidAmount(parseFloat(e.target.value) || 0)}
-                  className="w-full text-xs font-mono font-bold text-green-700 dark:text-green-400"
+                  className="w-full text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Supplier Chalan / PO Ref #
                 </label>
                 <HistoryInput
@@ -666,27 +672,29 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
             </div>
 
             {/* Financial Summary */}
-            <div className="flex items-center justify-between pt-2 mt-2 border-t border-[#7f9db9] dark:border-[#3f3f46] text-xs font-mono">
+            <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
               <div>
-                <span>Total Purchase: </span>
-                <span className="font-bold text-sm text-[#000000] dark:text-[#ffffff]">{formatBDT(grandTotal)}</span>
+                <span className="text-slate-500">Total Purchase: </span>
+                <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{formatBDT(grandTotal)}</span>
               </div>
               <div className="flex items-center gap-6">
                 <div>
-                  <span>Paid: </span>
-                  <span className="font-bold text-green-700 dark:text-green-400">{formatBDT(paidAmount)}</span>
+                  <span className="text-slate-500">Paid: </span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatBDT(paidAmount)}</span>
                 </div>
-                <div className="pl-4 border-l border-[#808080]">
-                  <span>Supplier Due: </span>
-                  <span className="font-bold text-sm text-red-600 dark:text-red-400">{formatBDT(dueAmount)}</span>
+                <div className="pl-4 border-l border-slate-200 dark:border-slate-700">
+                  <span className="text-slate-500">Supplier Due: </span>
+                  <span className="font-bold text-sm text-rose-600 dark:text-rose-400">{formatBDT(dueAmount)}</span>
                 </div>
               </div>
             </div>
-          </fieldset>
+          </div>
 
-          {/* GroupBox 4: Notes */}
-          <fieldset className="win-groupbox">
-            <legend className="win-legend">৪. নোট / রিমার্কস (Notes)</legend>
+          {/* Fiori Card 4: Notes */}
+          <div className="fiori-card p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#131c2e] shadow-xs space-y-1.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
+              ৪. নোট / রিমার্কস (Notes)
+            </h4>
             <HistoryInput
               historyKey="notes"
               type="text"
@@ -695,27 +703,27 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
               onChange={(e) => setNotes(e.target.value)}
               className="w-full text-xs"
             />
-          </fieldset>
+          </div>
 
-          {/* Classic WinForms Action Buttons Tray */}
-          <div className="flex items-center justify-between pt-2 border-t border-[#7f9db9] dark:border-[#3f3f46] bg-[#e1e1e1] dark:bg-[#252526] -mx-3 -mb-3 p-3 select-none">
-            <div className="text-[11px] font-mono text-slate-600 dark:text-[#858585]">
+          {/* Apple macOS / SAP Fiori Action Buttons Tray */}
+          <div className="flex items-center justify-between pt-3 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-md -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 p-4 rounded-b-2xl select-none">
+            <div className="text-[11px] text-slate-500 dark:text-slate-400">
               * ডাবল এন্ট্রি: Dr. Merchandise Inventory, Cr. Supplier Payable
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={handleRequestClose}
-                className="win-button"
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium text-xs transition cursor-pointer"
               >
-                Cancel [Esc]
+                বাতিল [Esc]
               </button>
               <button
                 type="submit"
                 data-action="save"
-                className="win-button win-button-primary"
+                className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-95 text-white font-semibold text-xs shadow-md shadow-sky-500/20 transition cursor-pointer"
               >
-                Save Consignment [F2 / Enter]
+                চালান সেভ করুন [F2 / Enter]
               </button>
             </div>
           </div>
