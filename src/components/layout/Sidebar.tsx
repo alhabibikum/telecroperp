@@ -5,6 +5,7 @@ import {
   FolderOpen,
   FileCode,
   FileText,
+  FileSpreadsheet,
   Search,
   ChevronDown,
   ChevronRight,

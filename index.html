@@ -29,9 +29,8 @@
             try { fn.call(el).catch(function() {}); } catch(e) {}
           }
         }
-        // Attempt instant launch
-        triggerAutoFullscreen();
-        // Fallback: earliest user touch / click / key before React mounts
+        // Wait for first user interaction (touch / click / key) before requesting fullscreen
+        // Browsers block requestFullscreen without user gesture
         var events = ['pointerdown', 'mousedown', 'keydown', 'touchstart'];
         function onEarlyInteraction() {
           triggerAutoFullscreen();

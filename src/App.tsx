@@ -254,12 +254,9 @@ const ERPAppContent: React.FC = () => {
     };
   }, []);
 
-  // Automatic Fullscreen on Launch and First User Gesture
+  // Fullscreen on First User Gesture (Browsers require user gesture)
   useEffect(() => {
-    // 1. Instant fullscreen attempt on launch
-    enterFullScreenMode();
-
-    // 2. High-priority capture-phase listeners on any first user interaction (touch, click, key, pointer)
+    // High-priority capture-phase listeners on any first user interaction (touch, click, key, pointer)
     const gestureEvents = ['pointerdown', 'mousedown', 'keydown', 'touchstart', 'click'];
     const onUserInteraction = () => {
       if (!userManuallySkippedRef.current && !getIsFullscreen()) {
