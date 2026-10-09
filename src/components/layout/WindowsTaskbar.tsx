@@ -18,7 +18,10 @@ import {
   WifiOff,
   LogOut,
   Layers,
-  ChevronUp
+  ChevronUp,
+  Terminal,
+  Shield,
+  Code2
 } from 'lucide-react';
 import { useWindowManager } from '../../context/WindowManagerContext';
 import { useERP } from '../../context/ERPContext';
@@ -47,7 +50,7 @@ export const WindowsTaskbar: React.FC<WindowsTaskbarProps> = ({
     restoreAll
   } = useWindowManager();
 
-  const { currentUser, currentUserRole, isOnline, logout } = useERP();
+  const { currentUser, currentUserRole, isOnline, alerts, products, imeis, logout } = useERP();
 
   // Start Menu State
   const [showStartMenu, setShowStartMenu] = useState(false);
@@ -111,280 +114,173 @@ export const WindowsTaskbar: React.FC<WindowsTaskbarProps> = ({
     day: 'numeric'
   });
 
+  const unreadAlerts = alerts.filter(a => !a.read).length;
+
   if (!isDesktop) return null;
 
   return (
     <>
-      {/* Start Menu Popup */}
+      {/* Start Menu / App Launcher Popup */}
       {showStartMenu && (
         <div
           onClick={() => setShowStartMenu(false)}
-          className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-xs select-none"
+          className="fixed inset-0 z-[60] bg-black/50 select-none"
         >
           <div
             onClick={e => e.stopPropagation()}
-            className="fixed bottom-14 left-2 sm:left-4 z-[70] w-full max-w-lg bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl border border-slate-200 dark:border-slate-700/80 rounded-3xl shadow-[0_30px_90px_rgba(0,0,0,0.25)] dark:shadow-[0_30px_90px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[82vh] animate-in slide-in-from-bottom-5 duration-150 transform-gpu will-change-transform"
+            className="fixed bottom-8 left-2 z-[70] w-full max-w-md bg-[#252526] text-[#d4d4d4] border border-[#007acc] shadow-2xl overflow-hidden flex flex-col max-h-[80vh] font-mono"
           >
-            {/* Start Menu Top Search */}
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60">
+            {/* Search Box */}
+            <div className="p-2.5 bg-[#1e1e1e] border-b border-[#3f3f46]">
               <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-[#858585] absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="অ্যাপ, মডিউল বা ফিচার খুঁজুন... (Search)"
+                  placeholder="Search Solution Modules & Windows..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   autoFocus
-                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                  className="w-full pl-8 pr-3 py-1.5 bg-[#252526] border border-[#3f3f46] text-xs text-white placeholder-[#717171] focus:border-[#007acc] focus:outline-hidden"
                 />
               </div>
             </div>
 
-            {/* Quick Actions Strip */}
-            <div className="p-3 bg-slate-50/50 dark:bg-slate-950/30 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowStartMenu(false);
-                  onOpenNewSale();
-                }}
-                className="flex-1 py-1.5 px-2 bg-emerald-50 dark:bg-emerald-600/30 hover:bg-emerald-600 text-emerald-700 dark:text-emerald-300 hover:text-white rounded-xl font-bold transition text-center cursor-pointer border border-emerald-200 dark:border-emerald-500/30"
-              >
-                + নতুন বিক্রয়
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowStartMenu(false);
-                  onOpenNewPurchase();
-                }}
-                className="flex-1 py-1.5 px-2 bg-blue-50 dark:bg-blue-600/30 hover:bg-blue-600 text-blue-700 dark:text-blue-300 hover:text-white rounded-xl font-bold transition text-center cursor-pointer border border-blue-200 dark:border-blue-500/30"
-              >
-                + নতুন পারচেজ
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowStartMenu(false);
-                  onOpenDueCollection();
-                }}
-                className="flex-1 py-1.5 px-2 bg-rose-50 dark:bg-rose-600/30 hover:bg-rose-600 text-rose-700 dark:text-rose-300 hover:text-white rounded-xl font-bold transition text-center cursor-pointer border border-rose-200 dark:border-rose-500/30"
-              >
-                + কালেকশন
-              </button>
-            </div>
-
-            {/* Apps Grid */}
-            <div className="p-4 overflow-y-auto flex-1 grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {/* App Grid */}
+            <div className="p-2 overflow-y-auto max-h-[50vh] space-y-1 text-xs">
               {filteredApps.map(app => {
-                const Icon = app.icon;
+                const IconComponent = app.icon;
                 return (
-                  <button
+                  <div
                     key={app.id}
-                    type="button"
                     onClick={() => handleLaunchApp(app.id)}
-                    className="p-2.5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 hover:bg-blue-50 dark:hover:bg-blue-600/30 hover:border-blue-200 dark:hover:border-blue-500/50 border border-transparent transition-all flex items-center gap-2.5 text-left cursor-pointer group"
+                    className="p-1.5 flex items-center justify-between hover:bg-[#007acc] hover:text-white rounded-xs cursor-pointer transition"
                   >
-                    <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white flex items-center justify-center shrink-0 transition-colors shadow-xs">
-                      <Icon className="w-4 h-4 stroke-[2.2]" />
+                    <div className="flex items-center gap-2">
+                      <IconComponent className="w-4 h-4 text-[#9cdcfe]" />
+                      <span className="font-semibold">{app.title}</span>
+                      <span className="text-[10px] text-[#858585] group-hover:text-white">({app.sub})</span>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <strong className="block text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-white truncate">
-                        {app.title}
-                      </strong>
-                      <span className="block text-[10px] text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-200 truncate">
-                        {app.sub}
-                      </span>
-                    </div>
-                  </button>
+                    <span className="text-[10px] text-[#717171] font-mono">{app.category}</span>
+                  </div>
                 );
               })}
             </div>
 
-            {/* User Profile Footer */}
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-xs shadow-md">
-                  {currentUser?.name?.charAt(0) || 'U'}
-                </div>
-                <div>
-                  <strong className="block text-xs font-black text-slate-800 dark:text-slate-100">
-                    {currentUser?.name || 'অপারেটর'}
-                  </strong>
-                  <span className="block text-[10px] text-slate-500 dark:text-slate-400">
-                    {currentUserRole} • {currentUser?.department || 'হেড অফিস'}
-                  </span>
-                </div>
+            {/* Bottom Footer */}
+            <div className="p-2 bg-[#1e1e1e] border-t border-[#3f3f46] flex items-center justify-between text-[11px] text-[#858585]">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#4ec9b0]" />
+                <span>{currentUser?.name || 'Administrator'}</span>
               </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    minimizeAll();
-                    setShowStartMenu(false);
-                  }}
-                  className="px-2.5 py-1 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-[11px] font-bold transition cursor-pointer"
-                  title="সব মিনিমাইজ করুন (Show Desktop)"
-                >
-                  ডেস্কটপ
-                </button>
-                {logout && (
-                  <button
-                    type="button"
-                    onClick={logout}
-                    className="p-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500 text-rose-600 dark:text-rose-300 hover:text-white transition cursor-pointer"
-                    title="লগ আউট"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="hover:text-[#f14c4c] flex items-center gap-1 transition cursor-pointer"
+              >
+                <LogOut className="w-3 h-3" />
+                <span>Log Out</span>
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Persistent Windows Taskbar Dock */}
-      <footer className="hidden lg:flex fixed bottom-0 left-0 right-0 h-14 sm:h-[56px] bg-white/90 dark:bg-slate-950/95 backdrop-blur-3xl border-t border-slate-200/90 dark:border-slate-800 text-slate-800 dark:text-white z-50 items-center justify-between px-2.5 sm:px-4 select-none shadow-[0_-10px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_-10px_30px_rgba(0,0,0,0.5)] transform-gpu">
-        {/* Left Section: Start Button & Open Windows */}
-        <div className="flex items-center gap-2 sm:gap-2.5 flex-1 min-w-0 overflow-x-auto no-scrollbar py-1">
-          {/* Start Menu Button (Windows 11 Style) */}
+      {/* Visual Studio Status Bar / Windows Taskbar Strip */}
+      <footer className="fixed bottom-0 left-0 right-0 h-6.5 bg-[#007acc] text-white z-40 px-2 flex items-center justify-between border-t border-[#005a9e] select-none text-[11.5px] font-mono shadow-md">
+        {/* Left Section: Status & Ready Glyph */}
+        <div className="flex items-center gap-2 min-w-0 overflow-x-auto py-0.5">
+          {/* Start / Solution Launcher */}
           <button
             type="button"
             onClick={() => setShowStartMenu(prev => !prev)}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition cursor-pointer shrink-0 shadow-xs ${
-              showStartMenu
-                ? 'bg-blue-600 text-white ring-2 ring-blue-400'
-                : 'bg-slate-100 dark:bg-slate-800/90 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700'
-            }`}
-            title="উইন্ডোজ স্টার্ট মেনু (Windows Start Menu)"
+            className="h-5 px-2 bg-[#005a9e] hover:bg-[#1c97ea] text-white font-bold flex items-center gap-1 text-[11px] rounded-xs transition cursor-pointer shrink-0"
+            title="TeleCorp Solution Launcher"
           >
-            {/* Windows 4-Square Logo */}
-            <div className="grid grid-cols-2 gap-0.5 w-4 h-4">
-              <span className="bg-sky-400 rounded-[1px]" />
-              <span className="bg-blue-500 rounded-[1px]" />
-              <span className="bg-cyan-400 rounded-[1px]" />
-              <span className="bg-indigo-400 rounded-[1px]" />
-            </div>
-            <span className="tracking-tight font-extrabold">স্টার্ট</span>
+            <span>VS</span>
+            <span>Modules</span>
           </button>
 
-          {/* Separator */}
-          <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 shrink-0" />
+          {/* Status Indicator */}
+          <div className="flex items-center gap-1.5 px-2 text-[11px] shrink-0 font-sans">
+            <span className="w-2 h-2 rounded-full bg-[#4ec9b0] animate-pulse" />
+            <span className="font-semibold">Ready</span>
+          </div>
 
-          {/* Open Windows Tabs */}
-          <div className="flex items-center gap-1.5 min-w-0 overflow-x-auto no-scrollbar py-1">
-            {windows.length === 0 ? (
-              <span className="text-xs text-slate-400 dark:text-slate-500 px-2 font-medium italic truncate">
-                কোনো উইন্ডো খোলা নেই • স্টার্ট বা ডেস্কটপ থেকে খুলুন
-              </span>
-            ) : (
-              windows.map(win => {
-                const isActive = activeWindowId === win.id && !win.isMinimized;
-                const isMin = win.isMinimized;
+          <div className="h-3 w-px bg-white/20 shrink-0" />
 
-                return (
-                  <div
-                    key={win.id}
-                    className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-xl transition cursor-pointer shrink-0 max-w-[220px] sm:max-w-[270px] border select-none ${
-                      isActive
-                        ? 'bg-blue-600 text-white border-blue-500 shadow-md'
-                        : isMin
-                        ? 'bg-amber-50 dark:bg-slate-900/95 border-amber-300 dark:border-amber-500/50 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-slate-800 shadow-inner'
-                        : 'bg-slate-100/90 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                    onClick={() => {
-                      if (isActive) {
-                        toggleMinimizeWindow(win.id);
-                      } else {
-                        focusWindow(win.id);
-                      }
+          {/* Open Windows / Tasks */}
+          <div className="flex items-center gap-1 min-w-0 overflow-x-auto py-0.5">
+            {windows.map(win => {
+              const isActive = activeWindowId === win.id && !win.isMinimized;
+              const isMin = win.isMinimized;
+
+              return (
+                <div
+                  key={win.id}
+                  onClick={() => {
+                    if (isActive) toggleMinimizeWindow(win.id);
+                    else focusWindow(win.id);
+                  }}
+                  className={`h-5 px-2 flex items-center gap-1.5 rounded-xs cursor-pointer transition shrink-0 max-w-[180px] text-[11px] ${
+                    isActive
+                      ? 'bg-[#1e1e1e] text-white border-b-2 border-white font-bold'
+                      : isMin
+                      ? 'bg-[#005a9e]/70 text-[#ce9178] hover:bg-[#005a9e]'
+                      : 'bg-[#005a9e] text-white hover:bg-[#1c97ea]'
+                  }`}
+                  title={win.title}
+                >
+                  <span className="truncate">{win.title.split(' ')[0]}</span>
+                  {isMin && <span className="text-[9px] text-[#ce9178]">[min]</span>}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeWindow(win.id);
                     }}
-                    title={`${win.title} ${isMin ? '(মিনিমাইজড - ক্লিক করে রিস্টোর করুন)' : ''}`}
+                    className="hover:text-[#f14c4c] ml-1"
                   >
-                    {/* Active Accent Underline */}
-                    {isActive && (
-                      <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-sky-300 dark:bg-sky-400 rounded-full" />
-                    )}
-
-                    {/* Window Icon */}
-                    <div className="w-4.5 h-4.5 shrink-0 flex items-center justify-center text-slate-500 dark:text-slate-300 text-sm">
-                      {win.icon || (win.type === 'dialog' ? <span>🗔</span> : <span>🖥️</span>)}
-                    </div>
-
-                    {/* Window Title */}
-                    <span className={`truncate min-w-0 ${
-                      isMin
-                        ? 'text-xs sm:text-[13px] font-bold text-amber-700 dark:text-amber-300'
-                        : isActive
-                        ? 'text-xs sm:text-[13px] font-black text-white'
-                        : 'text-xs sm:text-[13px] font-semibold text-slate-700 dark:text-slate-100'
-                    }`}>
-                      {win.title}
-                    </span>
-
-                    {/* Minimized badge label */}
-                    {isMin && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-amber-200 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 font-bold shrink-0">
-                        মিনিমাইজড
-                      </span>
-                    )}
-
-                    {/* Close Tab Button */}
-                    <button
-                      type="button"
-                      onClick={e => {
-                        e.stopPropagation();
-                        closeWindow(win.id);
-                      }}
-                      className="w-4.5 h-4.5 rounded-md hover:bg-rose-600 hover:text-white flex items-center justify-center text-slate-400 dark:text-slate-400 shrink-0 transition cursor-pointer"
-                      title="উইন্ডো বন্ধ করুন"
-                    >
-                      <X className="w-3 h-3 stroke-[2.5]" />
-                    </button>
-                  </div>
-                );
-              })
-            )}
+                    ✕
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Right Section: System Tray & Clock */}
-        <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0 pl-2">
-          {/* Online/Offline Diagnostic Indicator */}
-          <div
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border ${
-              isOnline
-                ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'
-                : 'bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400'
-            }`}
-            title={isOnline ? 'সিস্টেম ক্লাউডে সংযুক্ত (Online)' : 'সিস্টেম অফলাইন লোকাল ক্যাশে চলছে'}
-          >
-            {isOnline ? (
-              <Wifi className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            ) : (
-              <WifiOff className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-            )}
-            <span className="hidden md:inline">{isOnline ? 'অনলাইন' : 'অফলাইন'}</span>
+        {/* Right Section: System Metrics & Clock */}
+        <div className="flex items-center gap-2 shrink-0 text-[10.5px]">
+          {/* Supabase Connection */}
+          <div className="hidden lg:flex items-center gap-1 opacity-90">
+            {isOnline ? <Wifi className="w-3 h-3 text-[#4ec9b0]" /> : <WifiOff className="w-3 h-3 text-[#f14c4c]" />}
+            <span>{isOnline ? 'Online (Supabase)' : 'Offline'}</span>
           </div>
 
-          {/* Digital Clock */}
-          <div className="flex flex-col items-end text-right leading-tight px-1.5">
-            <span className="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
-              {formattedTime}
-            </span>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden sm:inline">
-              {formattedDate}
-            </span>
+          <div className="h-3 w-px bg-white/20 hidden sm:block" />
+
+          {/* Warnings & Alerts */}
+          <div className="hidden sm:flex items-center gap-1">
+            <span className="text-[#f14c4c] font-bold">⊗ 0</span>
+            <span className="text-[#ce9178] font-bold">▲ {unreadAlerts}</span>
           </div>
 
-          {/* Show Desktop Peek Button (Windows style right-edge vertical bar) */}
+          <div className="h-3 w-px bg-white/20 hidden md:block" />
+
+          {/* Encoding & Zoom */}
+          <span className="hidden md:inline opacity-80">UTF-8</span>
+          <span className="hidden md:inline opacity-80">100%</span>
+
+          <div className="h-3 w-px bg-white/20" />
+
+          {/* Clock */}
+          <span className="font-bold">{formattedTime}</span>
+
+          {/* Show Desktop Peek Bar */}
           <button
             type="button"
             onClick={minimizeAll}
-            className="w-3.5 sm:w-4 h-8 rounded-[2px] bg-slate-200 dark:bg-slate-800 hover:bg-blue-500 dark:hover:bg-blue-500 border-l border-slate-300 dark:border-slate-700 transition cursor-pointer"
-            title="ডেস্কটপ দেখুন (Show Desktop / Minimize All)"
+            className="w-2.5 h-4 bg-white/30 hover:bg-white/60 rounded-xs transition cursor-pointer ml-1"
+            title="Minimize All to Desktop"
           />
         </div>
       </footer>

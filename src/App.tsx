@@ -800,8 +800,56 @@ const ERPAppContent: React.FC = () => {
         />
 
 
-        {/* Main Content Viewport - Windows Desktop Workspace */}
-        <main className="flex-1 h-full overflow-hidden relative">
+        {/* Main Content Viewport - Visual Studio Workspace */}
+        <main className="flex-1 h-full overflow-hidden relative flex flex-col bg-[#1e1e1e]">
+          {/* Visual Studio Document Tab Well */}
+          {openViewIds.length > 0 && (
+            <div className="h-7 bg-[#2d2d30] border-b border-[#3f3f46] flex items-center overflow-x-auto select-none shrink-0 text-[11.5px] font-mono z-10">
+              {openViewIds.map(viewId => {
+                const cfg = VIEW_CONFIG[viewId] || { title: viewId, icon: '📄' };
+                const isActive = currentView === viewId;
+
+                return (
+                  <div
+                    key={viewId}
+                    onClick={() => handleNavigateView(viewId)}
+                    className={`h-full px-2.5 flex items-center gap-2 border-r border-[#3f3f46] cursor-pointer transition ${
+                      isActive
+                        ? 'bg-[#1e1e1e] text-white border-t-2 border-t-[#007acc] font-semibold'
+                        : 'bg-[#2d2d30] text-[#969696] hover:bg-[#252526] hover:text-[#cccccc] border-t-2 border-t-transparent'
+                    }`}
+                    title={cfg.title}
+                  >
+                    <span className="text-[11px] shrink-0">{cfg.icon}</span>
+                    <span className="truncate max-w-[140px]">{cfg.title.split(' ')[0]}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCloseViewWindow(viewId);
+                      }}
+                      className="w-3.5 h-3.5 rounded-xs flex items-center justify-center hover:bg-[#a80000] hover:text-white text-[#858585] transition"
+                      title="Close Document (Ctrl+F4)"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
+
+              {/* Quick Tab Plus Button */}
+              <button
+                type="button"
+                onClick={() => handleNavigateView('dashboard')}
+                className="h-full px-2 text-[#858585] hover:text-white hover:bg-[#38383c] transition text-xs font-bold"
+                title="New Tab (Open Dashboard)"
+              >
+                +
+              </button>
+            </div>
+          )}
+
+          <div className="flex-1 h-full overflow-hidden relative">
           {!currentView || (isDesktop && !isSplitView && (isWindowMinimized(currentView) || !openViewIds.includes(currentView))) ? (
             <DesktopView
               onOpenApp={handleNavigateView}
@@ -909,6 +957,7 @@ const ERPAppContent: React.FC = () => {
             </ErrorBoundary>
           </WindowsWindowFrame>
         )}
+          </div>
         </main>
       </div>
 
