@@ -81,16 +81,16 @@ export const Header: React.FC<HeaderProps> = ({
         )}
 
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm shadow-indigo-500/20">
-            TC
+          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-sm shadow-indigo-500/20 uppercase">
+            {settings?.companyName ? settings.companyName.trim().substring(0, 2) : 'TC'}
           </div>
           <div>
-            <div className="font-bold text-sm text-slate-900 dark:text-slate-100 tracking-tight leading-none">
-              TeleCorp ERP
+            <div className="font-bold text-sm text-slate-900 dark:text-slate-100 tracking-tight leading-none truncate max-w-[170px] sm:max-w-[260px]" title={settings?.companyName || 'TeleCorp ERP'}>
+              {settings?.companyName || 'TeleCorp ERP'}
             </div>
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1 mt-0.5">
-              <Building2 className="w-3 h-3 text-slate-400" />
-              <span>ধানমন্ডি ফ্ল্যাগশিপ ব্রাঞ্চ</span>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1 mt-0.5 truncate max-w-[170px] sm:max-w-[260px]">
+              <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
+              <span className="truncate">{settings?.companyAddress ? settings.companyAddress.split(',')[0] : 'প্রধান কার্যালয়'}</span>
             </div>
           </div>
         </div>
@@ -192,7 +192,12 @@ export const Header: React.FC<HeaderProps> = ({
 
           {showNotifications && (
             <div className="absolute right-0 top-11 w-80 sm:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-              <Notifications onClose={() => setShowNotifications(false)} />
+              <Notifications
+                isOpen={showNotifications}
+                onClose={() => setShowNotifications(false)}
+                onSelectView={onSelectView}
+                onOpenNewPurchase={onOpenNewPurchase}
+              />
             </div>
           )}
         </div>

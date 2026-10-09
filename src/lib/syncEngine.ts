@@ -803,11 +803,18 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
     case 'system_settings':
       return {
         id: 'primary_settings',
-        company_name: data.companyName || data.company_name,
-        company_address: data.companyAddress || data.company_address,
-        company_phone: data.companyPhone || data.company_phone,
-        company_email: data.companyEmail || data.company_email,
+        company_name: data.companyName || data.company_name || 'TeleCorp Mobile Distribution & Trade Ltd.',
+        company_address: data.companyAddress || data.company_address || 'Level 8, Motijheel C/A, Dhaka-1000, Bangladesh',
+        company_phone: data.companyPhone || data.company_phone || '+880 2-9568912 / +880 1711-002233',
+        company_email: data.companyEmail || data.company_email || 'operations@telecorp-bd.com',
+        vat_tax_number: data.vatTaxNumber || data.vat_tax_number || 'BIN: 002341890-0101 (BTRC Reg: D-88902)',
+        default_vat_percent: data.defaultVatPercent ?? data.default_vat_percent ?? 5,
         currency: data.currency || 'BDT',
+        currency_symbol: data.currencySymbol || data.currency_symbol || '৳',
+        valuation_method: data.valuationMethod || data.valuation_method || 'FIFO',
+        negative_stock_allowed: Boolean(data.negativeStockAllowed ?? data.negative_stock_allowed),
+        credit_limit_hard_block: Boolean(data.creditLimitHardBlock ?? data.credit_limit_hard_block),
+        max_discount_without_approval: data.maxDiscountWithoutApproval ?? data.max_discount_without_approval ?? 1000,
         language: data.language || 'bn',
         updated_at: new Date().toISOString()
       };

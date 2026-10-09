@@ -28,7 +28,8 @@ export const DeliveryDispatchView: React.FC = () => {
     bankAccounts,
     createDeliveryChallan,
     updateDeliveryStatus,
-    settleChallanCod
+    settleChallanCod,
+    settings
   } = useERP();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -508,7 +509,7 @@ export const DeliveryDispatchView: React.FC = () => {
 
             <div id="delivery-challan-doc" className="p-5 border border-slate-300 rounded-xl space-y-4 font-sans text-xs bg-slate-50">
               <div className="text-center pb-3 border-b border-slate-200">
-                <div className="text-base font-black text-slate-900">TELECORP MOBILE DISTRIBUTION & TRADE LTD</div>
+                <div className="text-base font-black text-slate-900">{settings?.companyName || 'TeleCorp Mobile Distribution & Trade Ltd.'}</div>
                 <div className="text-[10px] text-slate-500">Official Handset Delivery Challan & Dispatch Gate Pass</div>
                 <div className="text-xs font-mono font-bold text-blue-700 mt-1">{selectedChallanForPrint.challanNo}</div>
               </div>

@@ -161,7 +161,7 @@ export const DesktopView: React.FC<DesktopViewProps> = ({
   onZoomOut,
   onResetZoom
 }) => {
-  const { salesInvoices, imeis, customers, isOnline } = useERP();
+  const { salesInvoices, imeis, customers, isOnline, settings } = useERP();
 
   // Desktop Wallpaper State
   const [wallpaper, setWallpaper] = useState<string>(() => {
@@ -868,7 +868,7 @@ export const DesktopView: React.FC<DesktopViewProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-black text-sm sm:text-base tracking-tight text-white drop-shadow">
-                  TeleCorp ERP Desktop OS
+                  {settings?.companyName || 'TeleCorp ERP Desktop OS'}
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono">
                   Enterprise

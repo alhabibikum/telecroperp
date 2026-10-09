@@ -77,6 +77,7 @@ export const MASTER_TABLES = [
   'suppliers',
   'salesmen',
   'warehouses',
+  'system_settings',
   'system_alerts',
   'backup_snapshots',
   'audit_logs'
@@ -201,6 +202,12 @@ export const seedCloudDemoData = async (): Promise<{ success: boolean; message: 
       status: u.status
     }));
     await supabase.from('app_users').upsert(userPayloads, { onConflict: 'id' });
+
+    // 1b. Seed System Settings & Company Profile
+    await supabase.from('system_settings').upsert(
+      mapToSupabasePayload('system_settings', initialSettings),
+      { onConflict: 'id' }
+    );
 
     // 2. Masters (Brands, Warehouses, Suppliers, Customers, Salesmen, Accounts)
     await insertBatch('brands', initialBrands);

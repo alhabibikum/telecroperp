@@ -351,8 +351,8 @@ export const SettingsView: React.FC = () => {
       valuationMethod,
       creditLimitHardBlock
     });
-    setMessage('System configuration saved successfully!');
-    setTimeout(() => setMessage(null), 3500);
+    setMessage('কোম্পানির তথ্য ও কনফিগারেশন সফলভাবে সংরক্ষিত হয়েছে এবং ক্লাউডে (Supabase) সিঙ্ক করা হয়েছে!');
+    setTimeout(() => setMessage(null), 4000);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1463,6 +1463,17 @@ export const SettingsView: React.FC = () => {
                 value={companyPhone}
                 onChange={(e) => setCompanyPhone(e.target.value)}
                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">Corporate Official Email</label>
+              <input
+                type="email"
+                value={companyEmail}
+                onChange={(e) => setCompanyEmail(e.target.value)}
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono"
+                placeholder="operations@telecorp-bd.com"
               />
             </div>
           </div>

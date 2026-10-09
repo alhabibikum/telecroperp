@@ -87,6 +87,7 @@ import {
   getPendingSyncCount,
   getSyncQueue,
   clearSyncQueue,
+  mapToSupabasePayload,
   SyncQueueItem
 } from '../lib/syncEngine';
 import { seedCloudDemoData } from '../lib/resetEngine';
@@ -1784,6 +1785,27 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSettings(prev => {
       const updated = { ...prev, ...newSettings };
       enqueueChange('system_settings', 'UPDATE', 'primary_settings', updated, 'সিস্টেম সেটিংস পরিবর্তন');
+
+      // Real-time direct cloud sync if Supabase is connected and client is online
+      try {
+        const supabase = getSupabaseClient();
+        if (supabase && (typeof navigator === 'undefined' || navigator.onLine)) {
+          const payload = mapToSupabasePayload('system_settings', updated);
+          supabase
+            .from('system_settings')
+            .upsert(payload, { onConflict: 'id' })
+            .then(({ error }: { error: any }) => {
+              if (error) {
+                console.warn('Direct Supabase updateSettings warning:', error.message);
+              } else {
+                console.log('✅ Company settings successfully synchronized to Supabase Cloud');
+              }
+            });
+        }
+      } catch (err) {
+        console.warn('Could not run immediate Supabase sync for settings:', err);
+      }
+
       return updated;
     });
     addAudit('Updated System Settings', 'Settings', 'SYSTEM', 'Prior Config', JSON.stringify(newSettings));

@@ -15,7 +15,7 @@ import {
 import { formatBDT, formatDate } from '../../utils/formatters';
 
 export const CustomReportBuilderView: React.FC = () => {
-  const { salesInvoices, imeis, customers, products, brands, warehouses } = useERP();
+  const { salesInvoices, imeis, customers, products, brands, warehouses, settings } = useERP();
 
   const [dataset, setDataset] = useState<'sales' | 'inventory' | 'customers'>('sales');
   const [selectedBrand, setSelectedBrand] = useState('All');
@@ -298,7 +298,20 @@ export const CustomReportBuilderView: React.FC = () => {
       </div>
 
       {/* Generated Report Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div id="custom-report-doc" className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        {/* Printable Official Header (Shown during Print & Export) */}
+        <div className="hidden print:block p-6 border-b border-slate-300">
+          <h1 className="text-xl font-black text-slate-900 tracking-tight">
+            {settings?.companyName || 'TeleCorp Mobile Distribution & Trade Ltd.'}
+          </h1>
+          <p className="text-xs text-slate-600 mt-0.5">
+            {settings?.companyAddress || 'Level 8, Motijheel C/A, Dhaka-1000'} • Phone: {settings?.companyPhone || '+880 1711-002233'}
+          </p>
+          <p className="text-[11px] font-mono text-slate-500">
+            {settings?.vatTaxNumber} • Custom System Audit Report ({dataset.toUpperCase()})
+          </p>
+        </div>
+
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between font-bold text-xs uppercase tracking-wider text-slate-700">
           <span>Dynamic Report Output ({dataset === 'sales' ? filteredSales.length : dataset === 'inventory' ? filteredInventory.length : filteredCustomers.length} Records)</span>
           <FileSpreadsheet className="w-4 h-4 text-slate-400" />

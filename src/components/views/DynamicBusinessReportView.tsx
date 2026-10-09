@@ -479,7 +479,7 @@ export const DynamicBusinessReportView: React.FC = () => {
 
       // SHEET 1: EXECUTIVE SUMMARY
       const summaryRows = [
-        ['TELECORP ERP - EXECUTIVE BUSINESS SUMMARY', `(${fromDate} to ${toDate})`, ''],
+        [`${settings.companyName ? settings.companyName.toUpperCase() : 'TELECORP ERP'} - EXECUTIVE BUSINESS SUMMARY`, `(${fromDate} to ${toDate})`, ''],
         [],
         ['Key Executive Metric', 'Value (BDT / Units)', 'Remarks / Comparison'],
         ['Gross Invoiced Sales', totalSalesRevenue, `Wholesale: ৳${totalWholesaleRevenue.toLocaleString()} | Retail: ৳${totalRetailRevenue.toLocaleString()}`],
@@ -2014,13 +2014,13 @@ export const DynamicBusinessReportView: React.FC = () => {
               <div className="border-b-2 border-slate-900 pb-4 flex items-start justify-between">
                 <div>
                   <h1 className="text-2xl font-black tracking-tight text-slate-900">
-                    TELECORP BANGLADESH LIMITED
+                    {settings.companyName || 'TeleCorp Mobile Distribution & Trade Ltd.'}
                   </h1>
                   <p className="text-xs text-slate-600 mt-0.5">
                     Authorized National Distributor &amp; Importer • Multi-Brand Smartphones
                   </p>
                   <p className="text-[11px] text-slate-500">
-                    Corporate Office: Motijheel C/A, Dhaka-1000 • Hotline: +880 9612-835326 • BIN: 002938472-0102
+                    {settings.companyAddress || 'Level 8, Motijheel C/A, Dhaka-1000'} • Phone: {settings.companyPhone || '+880 1711-002233'} {settings.vatTaxNumber ? `• ${settings.vatTaxNumber}` : ''}
                   </p>
                 </div>
                 <div className="text-right">

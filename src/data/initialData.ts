@@ -30,19 +30,19 @@ import {
 } from '../types/erp';
 
 export const initialSettings: SystemSettings = {
-  companyName: 'TeleCorp Mobile Distribution & Trade Ltd.',
-  companyAddress: 'Level 8, Motijheel C/A, Dhaka-1000, Bangladesh',
-  companyPhone: '+880 2-9568912 / +880 1711-002233',
-  companyEmail: 'operations@telecorp-bd.com',
-  vatTaxNumber: 'BIN: 002341890-0101 (BTRC Reg: D-88902)',
+  companyName: 'FIROZA ENTERPRISES',
+  companyAddress: 'NADIM VILLA, Level 4, CENTRAL JAME MOSJID, KONABARI, GAZIPUR, Bangladesh',
+  companyPhone: '+880 1122000 / +880 712996757',
+  companyEmail: 'info@fibrozaenterprises.com',
+  vatTaxNumber: 'BIN: 530914078318 (BTRC Reg: 578902)',
   defaultVatPercent: 5,
   currency: 'BDT',
   currencySymbol: '৳',
   valuationMethod: 'FIFO',
   negativeStockAllowed: false,
   creditLimitHardBlock: false, // will give warning and require manager approval
-  maxDiscountWithoutApproval: 7.5,
-  language: 'en'
+  maxDiscountWithoutApproval: 0,
+  language: 'bn'
 };
 
 export const initialBrands: Brand[] = [

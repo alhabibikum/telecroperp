@@ -33,7 +33,8 @@ export const WarrantyServiceView: React.FC = () => {
     products,
     imeis,
     addWarrantyClaim,
-    updateWarrantyStatus
+    updateWarrantyStatus,
+    settings
   } = useERP();
   const { showSuccess } = useToast();
 
@@ -643,7 +644,7 @@ export const WarrantyServiceView: React.FC = () => {
 
             <div id="rma-job-sheet" className="p-4 border border-dashed border-slate-300 rounded-xl space-y-3 font-sans text-xs bg-slate-50">
               <div className="text-center pb-2 border-b border-slate-200">
-                <div className="text-sm font-black text-slate-900">TELECORP MOBILE DISTRIBUTION LTD</div>
+                <div className="text-sm font-black text-slate-900">{settings?.companyName || 'TeleCorp Mobile Distribution & Trade Ltd.'}</div>
                 <div className="text-[10px] text-slate-500">Official Device Warranty & Service Intake Job Sheet</div>
                 <div className="text-xs font-mono font-bold text-indigo-600 mt-1">{selectedClaimForPrint.rmaNumber}</div>
               </div>

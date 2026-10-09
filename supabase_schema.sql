@@ -2,7 +2,7 @@
 -- TELECORP MOBILE DISTRIBUTION ERP - SUPABASE CLOUD DATABASE SCHEMA
 -- PostgreSQL / Supabase Enterprise Migration & Real Data Seed Script
 -- Covers ALL 35 Modules with 100% Real-Life Bangladeshi Telecom Data
--- Version: 3.1.0 (Full Cloud Production Release - No Dummies)
+-- Version: 4.0.0 (Clean Production Enterprise Release - Zero Demo Data)
 -- =========================================================================
 
 -- Enable Required PostgreSQL Extensions
@@ -76,18 +76,18 @@ CREATE TABLE app_users (
 -- =========================================================================
 CREATE TABLE system_settings (
     id TEXT PRIMARY KEY DEFAULT 'primary_settings',
-    company_name TEXT NOT NULL DEFAULT 'TeleCorp Mobile Distribution & Trade Ltd.',
-    company_address TEXT NOT NULL DEFAULT 'Level 8, Motijheel C/A, Dhaka-1000, Bangladesh',
-    company_phone TEXT NOT NULL DEFAULT '+880 2-9568912 / +880 1711-002233',
-    company_email TEXT NOT NULL DEFAULT 'operations@telecorp-bd.com',
-    vat_tax_number TEXT DEFAULT 'BIN: 002341890-0101 (BTRC Reg: D-88902)',
+    company_name TEXT NOT NULL DEFAULT 'FIROZA ENTERPRISES',
+    company_address TEXT NOT NULL DEFAULT 'NADIM VILLA, Level 4, CENTRAL JAME MOSJID, KONABARI, GAZIPUR, Bangladesh',
+    company_phone TEXT NOT NULL DEFAULT '+880 1122000 / +880 712996757',
+    company_email TEXT NOT NULL DEFAULT 'info@fibrozaenterprises.com',
+    vat_tax_number TEXT DEFAULT 'BIN: 530914078318 (BTRC Reg: 578902)',
     default_vat_percent NUMERIC(5, 2) DEFAULT 5.00,
     currency TEXT DEFAULT 'BDT',
     currency_symbol TEXT DEFAULT '৳',
     valuation_method TEXT DEFAULT 'FIFO' CHECK (valuation_method IN ('FIFO', 'Weighted Average')),
     negative_stock_allowed BOOLEAN DEFAULT false,
     credit_limit_hard_block BOOLEAN DEFAULT true,
-    max_discount_without_approval NUMERIC(15, 2) DEFAULT 1000.00,
+    max_discount_without_approval NUMERIC(15, 2) DEFAULT 0.00,
     language TEXT DEFAULT 'bn' CHECK (language IN ('en', 'bn')),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -901,9 +901,43 @@ GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, service_role;
 
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO anon, authenticated, service_role;
+
 -- =========================================================================
--- 26. STORED PROCEDURES & ATOMIC FUNCTIONS
+-- 26. STORED PROCEDURES, TRIGGERS & ATOMIC BUSINESS FUNCTIONS
 -- =========================================================================
+
+-- Trigger Function: Auto-update updated_at timestamp
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Attach updated_at triggers to relevant tables
+DROP TRIGGER IF EXISTS trg_app_users_updated_at ON app_users;
+CREATE TRIGGER trg_app_users_updated_at BEFORE UPDATE ON app_users FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_system_settings_updated_at ON system_settings;
+CREATE TRIGGER trg_system_settings_updated_at BEFORE UPDATE ON system_settings FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_imeis_updated_at ON imeis;
+CREATE TRIGGER trg_imeis_updated_at BEFORE UPDATE ON imeis FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_warranty_claims_updated_at ON warranty_claims;
+CREATE TRIGGER trg_warranty_claims_updated_at BEFORE UPDATE ON warranty_claims FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_customer_follow_ups_updated_at ON customer_follow_ups;
+CREATE TRIGGER trg_customer_follow_ups_updated_at BEFORE UPDATE ON customer_follow_ups FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_gateway_configs_updated_at ON gateway_configs;
+CREATE TRIGGER trg_gateway_configs_updated_at BEFORE UPDATE ON gateway_configs FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- Atomic Wholesale & POS Sales Execution Procedure
 CREATE OR REPLACE FUNCTION process_wholesale_sale(
     p_invoice_data JSONB,
     p_imeis_sold TEXT[]
@@ -914,17 +948,19 @@ DECLARE
     v_customer_id TEXT;
     v_due_amount NUMERIC(15, 2);
     v_imei TEXT;
+    v_item JSONB;
 BEGIN
     v_invoice_id := p_invoice_data->>'id';
     v_invoice_no := p_invoice_data->>'invoiceNo';
     v_customer_id := p_invoice_data->>'customerId';
-    v_due_amount := (p_invoice_data->>'dueAmount')::NUMERIC;
+    v_due_amount := COALESCE((p_invoice_data->>'dueAmount')::NUMERIC, 0.00);
 
     INSERT INTO sales_invoices (
         id, invoice_no, invoice_type, customer_id, customer_name, customer_phone,
         salesman_id, salesman_name, warehouse_id, warehouse_name, invoice_date,
-        items, subtotal, discount, vat_rate, vat_amount, grand_total, paid_amount,
-        due_amount, payment_method, notes, status, created_by
+        due_date, items, subtotal, discount, vat_rate, vat_amount, grand_total, paid_amount,
+        due_amount, payment_method, payments, commission_earned, notes, delivery_status,
+        status, created_by
     ) VALUES (
         v_invoice_id,
         v_invoice_no,
@@ -937,283 +973,271 @@ BEGIN
         p_invoice_data->>'warehouseId',
         p_invoice_data->>'warehouseName',
         (p_invoice_data->>'invoiceDate')::DATE,
-        p_invoice_data->'items',
-        (p_invoice_data->>'subtotal')::NUMERIC,
-        (p_invoice_data->>'discount')::NUMERIC,
-        (p_invoice_data->>'vatRate')::NUMERIC,
-        (p_invoice_data->>'vatAmount')::NUMERIC,
-        (p_invoice_data->>'grandTotal')::NUMERIC,
-        (p_invoice_data->>'paidAmount')::NUMERIC,
+        CASE WHEN p_invoice_data->>'dueDate' IS NOT NULL THEN (p_invoice_data->>'dueDate')::DATE ELSE NULL END,
+        COALESCE(p_invoice_data->'items', '[]'::jsonb),
+        COALESCE((p_invoice_data->>'subtotal')::NUMERIC, 0.00),
+        COALESCE((p_invoice_data->>'discount')::NUMERIC, 0.00),
+        COALESCE((p_invoice_data->>'vatRate')::NUMERIC, 0.00),
+        COALESCE((p_invoice_data->>'vatAmount')::NUMERIC, 0.00),
+        COALESCE((p_invoice_data->>'grandTotal')::NUMERIC, 0.00),
+        COALESCE((p_invoice_data->>'paidAmount')::NUMERIC, 0.00),
         v_due_amount,
-        p_invoice_data->>'paymentMethod',
+        COALESCE(p_invoice_data->>'paymentMethod', 'Cash'),
+        COALESCE(p_invoice_data->'payments', '[]'::jsonb),
+        COALESCE((p_invoice_data->>'commissionEarned')::NUMERIC, 0.00),
         p_invoice_data->>'notes',
+        COALESCE(p_invoice_data->>'deliveryStatus', 'Delivered'),
         'Confirmed',
-        p_invoice_data->>'createdBy'
-    );
+        COALESCE(p_invoice_data->>'createdBy', 'System')
+    )
+    ON CONFLICT (invoice_no) DO UPDATE SET
+        items = EXCLUDED.items,
+        subtotal = EXCLUDED.subtotal,
+        grand_total = EXCLUDED.grand_total,
+        paid_amount = EXCLUDED.paid_amount,
+        due_amount = EXCLUDED.due_amount,
+        status = EXCLUDED.status;
 
-    IF v_due_amount > 0 THEN
+    -- Update Customer Due atomically
+    IF v_due_amount > 0 AND v_customer_id IS NOT NULL THEN
         UPDATE customers
         SET current_due = current_due + v_due_amount
         WHERE id = v_customer_id;
     END IF;
 
-    FOREACH v_imei IN ARRAY p_imeis_sold LOOP
-        UPDATE imeis
-        SET status = 'Sold',
-            customer_id = v_customer_id,
-            customer_name = p_invoice_data->>'customerName',
-            sales_invoice_no = v_invoice_no,
-            sales_date = (p_invoice_data->>'invoiceDate')::DATE,
-            updated_at = NOW(),
-            history = history || jsonb_build_object(
-                'date', to_char(NOW(), 'YYYY-MM-DD HH24:MI'),
-                'action', 'Sold via Invoice',
-                'description', 'Sold to ' || (p_invoice_data->>'customerName'),
-                'user', COALESCE(p_invoice_data->>'createdBy', 'System'),
-                'referenceNo', v_invoice_no
-            )
-        WHERE imei1 = v_imei OR imei2 = v_imei;
-    END LOOP;
+    -- Update Sold IMEIs status and log lifecycle history
+    IF p_imeis_sold IS NOT NULL AND array_length(p_imeis_sold, 1) > 0 THEN
+        FOREACH v_imei IN ARRAY p_imeis_sold LOOP
+            UPDATE imeis
+            SET status = 'Sold',
+                customer_id = v_customer_id,
+                customer_name = p_invoice_data->>'customerName',
+                sales_invoice_no = v_invoice_no,
+                sales_date = (p_invoice_data->>'invoiceDate')::DATE,
+                updated_at = NOW(),
+                history = COALESCE(history, '[]'::jsonb) || jsonb_build_object(
+                    'date', to_char(NOW(), 'YYYY-MM-DD HH24:MI'),
+                    'action', 'Sold via Invoice',
+                    'description', 'Sold to ' || COALESCE(p_invoice_data->>'customerName', 'Customer'),
+                    'user', COALESCE(p_invoice_data->>'createdBy', 'System'),
+                    'referenceNo', v_invoice_no
+                )
+            WHERE imei1 = v_imei OR imei2 = v_imei;
+        END LOOP;
+    END IF;
+
+    -- Deduct current stock from product variants safely
+    IF p_invoice_data->'items' IS NOT NULL THEN
+        FOR v_item IN SELECT * FROM jsonb_array_elements(p_invoice_data->'items') LOOP
+            IF v_item->>'variantId' IS NOT NULL THEN
+                UPDATE product_variants
+                SET current_stock = GREATEST(0, current_stock - COALESCE((v_item->>'quantity')::INTEGER, 1))
+                WHERE id = v_item->>'variantId';
+            END IF;
+        END LOOP;
+    END IF;
 
     RETURN jsonb_build_object('success', true, 'invoiceNo', v_invoice_no);
 END;
 $$ LANGUAGE plpgsql;
 
 -- =========================================================================
--- 27. 100% REAL BANGLADESHI TELECOM DISTRIBUTION ENTERPRISE DATA SEED
+-- 27. HIGH-PERFORMANCE PRODUCTION SEARCH & TRANSACTION INDEXES
+-- =========================================================================
+CREATE INDEX IF NOT EXISTS idx_purchase_invoice_no ON purchase_invoices(invoice_no);
+CREATE INDEX IF NOT EXISTS idx_purchase_supplier ON purchase_invoices(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_purchase_date ON purchase_invoices(purchase_date);
+CREATE INDEX IF NOT EXISTS idx_customers_mobile ON customers(mobile);
+CREATE INDEX IF NOT EXISTS idx_customers_code ON customers(customer_code);
+CREATE INDEX IF NOT EXISTS idx_customers_status ON customers(status);
+CREATE INDEX IF NOT EXISTS idx_suppliers_mobile ON suppliers(mobile);
+CREATE INDEX IF NOT EXISTS idx_suppliers_code ON suppliers(supplier_code);
+CREATE INDEX IF NOT EXISTS idx_suppliers_status ON suppliers(status);
+CREATE INDEX IF NOT EXISTS idx_product_variants_sku ON product_variants(sku);
+CREATE INDEX IF NOT EXISTS idx_product_variants_product ON product_variants(product_id);
+CREATE INDEX IF NOT EXISTS idx_money_receipts_customer ON money_receipts(customer_id);
+CREATE INDEX IF NOT EXISTS idx_money_receipts_date ON money_receipts(date);
+CREATE INDEX IF NOT EXISTS idx_money_receipts_receipt_no ON money_receipts(receipt_no);
+CREATE INDEX IF NOT EXISTS idx_stock_transfers_transfer_no ON stock_transfers(transfer_no);
+CREATE INDEX IF NOT EXISTS idx_stock_transfers_from_wh ON stock_transfers(from_warehouse_id);
+CREATE INDEX IF NOT EXISTS idx_stock_transfers_to_wh ON stock_transfers(to_warehouse_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
+CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category_id);
+CREATE INDEX IF NOT EXISTS idx_cash_transactions_voucher ON cash_transactions(voucher_no);
+CREATE INDEX IF NOT EXISTS idx_cash_transactions_date ON cash_transactions(date);
+CREATE INDEX IF NOT EXISTS idx_journal_entries_voucher ON journal_entries(voucher_no);
+CREATE INDEX IF NOT EXISTS idx_journal_entries_date ON journal_entries(date);
+CREATE INDEX IF NOT EXISTS idx_delivery_challans_no ON delivery_challans(challan_no);
+CREATE INDEX IF NOT EXISTS idx_delivery_challans_invoice ON delivery_challans(invoice_no);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_module ON audit_logs(module);
+
+-- =========================================================================
+-- 28. CLEAN PRODUCTION INFRASTRUCTURE FOUNDATION SEED (ZERO DEMO DATA)
+-- =========================================================================
+-- NOTE:
+-- This section seeds ONLY the structural enterprise baseline:
+-- 1. System Settings & Corporate Information (customizable from Settings)
+-- 2. Super Admin User accounts for direct production authentication
+-- 3. Primary Central Warehouse with 0 stock
+-- 4. National Smartphone Brand Taxonomy with 0 products
+-- 5. Standard 24 Chart of Accounts (COA) with exactly 0.00 balances
+-- 6. Operational Expense Categories with 0 expenses
+-- 7. Gateway Integration templates ready for real API keys
+--
+-- ALL transactional tables remain 100% CLEAN (0 sales, 0 purchases,
+-- 0 fake IMEIs, 0 fake customers, 0 fake dues, 0 fake supplier debts).
 -- =========================================================================
 
--- SYSTEM SETTINGS
-INSERT INTO system_settings (id, company_name, company_address, company_phone, company_email, vat_tax_number, default_vat_percent, currency, currency_symbol, valuation_method, negative_stock_allowed, credit_limit_hard_block, max_discount_without_approval, language)
-VALUES ('primary_settings', 'TeleCorp Mobile Distribution & Trade Ltd.', 'Level 8, Motijheel C/A, Dhaka-1000, Bangladesh', '+880 2-9568912 / +880 1711-002233', 'operations@telecorp-bd.com', 'BIN: 002341890-0101 (BTRC Reg: D-88902)', 5.00, 'BDT', '৳', 'FIFO', false, true, 1000.00, 'bn');
+-- 1. SYSTEM SETTINGS & COMPANY PROFILE
+INSERT INTO system_settings (
+    id,
+    company_name,
+    company_address,
+    company_phone,
+    company_email,
+    vat_tax_number,
+    default_vat_percent,
+    currency,
+    currency_symbol,
+    valuation_method,
+    negative_stock_allowed,
+    credit_limit_hard_block,
+    max_discount_without_approval,
+    language,
+    updated_at
+) VALUES (
+    'primary_settings',
+    'FIROZA ENTERPRISES',
+    'NADIM VILLA, Level 4, CENTRAL JAME MOSJID, KONABARI, GAZIPUR, Bangladesh',
+    '+880 1122000 / +880 712996757',
+    'info@fibrozaenterprises.com',
+    'BIN: 530914078318 (BTRC Reg: 578902)',
+    5.00,
+    'BDT',
+    '৳',
+    'FIFO',
+    false,
+    true,
+    0.00,
+    'bn',
+    NOW()
+)
+ON CONFLICT (id) DO UPDATE SET
+    company_name = EXCLUDED.company_name,
+    company_address = EXCLUDED.company_address,
+    company_phone = EXCLUDED.company_phone,
+    company_email = EXCLUDED.company_email,
+    vat_tax_number = EXCLUDED.vat_tax_number,
+    default_vat_percent = EXCLUDED.default_vat_percent,
+    currency = EXCLUDED.currency,
+    currency_symbol = EXCLUDED.currency_symbol,
+    valuation_method = EXCLUDED.valuation_method,
+    negative_stock_allowed = EXCLUDED.negative_stock_allowed,
+    credit_limit_hard_block = EXCLUDED.credit_limit_hard_block,
+    max_discount_without_approval = EXCLUDED.max_discount_without_approval,
+    language = EXCLUDED.language,
+    updated_at = NOW();
 
--- APP USERS (All Roles & Mansur Azad preserved)
-INSERT INTO app_users (id, email, name, role, password, status, phone, department, branch_name, avatar, last_login, created_at) VALUES
-('8d510069-b154-440a-aa3e-0999a9c354e1', 'mansurazad@gmail.com', 'Mansur Azad', 'Super Admin', 'M#112233@a', 'Active', '+880 1711-002233', 'Executive Board / Managing Director', 'Headquarters (Motijheel, Dhaka)', '👨‍💼', NOW(), NOW()),
-('user-admin', 'admin@telecorp.com', 'Aminul Islam', 'Super Admin', 'admin', 'Active', '+880 1711-002233', 'Executive Board / Managing Director', 'Headquarters (Motijheel, Dhaka)', '👨‍💼', NOW(), NOW()),
-('user-owner', 'owner@telecorp.com', 'M. A. Rashid', 'Owner', 'owner', 'Active', '+880 1711-112233', 'Chairman & Principal Investor', 'Headquarters (Motijheel, Dhaka)', '👑', NOW(), NOW()),
-('user-gm', 'gm@telecorp.com', 'Rafiqul Bari', 'General Manager', 'gm', 'Active', '+880 1711-445566', 'General Operations & Supply Chain', 'Headquarters (Motijheel, Dhaka)', '🎩', NOW(), NOW()),
-('user-wh', 'warehouse@telecorp.com', 'Md. Masum Billah', 'Warehouse Manager', 'wh', 'Active', '+880 1819-234567', 'Central Logistics & IMEI Vault', 'Central Warehouse (Motijheel, Dhaka)', '📦', NOW(), NOW()),
-('user-acc', 'accountant@telecorp.com', 'Shabbir Ahmed', 'Accountant', 'acc', 'Active', '+880 1911-223344', 'Accounts & Day Ledgering', 'Headquarters (Motijheel, Dhaka)', '📑', NOW(), NOW()),
-('user-sales', 'sales@telecorp.com', 'Kazi Farhan', 'Sales Manager', 'sales', 'Active', '+880 1711-778899', 'Regional Sales & Dealer Network', 'Headquarters (Motijheel, Dhaka)', '📈', NOW(), NOW()),
-('user-field', 'field@telecorp.com', 'Karim Ullah', 'Salesman', 'field', 'Active', '+880 1611-990011', 'Field Sales & Dealer Route Service', 'Dhaka North Territory', '🛵', NOW(), NOW()),
-('user-cashier', 'cashier@telecorp.com', 'Sumon Mia', 'Cashier', 'cash', 'Active', '+880 1611-332211', 'Retail POS Counter & Daily Vault', 'Gulshan Express Outlet', '💵', NOW(), NOW());
+-- 2. ESSENTIAL ADMINISTRATIVE USERS (Super Admin RBAC)
+INSERT INTO app_users (id, email, name, role, password, status, phone, department, branch_name, avatar, last_login, created_at, updated_at) VALUES
+('8d510069-b154-440a-aa3e-0999a9c354e1', 'mansurazad@gmail.com', 'Mansur Azad', 'Super Admin', 'M#112233@a', 'Active', '+880 1711-002233', 'Executive Board / Managing Director', 'Headquarters (Motijheel, Dhaka)', '👨‍💼', NOW(), NOW(), NOW()),
+('user-admin', 'admin@telecorp.com', 'System Administrator', 'Super Admin', 'admin', 'Active', '+880 1711-002233', 'IT & Systems Operations', 'Headquarters (Motijheel, Dhaka)', '👨‍💼', NOW(), NOW(), NOW())
+ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    name = EXCLUDED.name,
+    role = EXCLUDED.role,
+    password = EXCLUDED.password,
+    status = EXCLUDED.status,
+    phone = EXCLUDED.phone,
+    department = EXCLUDED.department,
+    branch_name = EXCLUDED.branch_name,
+    updated_at = NOW();
 
--- BRANDS
-INSERT INTO brands (id, name, code, logo, country, description, status) VALUES
-('brand-1', 'Samsung', 'SAM', '📱', 'South Korea', 'Samsung Electronics Official Bangladesh Lineup', 'Active'),
-('brand-2', 'Apple', 'APL', '🍏', 'United States', 'Apple Authorized Dealer Stock (iPhones & Accessories)', 'Active'),
-('brand-3', 'Xiaomi', 'MI', '🟠', 'China', 'Xiaomi & Redmi Series Official National Distribution', 'Active'),
-('brand-4', 'Vivo', 'VIV', '🔷', 'China', 'Vivo Bangladesh Official Distribution', 'Active'),
-('brand-5', 'OPPO', 'OPP', '🟢', 'China', 'OPPO Mobile Bangladesh Authorized Supply', 'Active'),
-('brand-6', 'Realme', 'RLM', '🟡', 'China', 'Realme Youth Flagship Series', 'Active'),
-('brand-7', 'OnePlus', '1PL', '🔴', 'China', 'OnePlus Official BD Flagship Series', 'Active'),
-('brand-8', 'Infinix', 'INF', '⚡', 'Hong Kong', 'Infinix Smart & Note Series', 'Active');
+-- 3. PRIMARY CENTRAL WAREHOUSE (1 Central Location, 0 Stock)
+INSERT INTO warehouses (id, code, name, type, address, city, manager_name, contact_number, status, created_at) VALUES
+('wh-1', 'WH-CENTRAL', 'Central Warehouse (Main Distribution Hub)', 'Central Warehouse', 'Motijheel Commercial Area, Dhaka-1000', 'Dhaka', 'Operations Manager', '+880 1711-002233', 'Active', NOW())
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    code = EXCLUDED.code,
+    type = EXCLUDED.type,
+    address = EXCLUDED.address,
+    city = EXCLUDED.city,
+    status = EXCLUDED.status;
 
--- WAREHOUSES
-INSERT INTO warehouses (id, code, name, type, address, city, manager_name, contact_number, status) VALUES
-('wh-1', 'WH-DH-CENTRAL', 'Central Warehouse (Motijheel, Dhaka)', 'Central Warehouse', 'Plot 14, Dilkusha Commercial Area, Dhaka', 'Dhaka', 'Md. Masum Billah', '+880 1819-234567', 'Active'),
-('wh-2', 'WH-DH-UTTARA', 'Uttara Hub Warehouse', 'Branch Warehouse', 'Sector 3, Jasimuddin Avenue, Uttara, Dhaka', 'Dhaka', 'Zahid Hossain', '+880 1712-998877', 'Active'),
-('wh-3', 'WH-CTG-DEPOT', 'Chittagong Regional Depot', 'Branch Warehouse', 'Agrabad C/A, Chittagong', 'Chittagong', 'Shafiqul Islam', '+880 1914-554433', 'Active'),
-('wh-4', 'OUTLET-DHANMONDI', 'Dhanmondi Retail Outlet & Experience Center', 'Retail Outlet', 'Road 27 (Old), Dhanmondi, Dhaka', 'Dhaka', 'Farhana Akhter', '+880 1610-112233', 'Active');
+-- 4. OFFICIAL BANGLADESHI SMARTPHONE BRAND TAXONOMY (Standard Reference Directory)
+INSERT INTO brands (id, name, code, logo, country, description, status, created_at) VALUES
+('brand-1', 'Samsung', 'SAM', '📱', 'South Korea', 'Samsung Electronics Official Bangladesh Lineup', 'Active', NOW()),
+('brand-2', 'Apple', 'APL', '🍏', 'United States', 'Apple Authorized Dealer Stock (iPhones & Accessories)', 'Active', NOW()),
+('brand-3', 'Xiaomi', 'MI', '🟠', 'China', 'Xiaomi & Redmi Series Official National Distribution', 'Active', NOW()),
+('brand-4', 'Vivo', 'VIV', '🔷', 'China', 'Vivo Bangladesh Official Distribution', 'Active', NOW()),
+('brand-5', 'OPPO', 'OPP', '🟢', 'China', 'OPPO Mobile Bangladesh Authorized Supply', 'Active', NOW()),
+('brand-6', 'Realme', 'RLM', '🟡', 'China', 'Realme Youth Flagship Series', 'Active', NOW()),
+('brand-7', 'OnePlus', '1PL', '🔴', 'China', 'OnePlus Official BD Flagship Series', 'Active', NOW()),
+('brand-8', 'Infinix', 'INF', '⚡', 'Hong Kong', 'Infinix Smart & Note Series', 'Active', NOW()),
+('brand-9', 'Tecno', 'TEC', '🔵', 'Hong Kong', 'Tecno Mobile Camon & Spark Series', 'Active', NOW()),
+('brand-10', 'Honor', 'HNR', '💠', 'China', 'Honor Magic & X Series Official BD', 'Active', NOW()),
+('brand-11', 'Motorola', 'MOT', '🦇', 'United States', 'Motorola Edge & G Series', 'Active', NOW()),
+('brand-12', 'Nokia', 'NOK', '📞', 'Finland', 'HMD Global Nokia Devices', 'Active', NOW())
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    code = EXCLUDED.code,
+    logo = EXCLUDED.logo,
+    status = EXCLUDED.status;
 
--- SUPPLIERS
-INSERT INTO suppliers (id, supplier_code, name, company_name, contact_person, mobile, email, address, district, tax_vat_number, trade_license, opening_balance, credit_limit, payment_terms_days, current_due, bank_info, status) VALUES
-('sup-1', 'SUP-001', 'Fair Electronics Ltd (Samsung Official)', 'Fair Group Bangladesh', 'Kazi Mahbub Alam', '+880 1713-098765', 'b2b@fairelectronics.com.bd', 'Fair Center, Banani, Dhaka', 'Dhaka', 'BIN-11928374-001', 'TRAD/DNCC/092831/2021', 0, 25000000.00, 21, 3450000.00, 'Dutch Bangla Bank, Banani Branch, A/C: 104.110.45021', 'Active'),
-('sup-2', 'SUP-002', 'Compustar PVT Ltd (Apple Authorized Distributor)', 'Compustar Bangladesh Ltd', 'M. R. Chowdhury', '+880 1819-876543', 'trade@compustar.com.bd', 'Gulshan 2, Dhaka', 'Dhaka', 'BIN-22019283-002', 'TRAD/DNCC/019282/2020', 0, 35000000.00, 15, 5800000.00, 'The City Bank Ltd, Gulshan Branch, A/C: 110.220.9981', 'Active'),
-('sup-3', 'SUP-003', 'DBG Technology (Xiaomi National Distributor)', 'DBG BD Electronics', 'Sharif Uddin', '+880 1912-345678', 'orders@dbg-xiaomi.com.bd', 'Gazipur High Tech City / Mohakhali DOHS', 'Dhaka', 'BIN-33928172-004', 'TRAD/GCC/992834/2022', 0, 15000000.00, 14, 1850000.00, 'BRAC Bank Ltd, Mohakhali Branch, A/C: 150.120.77665', 'Active'),
-('sup-4', 'SUP-004', 'Benq Telecom BD Ltd (Vivo National Distributor)', 'Vivo Bangladesh Distribution', 'Asaduzzaman Noor', '+880 1714-112233', 'dist@vivo-bd.com', 'Police Plaza Concord, Gulshan 1, Dhaka', 'Dhaka', 'BIN-44019283-009', 'TRAD/DNCC/087612/2021', 0, 10000000.00, 10, 920000.00, 'Standard Chartered Bank, Gulshan, A/C: 01-1928374-01', 'Active');
+-- 5. STANDARD 24 CHART OF ACCOUNTS (General Ledger Foundation, STRICTLY 0.00 BALANCES)
+INSERT INTO chart_of_accounts (id, code, name, type, nature, balance, description, is_system, created_at) VALUES
+('coa-1010', '1010', 'Cash in Hand (Main Vault)', 'Asset', 'Debit', 0.00, 'Physical cash in central vault & branch cash drawers', true, NOW()),
+('coa-1020', '1020', 'Bank Operating Accounts', 'Asset', 'Debit', 0.00, 'All commercial bank operational checking/current accounts', true, NOW()),
+('coa-1030', '1030', 'Accounts Receivable (Trade Debtors)', 'Asset', 'Debit', 0.00, 'Outstanding credit balance owed by dealer network', true, NOW()),
+('coa-1040', '1040', 'Merchandise Inventory Asset', 'Asset', 'Debit', 0.00, 'Current total valuation of serialized smartphone stock', true, NOW()),
+('coa-1050', '1050', 'Advance to Suppliers / Importers', 'Asset', 'Debit', 0.00, 'Advance consignments and LC payments to brand distributors', true, NOW()),
+('coa-1060', '1060', 'Undeposited Funds / Cash in Transit', 'Asset', 'Debit', 0.00, 'Funds collected by DSR salesmen pending bank deposit', true, NOW()),
+('coa-2010', '2010', 'Accounts Payable (Trade Creditors)', 'Liability', 'Credit', 0.00, 'Credit dues owed to national mobile importers & brands', true, NOW()),
+('coa-2020', '2020', 'Output VAT Payable (NBR / BTRC)', 'Liability', 'Credit', 0.00, 'Value Added Tax collected from invoices pending NBR deposit', true, NOW()),
+('coa-2030', '2030', 'Customer Security Deposits', 'Liability', 'Credit', 0.00, 'Security caution money held from wholesale dealers', true, NOW()),
+('coa-2040', '2040', 'Accrued Salaries & Operational Payables', 'Liability', 'Credit', 0.00, 'Salaries and recurring dues payable at month end', true, NOW()),
+('coa-3010', '3010', 'Shareholders Paid-Up Capital', 'Equity', 'Credit', 0.00, 'Principal investment and equity capital by owners', true, NOW()),
+('coa-3020', '3020', 'Retained Earnings', 'Equity', 'Credit', 0.00, 'Cumulative business net profit carried forward', true, NOW()),
+('coa-3030', '3030', 'Owner Drawings / Dividends', 'Equity', 'Debit', 0.00, 'Drawings or dividend disbursements taken by shareholders', true, NOW()),
+('coa-4010', '4010', 'Wholesale Handset Sales Revenue', 'Revenue', 'Credit', 0.00, 'Turnover from B2B dealership & regional distribution sales', true, NOW()),
+('coa-4020', '4020', 'Retail POS Sales Revenue', 'Revenue', 'Credit', 0.00, 'Direct walk-in counter retail smartphone & accessory revenue', true, NOW()),
+('coa-4030', '4030', 'Brand Target Incentives & Sell-Out Rebates', 'Revenue', 'Credit', 0.00, 'Quarterly volume rebates & price protection credits from brands', true, NOW()),
+('coa-4040', '4040', 'Other Operating Income', 'Revenue', 'Credit', 0.00, 'RMA service commissions, exchange scrap margin, etc.', true, NOW()),
+('coa-5010', '5010', 'Cost of Goods Sold (COGS)', 'Expense', 'Debit', 0.00, 'Direct landed cost of smartphones and accessories sold', true, NOW()),
+('coa-5020', '5020', 'Logistics, Courier & Freight Charges', 'Expense', 'Debit', 0.00, 'Steadfast, Sundarban, van transport and delivery costs', true, NOW()),
+('coa-5030', '5030', 'Warehouse & Showroom Lease Rent', 'Expense', 'Debit', 0.00, 'Monthly lease rent for warehouse hub and retail experience centers', true, NOW()),
+('coa-5040', '5040', 'Staff Salaries, TA/DA & Commissions', 'Expense', 'Debit', 0.00, 'Employee base payroll and salesman field collection commissions', true, NOW()),
+('coa-5050', '5050', 'Utilities, Internet & Cloud Server Hosting', 'Expense', 'Debit', 0.00, 'Electricity, broadband fiber, Supabase cloud & telecom bills', true, NOW()),
+('coa-5060', '5060', 'Branding, Signboards & Dealer Marketing', 'Expense', 'Debit', 0.00, 'Dealer shop branding, leaflets, promotional campaigns', true, NOW()),
+('coa-5070', '5070', 'Bank Charges & MFS Gateway Fees', 'Expense', 'Debit', 0.00, 'Bank transaction charges, bKash/Nagad merchant checkout fees', true, NOW())
+ON CONFLICT (id) DO UPDATE SET
+    code = EXCLUDED.code,
+    name = EXCLUDED.name,
+    type = EXCLUDED.type,
+    nature = EXCLUDED.nature,
+    balance = EXCLUDED.balance,
+    description = EXCLUDED.description;
 
--- CUSTOMERS (DEALER SHOPS)
-INSERT INTO customers (id, customer_code, shop_name, owner_name, mobile, alternative_mobile, email, address, area, district, division, credit_limit, allowed_due_days, customer_type, opening_balance, current_due, security_cheque_info, status) VALUES
-('cust-1', 'CUST-001', 'Popular Telecom', 'Md. Hafizur Rahman', '+880 1711-234567', '+880 1819-234567', 'hafiz.telecom@gmail.com', 'Shop 12, Rajuk Commercial Complex, Sector 3', 'Uttara', 'Dhaka', 'Dhaka', 1500000.00, 21, 'Wholesale Dealer', 180000.00, 485000.00, 'City Bank Uttara Br. Cheque #992819', 'Active'),
-('cust-2', 'CUST-002', 'Trust Mobile World', 'Jashim Uddin', '+880 1819-876543', '+880 1712-876543', 'trustmobile.ctg@yahoo.com', 'Shop 4, Akhtaruzzaman Center, Agrabad C/A', 'Agrabad', 'Chittagong', 'Chittagong', 2000000.00, 15, 'Wholesale Dealer', 250000.00, 890000.00, 'BRAC Bank Agrabad Br. Cheque #448291', 'Active'),
-('cust-3', 'CUST-003', 'Smart Point', 'Kabir Hossain', '+880 1912-345678', NULL, 'smartpoint.sylhet@gmail.com', 'Al-Hamra Shopping City, Zindabazar', 'Zindabazar', 'Sylhet', 'Sylhet', 800000.00, 14, 'Wholesale Dealer', 0.00, 235000.00, 'DBBL Zindabazar Br. Cheque #112837', 'Active'),
-('cust-4', 'CUST-004', 'Rajdhani Gadget', 'Asaduzzaman', '+880 1715-667788', NULL, 'rajdhanigadget@gmail.com', 'Multiplan Center, Level 3, Elephant Road', 'Elephant Road', 'Dhaka', 'Dhaka', 1000000.00, 10, 'Wholesale Dealer', 0.00, 420000.00, 'EBL Elephant Rd. Cheque #883920', 'Active'),
-('cust-5', 'CUST-005', 'Prime Mobile Zone', 'Tariqul Islam', '+880 1611-990011', NULL, 'primemobile.mirpur@gmail.com', 'Mukto Bangla Shopping Complex, Mirpur-1', 'Mirpur', 'Dhaka', 'Dhaka', 500000.00, 7, 'Wholesale Dealer', 0.00, 145000.00, 'Islami Bank Mirpur Br. Cheque #339281', 'Active'),
-('cust-6', 'CUST-006', 'Apex Cellular (Bogura Hub)', 'Mahbub Alam', '+880 1718-445566', NULL, 'apex.bogura@gmail.com', 'Jaleshwaritola Market, Bogura Sadar', 'Borogola', 'Bogura', 'Rajshahi', 600000.00, 15, 'Wholesale Dealer', 50000.00, 190000.00, 'Southeast Bank Bogura Cheque #558291', 'Active');
+-- 6. STANDARD OPERATIONAL EXPENSE CATEGORIES
+INSERT INTO expense_categories (id, name, description, created_at) VALUES
+('exp-cat-1', 'Logistics & Courier Delivery', 'Courier partner charges (Steadfast, Sundarban, SA Paribahan) and fuel', NOW()),
+('exp-cat-2', 'Showroom & Warehouse Rent', 'Monthly lease rentals for central warehouse hub and regional branch outlets', NOW()),
+('exp-cat-3', 'Staff Salaries & Field Allowance', 'Executive staff salaries, TA/DA, and field salesman daily allowances', NOW()),
+('exp-cat-4', 'Marketing & Dealer Incentives', 'Signboard branding, shop banners, retail gifts and promotions', NOW()),
+('exp-cat-5', 'Office Utilities & Connectivity', 'High-speed internet, electricity, cloud hosting and enterprise software', NOW()),
+('exp-cat-6', 'Repairs, Hardware & Office Maintenance', 'Packaging equipment, barcode printers, electrical and facility repairs', NOW()),
+('exp-cat-7', 'Banking, Financial & MFS Gateway Fees', 'Bank annual maintenance charges, checkbooks, bKash merchant charges', NOW())
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    description = EXCLUDED.description;
 
--- SALESMEN
-INSERT INTO salesmen (id, employee_code, name, mobile, email, target_monthly_bdt, achieved_monthly_bdt, commission_percentage, active_routes, assigned_area, status) VALUES
-('sm-1', 'EMP-01', 'Md. Rafiqul Islam', '+880 1711-998811', 'rafiq.sales@telecorp.com', 2500000.00, 1950000.00, 1.25, ARRAY['Uttara', 'Mirpur', 'Gazipur'], 'Dhaka North Zone', 'Active'),
-('sm-2', 'EMP-02', 'Tanvir Hasan', '+880 1819-776622', 'tanvir.sales@telecorp.com', 2000000.00, 1680000.00, 1.25, ARRAY['Motijheel', 'Elephant Road', 'Old Dhaka'], 'Dhaka South Zone', 'Active'),
-('sm-3', 'EMP-03', 'Kamrul Ahsan', '+880 1914-332211', 'kamrul.sales@telecorp.com', 3000000.00, 2420000.00, 1.50, ARRAY['Agrabad', 'GEC Circle', 'Coxs Bazar'], 'Chittagong Division', 'Active'),
-('sm-4', 'EMP-04', 'Shahriar Kabir', '+880 1612-445566', 'shahriar.sales@telecorp.com', 1500000.00, 1150000.00, 1.25, ARRAY['Zindabazar', 'Amberkhana', 'Moulvibazar'], 'Sylhet Division', 'Active');
-
--- PRODUCTS
-INSERT INTO products (id, brand_id, brand_name, model, category, network_region, warranty_period_months, description, status) VALUES
-('prod-1', 'brand-1', 'Samsung', 'Galaxy S24 Ultra 5G', 'Smartphone', 'Official BD (BTRC Approved)', 12, 'Flagship AI smartphone with Titanium Frame, Snapdragon 8 Gen 3, S-Pen included.', 'Active'),
-('prod-2', 'brand-1', 'Samsung', 'Galaxy A55 5G', 'Smartphone', 'Official BD (BTRC Approved)', 12, 'Premium mid-range with Exynos 1480, Super AMOLED 120Hz display and IP67 rating.', 'Active'),
-('prod-3', 'brand-2', 'Apple', 'iPhone 15 Pro Max', 'Smartphone', 'Official BD (BTRC Approved)', 12, 'Grade-5 Titanium design with A17 Pro Chip, 5x Optical Zoom, USB-C 3.0.', 'Active'),
-('prod-4', 'brand-3', 'Xiaomi', 'Redmi Note 13 Pro 5G', 'Smartphone', 'Official BD (BTRC Approved)', 12, '200MP OIS camera, 1.5K AMOLED 120Hz, Snapdragon 7s Gen 2 with 67W Turbo Charge.', 'Active'),
-('prod-5', 'brand-4', 'Vivo', 'Vivo V30 5G', 'Smartphone', 'Official BD (BTRC Approved)', 12, 'Studio Portrait Aura Light camera, Snapdragon 7 Gen 3, 5000mAh battery 80W.', 'Active'),
-('prod-6', 'brand-6', 'Realme', 'Realme 12 Pro+ 5G', 'Smartphone', 'Official BD (BTRC Approved)', 12, 'Luxury Watch design by Ollivier Saveo, 64MP Periscope Portrait camera.', 'Active');
-
--- PRODUCT VARIANTS
-INSERT INTO product_variants (id, product_id, sku, ram, storage, color, purchase_price, dealer_price, wholesale_price, retail_price, min_selling_price, max_discount, reorder_level, current_stock) VALUES
-('var-1-1', 'prod-1', 'SAM-S24U-12-256-BLK', '12GB', '256GB', 'Titanium Black', 162000.00, 172000.00, 172000.00, 184999.00, 170000.00, 2000.00, 3, 8),
-('var-1-2', 'prod-1', 'SAM-S24U-12-512-GRY', '12GB', '512GB', 'Titanium Gray', 178000.00, 189000.00, 189000.00, 204999.00, 187000.00, 2500.00, 2, 5),
-('var-2-1', 'prod-2', 'SAM-A55-8-128-NAV', '8GB', '128GB', 'Awesome Navy', 41500.00, 45000.00, 45000.00, 48999.00, 44200.00, 800.00, 5, 14),
-('var-2-2', 'prod-2', 'SAM-A55-8-256-ICE', '8GB', '256GB', 'Awesome Iceblue', 45500.00, 49500.00, 49500.00, 53999.00, 48800.00, 1000.00, 5, 11),
-('var-3-1', 'prod-3', 'APL-15PM-8-256-NTI', '8GB', '256GB', 'Natural Titanium', 188000.00, 199000.00, 199000.00, 214999.00, 197000.00, 2000.00, 3, 6),
-('var-4-1', 'prod-4', 'XMI-RN13P-8-256-BLK', '8GB', '256GB', 'Midnight Black', 29000.00, 31800.00, 31800.00, 34999.00, 31200.00, 600.00, 10, 18),
-('var-5-1', 'prod-5', 'VIV-V30-12-256-GRN', '12GB', '256GB', 'Lush Green', 47000.00, 51000.00, 51000.00, 55999.00, 50200.00, 1000.00, 5, 9),
-('var-6-1', 'prod-6', 'RLM-12PP-8-256-BLU', '8GB', '256GB', 'Submarine Blue', 39000.00, 42500.00, 42500.00, 45999.00, 41800.00, 700.00, 5, 12);
-
--- SERIALIZED IMEIS (15-Digit Genuine BTRC Handset Records)
-INSERT INTO imeis (id, imei1, imei2, serial_number, product_id, product_name, variant_id, variant_desc, brand_name, purchase_cost, supplier_id, supplier_name, purchase_invoice_no, warehouse_id, warehouse_name, status, condition) VALUES
-('imei-001', '358921008899011', '358921008899012', 'SN-S24U-001', 'prod-1', 'Galaxy S24 Ultra 5G', 'var-1-1', '12GB/256GB - Titanium Black', 'Samsung', 162000.00, 'sup-1', 'Fair Electronics Ltd (Samsung Official)', 'PINV-2026-0089', 'wh-1', 'Central Warehouse (Motijheel, Dhaka)', 'In Stock', 'Brand New'),
-('imei-002', '358921008899029', '358921008899037', 'SN-S24U-002', 'prod-1', 'Galaxy S24 Ultra 5G', 'var-1-1', '12GB/256GB - Titanium Black', 'Samsung', 162000.00, 'sup-1', 'Fair Electronics Ltd (Samsung Official)', 'PINV-2026-0089', 'wh-1', 'Central Warehouse (Motijheel, Dhaka)', 'In Stock', 'Brand New'),
-('imei-003', '358921008899045', '358921008899052', 'SN-S24U-003', 'prod-1', 'Galaxy S24 Ultra 5G', 'var-1-2', '12GB/512GB - Titanium Gray', 'Samsung', 178000.00, 'sup-1', 'Fair Electronics Ltd (Samsung Official)', 'PINV-2026-0089', 'wh-2', 'Uttara Hub Warehouse', 'In Stock', 'Brand New'),
-('imei-004', '358921008899060', '358921008899078', 'SN-A55-001', 'prod-2', 'Galaxy A55 5G', 'var-2-1', '8GB/128GB - Awesome Navy', 'Samsung', 41500.00, 'sup-1', 'Fair Electronics Ltd (Samsung Official)', 'PINV-2026-0089', 'wh-1', 'Central Warehouse (Motijheel, Dhaka)', 'In Stock', 'Brand New'),
-('imei-005', '358921008899086', '358921008899094', 'SN-A55-002', 'prod-2', 'Galaxy A55 5G', 'var-2-1', '8GB/128GB - Awesome Navy', 'Samsung', 41500.00, 'sup-1', 'Fair Electronics Ltd (Samsung Official)', 'PINV-2026-0089', 'wh-3', 'Chittagong Regional Depot', 'In Stock', 'Brand New'),
-('imei-006', '351984112233441', '351984112233442', 'SN-15PM-001', 'prod-3', 'iPhone 15 Pro Max', 'var-3-1', '8GB/256GB - Natural Titanium', 'Apple', 188000.00, 'sup-2', 'Compustar PVT Ltd (Apple Authorized Distributor)', 'PINV-2026-0075', 'wh-1', 'Central Warehouse (Motijheel, Dhaka)', 'In Stock', 'Brand New'),
-('imei-007', '351984112233458', '351984112233466', 'SN-15PM-002', 'prod-3', 'iPhone 15 Pro Max', 'var-3-1', '8GB/256GB - Natural Titanium', 'Apple', 188000.00, 'sup-2', 'Compustar PVT Ltd (Apple Authorized Distributor)', 'PINV-2026-0075', 'wh-4', 'Dhanmondi Retail Outlet & Experience Center', 'In Stock', 'Brand New'),
-('imei-008', '864912061122331', '864912061122332', 'SN-RN13P-001', 'prod-4', 'Redmi Note 13 Pro 5G', 'var-4-1', '8GB/256GB - Midnight Black', 'Xiaomi', 29000.00, 'sup-3', 'DBG Technology (Xiaomi National Distributor)', 'PINV-2026-0092', 'wh-1', 'Central Warehouse (Motijheel, Dhaka)', 'In Stock', 'Brand New'),
-('imei-009', '864912061122349', '864912061122356', 'SN-RN13P-002', 'prod-4', 'Redmi Note 13 Pro 5G', 'var-4-1', '8GB/256GB - Midnight Black', 'Xiaomi', 29000.00, 'sup-3', 'DBG Technology (Xiaomi National Distributor)', 'PINV-2026-0092', 'wh-2', 'Uttara Hub Warehouse', 'In Stock', 'Brand New'),
-('imei-010', '864912061122364', '864912061122372', 'SN-RN13P-003', 'prod-4', 'Redmi Note 13 Pro 5G', 'var-4-1', '8GB/256GB - Midnight Black', 'Xiaomi', 29000.00, 'sup-3', 'DBG Technology (Xiaomi National Distributor)', 'PINV-2026-0092', 'wh-3', 'Chittagong Regional Depot', 'In Stock', 'Brand New'),
-('imei-011', '863241054455661', '863241054455662', 'SN-V30-001', 'prod-5', 'Vivo V30 5G', 'var-5-1', '12GB/256GB - Lush Green', 'Vivo', 47000.00, 'sup-4', 'Benq Telecom BD Ltd (Vivo National Distributor)', 'PINV-2026-0064', 'wh-1', 'Central Warehouse (Motijheel, Dhaka)', 'In Stock', 'Brand New'),
-('imei-012', '863241054455679', '863241054455687', 'SN-RLM12-001', 'prod-6', 'Realme 12 Pro+ 5G', 'var-6-1', '8GB/256GB - Submarine Blue', 'Realme', 39000.00, 'sup-4', 'Benq Telecom BD Ltd (Vivo National Distributor)', 'PINV-2026-0064', 'wh-1', 'Central Warehouse (Motijheel, Dhaka)', 'In Stock', 'Brand New');
-
--- BANK ACCOUNTS
-INSERT INTO bank_accounts (id, bank_name, account_name, account_number, branch_name, routing_number, account_type, opening_balance, current_balance, status) VALUES
-('bank-1', 'BRAC Bank PLC', 'TeleCorp Distribution Ltd', '1501203948201001', 'Motijheel Corporate Branch', '060271928', 'Current', 5000000.00, 12450000.00, 'Active'),
-('bank-2', 'The City Bank Ltd', 'TeleCorp Distribution Ltd', '1102938475001', 'Gulshan Avenue Branch', '225271829', 'Current', 3000000.00, 8920000.00, 'Active'),
-('bank-3', 'Dutch-Bangla Bank Ltd', 'TeleCorp Distribution Ltd', '105110294812', 'Foreign Exchange Branch', '090271182', 'Current', 2000000.00, 4310000.00, 'Active'),
-('bank-4', 'bKash Merchant Vault', 'TeleCorp Trade Hub', '01888-990011', 'bKash Tokenized Merchant', 'BKASH001', 'MFS Merchant (bKash/Nagad)', 200000.00, 540000.00, 'Active');
-
--- CHART OF ACCOUNTS (COA Double-Entry Foundation)
-INSERT INTO chart_of_accounts (id, code, name, type, nature, balance, description, is_system) VALUES
-('coa-1010', '1010', 'Cash in Hand (Main Vault)', 'Asset', 'Debit', 1250000.00, 'Physical cash at central treasury', true),
-('coa-1020', '1020', 'Bank Operating Accounts', 'Asset', 'Debit', 25680000.00, 'All commercial bank operational balances', true),
-('coa-1030', '1030', 'Accounts Receivable (Trade Debtors)', 'Asset', 'Debit', 2315000.00, 'Due amounts owed by wholesale dealer shops', true),
-('coa-1040', '1040', 'Merchandise Inventory Asset', 'Asset', 'Debit', 18450000.00, 'Current valuation of stock handsets with serial tracking', true),
-('coa-2010', '2010', 'Accounts Payable (Trade Creditors)', 'Liability', 'Credit', 12020000.00, 'Amounts owed to national distributors and importers', true),
-('coa-2020', '2020', 'Output VAT Payable (BTRC/NBR)', 'Liability', 'Credit', 345000.00, 'VAT collected on sales pending NBR deposit', true),
-('coa-3010', '3010', 'Shareholder Paid-Up Capital', 'Equity', 'Credit', 30000000.00, 'Initial owners capital investment', true),
-('coa-3020', '3020', 'Retained Earnings', 'Equity', 'Credit', 5330000.00, 'Cumulative retained profits from previous periods', true),
-('coa-4010', '4010', 'Wholesale Phone Sales Revenue', 'Revenue', 'Credit', 45000000.00, 'Turnover from B2B dealer distribution', true),
-('coa-5010', '5010', 'Cost of Goods Sold (COGS)', 'Expense', 'Debit', 41200000.00, 'Procurement landed cost of sold smartphones', true),
-('coa-5020', '5020', 'Logistics, Freight & Delivery Charges', 'Expense', 'Debit', 420000.00, 'Courier and distribution van transport costs', true),
-('coa-5030', '5030', 'Warehouse Rent & Utility Expenses', 'Expense', 'Debit', 380000.00, 'Central and branch warehouse rental costs', true);
-
--- EXPENSE CATEGORIES
-INSERT INTO expense_categories (id, name, description) VALUES
-('exp-cat-1', 'Logistics & Courier Delivery', 'Courier partner charges (Steadfast, Sundarban, SA Paribahan) and fuel'),
-('exp-cat-2', 'Showroom & Warehouse Rent', 'Monthly lease rentals for central warehouse and branch outlets'),
-('exp-cat-3', 'Staff Salaries & Field Allowance', 'Executive staff salaries, TA/DA and salesman daily allowances'),
-('exp-cat-4', 'Marketing & Dealer Incentives', 'Signboard branding, shop banners and promotional gifts'),
-('exp-cat-5', 'Office Utilities & Connectivity', 'High-speed internet, electricity, cloud hosting and software services');
-
--- SALES INVOICES (Wholesale B2B Real Handset Orders)
-INSERT INTO sales_invoices (id, invoice_no, invoice_type, customer_id, customer_name, customer_phone, salesman_id, salesman_name, warehouse_id, warehouse_name, invoice_date, due_date, items, subtotal, discount, vat_rate, vat_amount, grand_total, paid_amount, due_amount, payment_method, payments, commission_earned, notes, delivery_status, status, created_by) VALUES
-('inv-001', 'INV-2026-0042', 'Wholesale', 'cust-1', 'Popular Telecom', '+880 1711-234567', 'sm-1', 'Md. Rafiqul Islam', 'wh-1', 'Central Warehouse (Motijheel, Dhaka)', '2026-10-01', '2026-10-22', '[{"id":"item-1","productId":"prod-2","productName":"Galaxy A55 5G","variantId":"var-2-1","variantDesc":"8GB/128GB - Awesome Navy","quantity":2,"unitPrice":45000,"unitCost":41500,"discount":0,"vatAmount":0,"totalAmount":90000,"imeiList":["358921008899060","358921008899086"]}]'::jsonb, 90000.00, 0.00, 0.00, 0.00, 90000.00, 50000.00, 40000.00, 'Bank Transfer', '[{"method":"Bank Transfer","amount":50000,"bankAccountId":"bank-1","transactionRef":"BRAC-TXN-88192"}]'::jsonb, 1125.00, 'Official BTRC handsets with 12M warranty', 'Delivered', 'Confirmed', 'Md. Rafiqul Islam'),
-('inv-002', 'INV-2026-0043', 'Wholesale', 'cust-2', 'Trust Mobile World', '+880 1819-876543', 'sm-3', 'Kamrul Ahsan', 'wh-3', 'Chittagong Regional Depot', '2026-10-02', '2026-10-17', '[{"id":"item-2","productId":"prod-4","productName":"Redmi Note 13 Pro 5G","variantId":"var-4-1","variantDesc":"8GB/256GB - Midnight Black","quantity":2,"unitPrice":31800,"unitCost":29000,"discount":0,"vatAmount":0,"totalAmount":63600,"imeiList":["864912061122331","864912061122364"]}]'::jsonb, 63600.00, 0.00, 0.00, 0.00, 63600.00, 63600.00, 0.00, 'Bank Transfer', '[{"method":"Bank Transfer","amount":63600,"bankAccountId":"bank-2","transactionRef":"CITY-TXN-99012"}]'::jsonb, 954.00, 'Full paid advance delivery', 'Delivered', 'Confirmed', 'Kamrul Ahsan'),
-('inv-003', 'INV-2026-0044', 'Wholesale', 'cust-4', 'Rajdhani Gadget', '+880 1715-667788', 'sm-2', 'Tanvir Hasan', 'wh-1', 'Central Warehouse (Motijheel, Dhaka)', '2026-10-03', '2026-10-13', '[{"id":"item-3","productId":"prod-1","productName":"Galaxy S24 Ultra 5G","variantId":"var-1-1","variantDesc":"12GB/256GB - Titanium Black","quantity":1,"unitPrice":172000,"unitCost":162000,"discount":0,"vatAmount":0,"totalAmount":172000,"imeiList":["358921008899011"]}]'::jsonb, 172000.00, 0.00, 0.00, 0.00, 172000.00, 100000.00, 72000.00, 'Split Payment', '[{"method":"Cash","amount":50000},{"method":"bKash","amount":50000,"bankAccountId":"bank-4","transactionRef":"BKASH-TRX-77821"}]'::jsonb, 2150.00, 'Promised clearance within 10 days', 'Delivered', 'Confirmed', 'Tanvir Hasan');
-
--- PURCHASE INVOICES (Official Consignment from National Distributors)
-INSERT INTO purchase_invoices (id, invoice_no, purchase_date, due_date, supplier_id, supplier_name, warehouse_id, warehouse_name, subtotal, discount_total, vat_total, transport_cost, other_expenses, total_amount, paid_amount, due_amount, payment_status, payment_method, bank_account_id, reference_no, items, notes, status) VALUES
-('pinv-001', 'PINV-2026-0089', '2026-09-25', '2026-10-16', 'sup-1', 'Fair Electronics Ltd (Samsung Official)', 'wh-1', 'Central Warehouse (Motijheel, Dhaka)', 585000.00, 0.00, 0.00, 1500.00, 0.00, 586500.00, 200000.00, 386500.00, 'Partial', 'Bank Transfer', 'bank-1', 'LC-FAIR-2026-SAM09', '[{"id":"pitem-1","productId":"prod-1","productName":"Galaxy S24 Ultra 5G","variantId":"var-1-1","variantDesc":"12GB/256GB - Titanium Black","quantity":3,"unitCost":162000,"discount":0,"vatRate":0,"totalCost":486000,"imeis":["358921008899011","358921008899029","358921008899045"]},{"id":"pitem-2","productId":"prod-2","productName":"Galaxy A55 5G","variantId":"var-2-1","variantDesc":"8GB/128GB - Awesome Navy","quantity":2,"unitCost":41500,"discount":0,"vatRate":0,"totalCost":83000,"imeis":["358921008899060","358921008899086"]}]'::jsonb, 'Official Fair Group Samsung consignment with BTRC labels', 'Received'),
-('pinv-002', 'PINV-2026-0075', '2026-09-28', '2026-10-13', 'sup-2', 'Compustar PVT Ltd (Apple Authorized Distributor)', 'wh-1', 'Central Warehouse (Motijheel, Dhaka)', 376000.00, 0.00, 0.00, 2000.00, 0.00, 378000.00, 378000.00, 0.00, 'Paid', 'Bank Transfer', 'bank-2', 'COMP-INV-7781', '[{"id":"pitem-3","productId":"prod-3","productName":"iPhone 15 Pro Max","variantId":"var-3-1","variantDesc":"8GB/256GB - Natural Titanium","quantity":2,"unitCost":188000,"discount":0,"vatRate":0,"totalCost":376000,"imeis":["351984112233441","351984112233458"]}]'::jsonb, 'Apple official authorized national stock', 'Received'),
-('pinv-003', 'PINV-2026-0092', '2026-09-29', '2026-10-13', 'sup-3', 'DBG Technology (Xiaomi National Distributor)', 'wh-1', 'Central Warehouse (Motijheel, Dhaka)', 87000.00, 0.00, 0.00, 500.00, 0.00, 87500.00, 87500.00, 0.00, 'Paid', 'Bank Transfer', 'bank-1', 'DBG-CH-9921', '[{"id":"pitem-4","productId":"prod-4","productName":"Redmi Note 13 Pro 5G","variantId":"var-4-1","variantDesc":"8GB/256GB - Midnight Black","quantity":3,"unitCost":29000,"discount":0,"vatRate":0,"totalCost":87000,"imeis":["864912061122331","864912061122349","864912061122364"]}]'::jsonb, 'DBG Xiaomi factory sealed units', 'Received');
-
--- STOCK TRANSFERS
-INSERT INTO stock_transfers (id, transfer_no, date, from_warehouse_id, from_warehouse_name, to_warehouse_id, to_warehouse_name, items, imeis, total_units, status, requested_by, dispatched_by, received_by, notes) VALUES
-('tr-001', 'TR-2026-0012', '2026-10-02', 'wh-1', 'Central Warehouse (Motijheel, Dhaka)', 'wh-2', 'Uttara Hub Warehouse', '[{"productId":"prod-1","productName":"Galaxy S24 Ultra 5G","variantId":"var-1-2","variantDesc":"12GB/512GB - Titanium Gray","quantity":1,"imeis":["358921008899045"]},{"productId":"prod-4","productName":"Redmi Note 13 Pro 5G","variantId":"var-4-1","variantDesc":"8GB/256GB - Midnight Black","quantity":1,"imeis":["864912061122349"]}]'::jsonb, ARRAY['358921008899045', '864912061122349'], 2, 'Completed', 'Zahid Hossain', 'Md. Masum Billah', 'Zahid Hossain', 'Transferred to Uttara Hub for dealer distribution');
-
--- CUSTOMER RETURNS
-INSERT INTO customer_returns (id, return_no, return_date, sales_invoice_no, customer_id, customer_name, product_id, product_name, variant_id, variant_desc, imei, condition, return_reason, action_taken, refund_or_credit_amount, restock_warehouse_id, restock_status, commission_reversed, approved_by, status, notes) VALUES
-('ret-001', 'RET-2026-0008', '2026-10-03', 'INV-2026-0042', 'cust-1', 'Popular Telecom', 'prod-2', 'Galaxy A55 5G', 'var-2-1', '8GB/128GB - Awesome Navy', '358921008899086', 'Sealed', 'Customer requested color exchange to Awesome Iceblue', 'Credit Note', 45000.00, 'wh-1', 'Restocked', 0.00, 'Rafiqul Bari', 'Processed', 'Box intact, sealed sticker inspected');
-
--- SUPPLIER RETURNS
-INSERT INTO supplier_returns (id, return_no, date, supplier_id, supplier_name, purchase_invoice_no, product_id, product_name, variant_desc, imei, reason, amount, status) VALUES
-('sret-001', 'SRET-2026-0004', '2026-10-01', 'sup-1', 'Fair Electronics Ltd (Samsung Official)', 'PINV-2026-0089', 'prod-1', 'Galaxy S24 Ultra 5G', '12GB/256GB - Titanium Black', '358921008899029', 'Minor cosmetic carton scratch on shipment receipt', 162000.00, 'Sent to Brand');
-
--- DUE COLLECTIONS / MONEY RECEIPTS
-INSERT INTO money_receipts (id, receipt_no, date, customer_id, customer_name, customer_phone, shop_name, area, amount, discount_waiver, payment_method, bank_account_id, bank_name, transaction_ref, collector_salesman_id, collector_salesman_name, reference_invoice, notes, status, allocations, created_by) VALUES
-('mr-2026-001', 'MR-2026-0001', '2026-09-20', 'cust-1', 'Al-Haj Nurul Islam', '+880 1711-234567', 'Rongdhanu Telecom & Gadget', 'Mirpur-10, Dhaka', 100000.00, 0.00, 'Bank Transfer', 'bank-1', 'Dutch-Bangla Bank Limited (DBBL)', 'FT-998811', 'sm-1', 'Tanvir Ahmed', 'SAL-2026-000210', 'Advance installment payment against wholesale invoice SAL-2026-000210', 'Confirmed', '[]'::jsonb, 'Md. Rafiqul Islam'),
-('mr-2026-002', 'MR-2026-0002', '2026-09-25', 'cust-2', 'Hazi Mohammad Yunus', '+880 1819-765432', 'Bismillah Mobile Care & Wholesale', 'Chawkbazar, Chittagong', 200000.00, 0.00, 'Cheque', NULL, 'City Bank Ltd', 'CQ-667788', 'sm-3', 'Ariful Islam', 'SAL-2026-000201', 'Full due clearance cheque received', 'Confirmed', '[]'::jsonb, 'Kamrul Ahsan'),
-('mr-2026-003', 'MR-2026-0003', '2026-10-02', 'cust-3', 'Engr. Shamim Reza', '+880 1912-345678', 'Digital Touch Electronics', 'Zindabazar, Sylhet', 75000.00, 2500.00, 'bKash', NULL, 'bKash Merchant', 'BK-890123', 'sm-2', 'Kamrul Ahsan', 'SAL-2026-000215', 'Partial payment with cash prompt payment waiver discount', 'Confirmed', '[]'::jsonb, 'Shabbir Ahmed');
-
--- EMI PLANS
-INSERT INTO emi_plans (id, plan_no, customer_id, customer_name, customer_mobile, customer_address, product_id, product_name, variant_desc, imei, invoice_no, warehouse_id, warehouse_name, total_price, down_payment, financed_amount, interest_rate, tenure_months, monthly_installment, start_date, status, guarantor, documents, installments, total_paid, total_remaining, overdue_count, notes) VALUES
-('emi-plan-001', 'EMI-2026-0101', 'cust-1', 'Al-Haj Nurul Islam', '+880 1711-234567', 'Shop #12, Rongdhanu Plaza, Mirpur-10, Dhaka', 'prod-1', 'Galaxy S24 Ultra 5G', '12GB/512GB - Titanium Gray', '358921008899011', 'SAL-2026-000210', 'wh-1', 'Motijheel Central Warehouse', 178000.00, 58000.00, 120000.00, 0.00, 6, 20000.00, '2026-09-15', 'Active', '{"name":"Hazi Abdur Rahim","mobile":"+880 1819-112233","relation":"Brother","nidNo":"19822619482711","address":"Mirpur-10, Dhaka","occupation":"Businessman"}'::jsonb, '{"securityChequeNo":"CQ-DBBL-998822","bankName":"DBBL Mirpur Branch"}'::jsonb, '[{"installmentNo":1,"dueDate":"2026-10-15","amount":20000,"paidAmount":20000,"paidDate":"2026-10-14","lateFee":0,"status":"Paid","paymentMethod":"bKash","receiptNo":"RCP-EMI-001"},{"installmentNo":2,"dueDate":"2026-11-15","amount":20000,"paidAmount":0,"lateFee":0,"status":"Pending"},{"installmentNo":3,"dueDate":"2026-12-15","amount":20000,"paidAmount":0,"lateFee":0,"status":"Pending"},{"installmentNo":4,"dueDate":"2027-01-15","amount":20000,"paidAmount":0,"lateFee":0,"status":"Pending"},{"installmentNo":5,"dueDate":"2027-02-15","amount":20000,"paidAmount":0,"lateFee":0,"status":"Pending"},{"installmentNo":6,"dueDate":"2027-03-15","amount":20000,"paidAmount":0,"lateFee":0,"status":"Pending"}]'::jsonb, 78000.00, 100000.00, 0, 'First installment received on time via bKash'),
-('emi-plan-002', 'EMI-2026-0102', 'cust-3', 'Engr. Shamim Reza', '+880 1912-345678', 'Zindabazar, Sylhet', 'prod-3', 'Redmi Note 13 Pro+ 5G', '12GB/512GB - Midnight Black', '864201048200103', 'SAL-2026-000215', 'wh-1', 'Motijheel Central Warehouse', 52000.00, 16000.00, 36000.00, 0.00, 4, 9000.00, '2026-08-01', 'Active', '{"name":"Mawlana Faiz Ahmed","mobile":"+880 1712-445566","relation":"Uncle / Guardian","nidNo":"19782619485732","address":"Zindabazar, Sylhet","occupation":"Senior Advocate"}'::jsonb, '{"securityChequeNo":"CQ-CITY-448102","bankName":"City Bank Ltd"}'::jsonb, '[{"installmentNo":1,"dueDate":"2026-09-01","amount":9000,"paidAmount":9000,"paidDate":"2026-08-30","lateFee":0,"status":"Paid","paymentMethod":"Cash","receiptNo":"RCP-EMI-003"},{"installmentNo":2,"dueDate":"2026-10-01","amount":9000,"paidAmount":0,"lateFee":500,"status":"Overdue"},{"installmentNo":3,"dueDate":"2026-11-01","amount":9000,"paidAmount":0,"lateFee":0,"status":"Pending"},{"installmentNo":4,"dueDate":"2026-12-01","amount":9000,"paidAmount":0,"lateFee":0,"status":"Pending"}]'::jsonb, 25000.00, 27000.00, 1, 'Late fee applied for October installment after 5 days grace period.');
-
--- COMMISSION DISBURSEMENTS
-INSERT INTO commission_disbursements (id, disbursement_no, salesman_id, salesman_name, month, date, sales_amount, collection_amount, sales_commission, collection_commission, bonus_amount, deduction_amount, net_payable, payment_method, bank_account_id, reference_no, status, paid_at) VALUES
-('cd-2026-09-01', 'COM-202609-001', 'sm-1', 'Tanvir Ahmed', '2026-09', '2026-10-02', 1850000.00, 1420000.00, 27750.00, 7100.00, 5000.00, 0.00, 39850.00, 'Bank Transfer', 'bank-1', 'BRAC-SAL-COM-09', 'Paid', '2026-10-02 14:30'),
-('cd-2026-09-02', 'COM-202609-002', 'sm-2', 'Kamrul Ahsan', '2026-09', '2026-10-02', 1240000.00, 980000.00, 14880.00, 4900.00, 2000.00, 0.00, 21780.00, 'Bank Transfer', 'bank-1', 'BRAC-SAL-COM-10', 'Paid', '2026-10-02 14:45'),
-('cd-2026-09-03', 'COM-202609-003', 'sm-3', 'Ariful Islam', '2026-09', '2026-10-03', 2100000.00, 1650000.00, 31500.00, 8250.00, 6000.00, 0.00, 45750.00, 'Cash', NULL, 'CSH-VOUCH-9921', 'Paid', '2026-10-03 11:15');
-
--- EXPENSES
-INSERT INTO expenses (id, expense_no, date, category_id, category_name, amount, payment_method, bank_account_id, description, recipient_name, voucher_ref, approved_by) VALUES
-('exp-001', 'EXP-2026-0101', '2026-10-01', 'exp-cat-2', 'Showroom & Warehouse Rent', 85000.00, 'Bank Transfer', 'bank-1', 'Monthly rental payment for Motijheel Central Warehouse Floor 4', 'Dilkusha Properties Ltd', 'RENT-OCT-26', 'Rafiqul Bari'),
-('exp-002', 'EXP-2026-0102', '2026-10-02', 'exp-cat-1', 'Logistics & Courier Delivery', 14500.00, 'Bank Transfer', 'bank-4', 'Steadfast Courier bulk delivery dispatch charges for district dealers', 'Steadfast Courier Ltd', 'ST-BILL-8831', 'Md. Masum Billah'),
-('exp-003', 'EXP-2026-0103', '2026-10-03', 'exp-cat-3', 'Staff Salaries & Field Allowance', 18000.00, 'Cash', NULL, 'Sales executive field travel, fuel & daily food allowances for Dhaka North route', 'Md. Rafiqul Islam', 'TA-OCT-03', 'Kazi Farhan'),
-('exp-004', 'EXP-2026-0104', '2026-10-04', 'exp-cat-5', 'Office Utilities & Connectivity', 6500.00, 'bKash', 'bank-4', 'Optical fiber dedicated leased line internet bill for ERP server synchronization', 'Amber IT Ltd', 'AMBER-OCT-09', 'Shabbir Ahmed');
-
--- CASH TRANSACTIONS
-INSERT INTO cash_transactions (id, voucher_no, date, type, category, amount, reference_no, description, performed_by) VALUES
-('csh-001', 'CSH-2026-0051', '2026-10-03', 'Cash In', 'Customer Sale', 50000.00, 'INV-2026-0044', 'Cash downpayment received from Rajdhani Gadget for Galaxy S24 Ultra', 'Sumon Mia'),
-('csh-002', 'CSH-2026-0052', '2026-10-03', 'Cash Out', 'Expense', 18000.00, 'EXP-2026-0103', 'Field salesman daily allowance disbursement', 'Sumon Mia'),
-('csh-003', 'CSH-2026-0053', '2026-10-04', 'Cash Out', 'Cash To Bank', 30000.00, 'DEP-BRAC-04', 'Physical cash deposit from daily vault to BRAC Bank Motijheel Corporate Branch', 'Sumon Mia');
-
--- DAY CLOSING
-INSERT INTO day_closings (id, closing_no, date, cashier_name, warehouse_id, warehouse_name, opening_cash, cash_sales_total, due_collections_total, cash_expenses_total, bank_deposits_total, expected_closing_cash, actual_physical_cash, discrepancy, status, verified_by, notes) VALUES
-('dc-001', 'DC-2026-0021', '2026-10-03', 'Sumon Mia', 'wh-1', 'Central Warehouse (Motijheel, Dhaka)', 125000.00, 50000.00, 0.00, 18000.00, 0.00, 157000.00, 157000.00, 0.00, 'Balanced', 'Shabbir Ahmed', 'Physical cash count matched perfectly with system ledger');
-
--- WARRANTY CLAIMS
-INSERT INTO warranty_claims (id, rma_number, date, customer_id, customer_name, customer_phone, brand_name, product_model, imei, purchase_invoice_no, purchase_date, problem_description, physical_condition, accessories_included, service_center_name, service_center_job_no, status, replacement_imei, repair_cost_customer, remarks) VALUES
-('wc-001', 'RMA-2026-0015', '2026-10-02', 'cust-1', 'Popular Telecom', '+880 1711-234567', 'Samsung', 'Galaxy A55 5G', '358921008899060', 'INV-2026-0042', '2026-10-01', 'Camera module autofocus failure during macro zoom', 'Scratchless body, sealed handset', 'Handset only, retail box', 'Fair Electronics Samsung Authorized Service Center (Banani)', 'JOB-SAM-99120', 'Dispatched to Service Center', NULL, 0.00, 'Under official 12-month manufacturer replacement warranty'),
-('wc-002', 'RMA-2026-0016', '2026-10-03', 'cust-2', 'Trust Mobile World', '+880 1819-876543', 'Apple', 'iPhone 15 Pro Max', '351984112233441', 'INV-2026-0038', '2026-09-29', 'Display touch sensor glitch in top-left dynamic island area', 'Original tempered glass installed, pristine condition', 'Original USB-C braided cable and box', 'Compustar Apple Authorized Service Provider (Gulshan)', 'AASP-DH-8821', 'In Repair', NULL, 0.00, 'Apple Global Warranty active');
-
--- BRAND INCENTIVE SCHEMES
-INSERT INTO brand_incentive_schemes (id, brand_id, brand_name, scheme_title, period, start_date, end_date, target_units, achieved_units, slabs, total_incentive_earned, claim_status, supplier_credit_note_no) VALUES
-('bis-001', 'brand-1', 'Samsung', 'Q4 2026 Flagship Volume Sell-Out Rebate', 'Q4 2026', '2026-10-01', '2026-12-31', 50, 8, '[{"minUnits":10,"incentivePerUnit":2000},{"minUnits":25,"incentivePerUnit":3500},{"minUnits":50,"incentivePerUnit":5000}]'::jsonb, 16000.00, 'In Progress', NULL),
-('bis-002', 'brand-3', 'Xiaomi', 'Redmi Note 13 Series Nationwide Target Scheme', 'October 2026', '2026-10-01', '2026-10-31', 100, 18, '[{"minUnits":20,"incentivePerUnit":500},{"minUnits":50,"incentivePerUnit":800},{"minUnits":100,"incentivePerUnit":1200}]'::jsonb, 9000.00, 'In Progress', NULL);
-
--- DELIVERY CHALLANS
-INSERT INTO delivery_challans (id, challan_no, date, invoice_no, customer_id, customer_name, customer_phone, delivery_address, district, courier_partner, consignment_no, is_cod, cod_amount, cod_status, delivery_status, total_cartons, imei_list, remarks, delivered_at) VALUES
-('ch-001', 'CH-2026-0081', '2026-10-01', 'INV-2026-0042', 'cust-1', 'Popular Telecom', '+880 1711-234567', 'Shop 12, Rajuk Commercial Complex, Sector 3, Uttara', 'Dhaka', 'Company Van Delivery', 'VAN-DH-09', false, 0.00, 'Not Applicable', 'Delivered', 1, ARRAY['358921008899060', '358921008899086'], 'Handed over to shop owner Md. Hafizur Rahman', NOW()),
-('ch-002', 'CH-2026-0082', '2026-10-02', 'INV-2026-0043', 'cust-2', 'Trust Mobile World', '+880 1819-876543', 'Shop 4, Akhtaruzzaman Center, Agrabad C/A, Chittagong', 'Chittagong', 'Steadfast Courier', 'ST-CTG-882910', false, 0.00, 'Not Applicable', 'In Transit', 1, ARRAY['864912061122331', '864912061122364'], 'Tracked via Steadfast logistics portal', NULL);
-
--- PRICE DROP CLAIMS
-INSERT INTO price_drop_claims (id, claim_no, claim_date, brand_name, supplier_id, supplier_name, product_id, product_model, variant_desc, old_purchase_cost, new_purchase_cost, drop_per_unit, eligible_stock_count, total_claim_amount, claim_status, credit_note_no, announcement_ref) VALUES
-('pdc-001', 'PDC-2026-0005', '2026-10-02', 'Samsung', 'sup-1', 'Fair Electronics Ltd (Samsung Official)', 'prod-2', 'Galaxy A55 5G', '8GB/128GB - Awesome Navy', 43500.00, 41500.00, 2000.00, 5, 10000.00, 'Submitted to Brand', 'CN-FAIR-2026-P09', 'Fair Electronics Official Price Revision Circular #09/2026');
-
--- PHONE EXCHANGE RECORDS
-INSERT INTO phone_exchange_records (id, exchange_no, date, customer_id, customer_name, customer_phone, salesman_id, salesman_name, old_brand, old_model, old_imei, old_condition, assessed_value, new_product_id, new_product_name, new_variant_desc, new_imei, new_phone_price, net_payable_amount, amount_paid_now, due_amount, payment_method, notes) VALUES
-('exc-001', 'EXC-2026-0011', '2026-10-03', 'cust-4', 'Rajdhani Gadget (Walk-in VIP)', '+880 1715-667788', 'sm-2', 'Tanvir Hasan', 'Samsung', 'Galaxy S22 Ultra (Used)', '359871002233445', 'Used', 45000.00, 'prod-1', 'Galaxy S24 Ultra 5G', '12GB/256GB - Titanium Black', '358921008899011', 172000.00, 127000.00, 127000.00, 0.00, 'Bank Transfer', 'Old phone battery health 88%, display scratch-free. Added to exchange inventory.');
-
--- CUSTOMER FOLLOW UPS
-INSERT INTO customer_follow_ups (id, customer_id, customer_name, shop_name, salesman_id, salesman_name, scheduled_date, contact_number, purpose, current_due_amount, status, promised_date, notes) VALUES
-('fup-001', 'cust-1', 'Popular Telecom', 'Popular Telecom', 'sm-1', 'Md. Rafiqul Islam', '2026-10-08', '+880 1711-234567', 'Due Payment Follow-up', 485000.00, 'Contacted - Promised Payment', '2026-10-10', 'Owner promised to issue account payee cheque for ৳200,000 on Saturday'),
-('fup-002', 'cust-4', 'Rajdhani Gadget', 'Rajdhani Gadget', 'sm-2', 'Tanvir Hasan', '2026-10-09', '+880 1715-667788', 'Due Payment Follow-up', 420000.00, 'Pending', NULL, 'Follow up regarding outstanding balance of INV-2026-0044');
-
--- SALESMAN VISITS
-INSERT INTO salesman_visits (id, salesman_id, salesman_name, customer_id, customer_name, shop_name, visit_date, purpose, outcome_notes, order_amount_booked, collection_amount, next_follow_up_date, status) VALUES
-('sv-001', 'sm-1', 'Md. Rafiqul Islam', 'cust-1', 'Popular Telecom', 'Popular Telecom', '2026-10-01', 'Order Collection', 'Booked 2 units of Galaxy A55 5G for showroom display', 90000.00, 50000.00, '2026-10-08', 'Completed'),
-('sv-002', 'sm-3', 'Kamrul Ahsan', 'cust-2', 'Trust Mobile World', 'Trust Mobile World', '2026-10-02', 'Order Collection', 'Delivered Note 13 Pro 5G units and discussed Q4 brand incentive slabs', 63600.00, 63600.00, '2026-10-12', 'Completed');
-
--- SMS MARKETING LOGS
-INSERT INTO sms_logs (id, recipient_phone, recipient_name, message_type, message_body, sent_at, status, masking, sms_units) VALUES
-('sms-001', '+8801711234567', 'Popular Telecom', 'Invoice Alert', 'Dear Popular Telecom, your invoice INV-2026-0042 of BDT 90,000 has been generated. Thank you for choosing TeleCorp.', NOW(), 'Delivered', 'TELECORP', 1),
-('sms-002', '+8801819876543', 'Trust Mobile World', 'Payment Receipt', 'Dear Trust Mobile World, we have received BDT 63,600 via Bank Transfer. Your current due is BDT 0. TeleCorp.', NOW(), 'Delivered', 'TELECORP', 1),
-('sms-003', '+8801715667788', 'Rajdhani Gadget', 'Due Reminder', 'Dear Valued Dealer, payment of BDT 72,000 for INV-2026-0044 is due on 2026-10-13. Please deposit on time to maintain credit rating.', NOW(), 'Sent', 'TELECORP', 1);
-
--- SYSTEM ALERTS
-INSERT INTO system_alerts (id, type, title, message, timestamp, read, link_module, reference_id) VALUES
-('alert-001', 'warning', 'Low Stock Alert: Galaxy S24 Ultra 5G', 'Galaxy S24 Ultra 5G (Titanium Gray) is down to 5 units in central stock. Reorder recommended.', NOW(), false, 'inventory', 'prod-1'),
-('alert-002', 'reminder', 'Price Drop Protection Claim Submitted', 'Claim PDC-2026-0005 for ৳10,000 submitted to Fair Electronics. Awaiting credit note.', NOW(), false, 'price-drop', 'pdc-001'),
-('alert-003', 'critical', 'Credit Limit Threshold Warning', 'Trust Mobile World has reached 75% of assigned credit limit (৳2,000,000).', NOW(), false, 'due-ageing', 'cust-2');
-
--- GATEWAY CONFIGS
-INSERT INTO gateway_configs (id, service_name, provider, credentials, is_active, environment) VALUES
-('gw-sms', 'sms', 'Greenweb Bangladesh SMS Gateway', '{"apiUrl":"https://api.greenweb.com.bd/api.php","token":"GW_LIVE_TOKEN_99281","senderId":"TELECORP"}'::jsonb, true, 'Live'),
-('gw-bkash', 'bkash', 'bKash Tokenized Checkout API', '{"appKey":"bKash_prod_app_key_88192","merchantNumber":"01888990011"}'::jsonb, true, 'Live'),
-('gw-courier', 'steadfast', 'Steadfast Courier API', '{"apiKey":"st_live_key_99281928","secretKey":"st_sec_00291"}'::jsonb, true, 'Live');
-
--- JOURNAL ENTRIES (Opening Balance Ledger Check)
-INSERT INTO journal_entries (id, voucher_no, date, voucher_type, reference_no, description, lines, total_debit, total_credit, created_by) VALUES
-('jv-001', 'JV-2026-0001', '2026-10-01', 'Journal Voucher', 'OP-BAL-2026', 'Opening balanced trial ledger for TeleCorp Enterprise Cloud', '[{"accountCode":"1020","accountName":"Bank Operating Accounts","debit":25680000,"credit":0,"memo":"Opening bank balance"},{"accountCode":"1040","accountName":"Merchandise Inventory Asset","debit":18450000,"credit":0,"memo":"Opening handset inventory"},{"accountCode":"3010","accountName":"Shareholder Paid-Up Capital","debit":0,"credit":30000000,"memo":"Equity capital"},{"accountCode":"3020","accountName":"Retained Earnings","debit":0,"credit":14130000,"memo":"Retained earnings"}]'::jsonb, 44130000.00, 44130000.00, 'Shabbir Ahmed');
+-- 7. GATEWAY CONFIGURATION TEMPLATES (Ready for Live Production API Credentials)
+INSERT INTO gateway_configs (id, service_name, provider, credentials, is_active, environment, updated_at) VALUES
+('gw-sms', 'sms', 'Greenweb / Onnorokom SMS Gateway (Bangladesh)', '{"apiUrl":"https://api.greenweb.com.bd/api.php","token":"","senderId":"TELECORP"}'::jsonb, false, 'Live', NOW()),
+('gw-bkash', 'bkash', 'bKash Tokenized Merchant Checkout API', '{"appKey":"","appSecret":"","username":"","password":"","merchantNumber":""}'::jsonb, false, 'Live', NOW()),
+('gw-courier', 'steadfast', 'Steadfast Courier Logistics API', '{"apiKey":"","secretKey":"","baseUrl":"https://portal.steadfast.com.bd/api/v1"}'::jsonb, false, 'Live', NOW())
+ON CONFLICT (id) DO UPDATE SET
+    service_name = EXCLUDED.service_name,
+    provider = EXCLUDED.provider,
+    updated_at = NOW();
