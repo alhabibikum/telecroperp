@@ -61,10 +61,6 @@ import { ShieldAlert, ArrowRight } from 'lucide-react';
 import { WindowManagerProvider, useWindowManager } from './context/WindowManagerContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { WindowsWindowFrame } from './components/common/WindowsWindowFrame';
-import { WindowsTaskbar } from './components/layout/WindowsTaskbar';
-import { FunctionKeyBar } from './components/layout/FunctionKeyBar';
-import { DesktopView } from './components/views/DesktopView';
 import { useAppZoom } from './hooks/useAppZoom';
 import { useAppUpdater } from './hooks/useAppUpdater';
 import { AppUpdaterModal } from './components/common/AppUpdaterModal';
@@ -886,7 +882,7 @@ const ERPAppContent: React.FC = () => {
         isCheckingUpdates={isCheckingUpdates}
       />
 
-      <div className={`flex-1 flex overflow-hidden relative ${isDesktop ? 'pb-14' : ''}`}>
+      <div className="flex-1 flex overflow-hidden relative">
         {/* Left Sidebar */}
         <Sidebar
           isExpanded={isSidebarExpanded}
@@ -895,129 +891,36 @@ const ERPAppContent: React.FC = () => {
           onSelectView={handleNavigateView}
         />
 
-
-        {/* Main Content Viewport - Visual Studio Workspace */}
-        <main className="flex-1 h-full overflow-hidden relative flex flex-col bg-[#1e1e1e]">
-          {/* Visual Studio Document Tab Well */}
-          {openViewIds.length > 0 && (
-            <div className="h-7 bg-[#2d2d30] border-b border-[#3f3f46] flex items-center overflow-x-auto select-none shrink-0 text-[11.5px] font-mono z-10">
-              {openViewIds.map(viewId => {
-                const cfg = VIEW_CONFIG[viewId] || { title: viewId, icon: '📄' };
-                const isActive = currentView === viewId;
-
-                return (
-                  <div
-                    key={viewId}
-                    onClick={() => handleNavigateView(viewId)}
-                    className={`h-full px-2.5 flex items-center gap-2 border-r border-[#3f3f46] cursor-pointer transition ${
-                      isActive
-                        ? 'bg-[#1e1e1e] text-white border-t-2 border-t-[#007acc] font-semibold'
-                        : 'bg-[#2d2d30] text-[#969696] hover:bg-[#252526] hover:text-[#cccccc] border-t-2 border-t-transparent'
-                    }`}
-                    title={cfg.title}
-                  >
-                    <span className="text-[11px] shrink-0">{cfg.icon}</span>
-                    <span className="truncate max-w-[140px]">{cfg.title.split(' ')[0]}</span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCloseViewWindow(viewId);
-                      }}
-                      className="w-3.5 h-3.5 rounded-xs flex items-center justify-center hover:bg-[#a80000] hover:text-white text-[#858585] transition"
-                      title="Close Document (Ctrl+F4)"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                );
-              })}
-
-              {/* Quick Tab Plus Button */}
-              <button
-                type="button"
-                onClick={() => handleNavigateView('dashboard')}
-                className="h-full px-2 text-[#858585] hover:text-white hover:bg-[#38383c] transition text-xs font-bold"
-                title="New Tab (Open Dashboard)"
-              >
-                +
-              </button>
-            </div>
-          )}
-
-          <div className="flex-1 h-full overflow-hidden relative">
-          {!currentView || (isDesktop && !isSplitView && (isWindowMinimized(currentView) || !openViewIds.includes(currentView))) ? (
-            <DesktopView
-              onOpenApp={handleNavigateView}
-              zoomLevel={zoomLevel}
-              onZoomIn={zoomIn}
-              onZoomOut={zoomOut}
-              onResetZoom={resetZoom}
-            />
-          ) : isDesktop && isSplitView && splitWindowIds ? (
-            <div className="h-full w-full flex flex-row overflow-hidden divide-x-2 divide-slate-300 dark:divide-slate-800 bg-slate-900/10">
-              <div className="w-1/2 h-full flex flex-col overflow-hidden">
-                <WindowsWindowFrame
-                  id={splitWindowIds[0]}
-                  title={VIEW_CONFIG[splitWindowIds[0]]?.title || splitWindowIds[0]}
-                  subtitle={VIEW_CONFIG[splitWindowIds[0]]?.subtitle}
-                  icon={<span>{VIEW_CONFIG[splitWindowIds[0]]?.icon || '🖥️'}</span>}
-                  onClose={() => closeSplitView()}
-                >
-                  <ErrorBoundary fallbackTitle={splitWindowIds[0]}>
-                    {renderViewContent(splitWindowIds[0])}
-                  </ErrorBoundary>
-                </WindowsWindowFrame>
-              </div>
-              <div className="w-1/2 h-full flex flex-col overflow-hidden">
-                <WindowsWindowFrame
-                  id={splitWindowIds[1]}
-                  title={VIEW_CONFIG[splitWindowIds[1]]?.title || splitWindowIds[1]}
-                  subtitle={VIEW_CONFIG[splitWindowIds[1]]?.subtitle}
-                  icon={<span>{VIEW_CONFIG[splitWindowIds[1]]?.icon || '🖥️'}</span>}
-                  onClose={() => closeSplitView()}
-                >
-                  <ErrorBoundary fallbackTitle={splitWindowIds[1]}>
-                    {renderViewContent(splitWindowIds[1])}
-                  </ErrorBoundary>
-                </WindowsWindowFrame>
-              </div>
-            </div>
-          ) : !hasPermission(currentUserRole, currentView) ? (
-            <WindowsWindowFrame
-              id={currentView}
-              title={VIEW_CONFIG[currentView]?.title || currentView}
-              subtitle="Access Restricted"
-              icon={<span>🛡️</span>}
-              onClose={() => handleCloseViewWindow(currentView)}
-            >
-              <div className="h-full flex items-center justify-center p-6 bg-slate-100/70">
-              <div className="max-w-md w-full bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-200/90 p-8 text-center space-y-4">
-                <div className="w-16 h-16 mx-auto rounded-3xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-500 shadow-inner">
+        {/* Main Content Workspace (Linear & Mercury Enterprise Canvas) */}
+        <main className="flex-1 h-full overflow-y-auto bg-slate-50/50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100 p-4 sm:p-6 lg:p-8">
+          {!hasPermission(currentUserRole, currentView) ? (
+            <div className="h-full flex items-center justify-center p-6">
+              <div className="max-w-md w-full bg-white dark:bg-[#111726] rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 p-8 text-center space-y-4">
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 flex items-center justify-center text-rose-500">
                   <ShieldAlert className="w-8 h-8" />
                 </div>
                 <div>
-                  <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-200">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
                     অ্যাক্সেস সংরক্ষিত • Access Restricted
                   </span>
-                  <h3 className="text-xl font-black text-slate-900 mt-2">
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-2">
                     অনুমতি নেই (Permission Denied)
                   </h3>
-                  <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">
-                    আপনার বর্তমান রোল <strong className="text-slate-800">[{currentUserRole}]</strong> অনুযায়ী এই মডিউলটিতে প্রবেশের অনুমতি নেই।
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    আপনার বর্তমান রোল <strong className="text-slate-800 dark:text-slate-200">[{currentUserRole}]</strong> অনুযায়ী এই মডিউলটিতে প্রবেশের অনুমতি নেই।
                   </p>
                 </div>
 
-                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 text-left text-xs space-y-1.5">
-                  <div className="flex justify-between text-slate-500">
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200/80 dark:border-slate-800 text-left text-xs space-y-1.5">
+                  <div className="flex justify-between text-slate-500 dark:text-slate-400">
                     <span>অপারেটর:</span>
-                    <strong className="text-slate-800">{currentUser?.name}</strong>
+                    <strong className="text-slate-800 dark:text-slate-200">{currentUser?.name}</strong>
                   </div>
-                  <div className="flex justify-between text-slate-500">
+                  <div className="flex justify-between text-slate-500 dark:text-slate-400">
                     <span>শাখা / ডিপার্টমেন্ট:</span>
-                    <strong className="text-slate-800">{currentUser?.department?.split('/')[0] || 'N/A'}</strong>
+                    <strong className="text-slate-800 dark:text-slate-200">{currentUser?.department?.split('/')[0] || 'N/A'}</strong>
                   </div>
-                  <div className="flex justify-between text-slate-500">
+                  <div className="flex justify-between text-slate-500 dark:text-slate-400">
                     <span>অনুরোধকৃত ভিউ:</span>
                     <span className="font-mono font-bold text-rose-600">{currentView}</span>
                   </div>
@@ -1025,74 +928,21 @@ const ERPAppContent: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    if (hasPermission(currentUserRole, 'dashboard')) handleNavigateView('dashboard');
-                    else if (hasPermission(currentUserRole, 'salesman-app')) handleNavigateView('salesman-app');
-                    else if (hasPermission(currentUserRole, 'retail-pos')) handleNavigateView('retail-pos');
-                    else if (hasPermission(currentUserRole, 'inventory')) handleNavigateView('inventory');
-                    else handleNavigateView('imei-trace');
-                  }}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-2xl font-black text-xs shadow-md shadow-blue-500/20 transition cursor-pointer flex items-center justify-center gap-2"
+                  onClick={() => handleNavigateView('dashboard')}
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium text-xs shadow-sm transition cursor-pointer flex items-center justify-center gap-2"
                 >
                   <ArrowRight className="w-4 h-4 rotate-180" />
                   <span>অনুমোদিত ড্যাশবোর্ডে ফিরে যান</span>
                 </button>
               </div>
             </div>
-          </WindowsWindowFrame>
-        ) : (
-          <WindowsWindowFrame
-            id={currentView}
-            title={VIEW_CONFIG[currentView]?.title || currentView}
-            subtitle={VIEW_CONFIG[currentView]?.subtitle}
-            icon={<span>{VIEW_CONFIG[currentView]?.icon || '🖥️'}</span>}
-            onClose={() => handleCloseViewWindow(currentView)}
-          >
+          ) : (
             <ErrorBoundary fallbackTitle={currentView}>
-              {renderViewContent(currentView)}
+              {renderViewContent(currentView || 'dashboard')}
             </ErrorBoundary>
-          </WindowsWindowFrame>
-        )}
-          </div>
+          )}
         </main>
       </div>
-
-      {/* Classic Visual Studio / Tally F1-F12 Function Key Bar */}
-      <FunctionKeyBar
-        onF1Help={() => setShowShortcutHelp(prev => !prev)}
-        onF2DateClosing={() => handleNavigateView('day-closing')}
-        onF3Branch={() => handleNavigateView('warehouses')}
-        onF4Transfer={() => setShowStockTransferModal(true)}
-        onF5Payment={() => handleOpenDueCollection()}
-        onF6Receipt={() => handleOpenDueCollection()}
-        onF7JournalLedger={() => handleNavigateView('accounting')}
-        onF8Sales={() => handleOpenNewSale('Wholesale')}
-        onF9Purchase={() => setShowNewPurchaseModal(true)}
-        onF10Inventory={() => handleNavigateView('inventory')}
-        onF11Fullscreen={handleToggleFullscreen}
-        onF12Settings={() => handleNavigateView('settings')}
-        onEscapeClose={() => {
-          if (showNewSaleModal) setShowNewSaleModal(false);
-          else if (showNewPurchaseModal) setShowNewPurchaseModal(false);
-          else if (showDueCollectionModal) setShowDueCollectionModal(false);
-          else if (showCustomerReturnModal) setShowCustomerReturnModal(false);
-          else if (showStockTransferModal) setShowStockTransferModal(false);
-          else if (showNewProductModal) setShowNewProductModal(false);
-          else if (showIMEIModal) setShowIMEIModal(false);
-          else if (showShortcutHelp) setShowShortcutHelp(false);
-          else if (showCommandPalette) setShowCommandPalette(false);
-        }}
-      />
-
-      {/* Windows OS Taskbar - Desktop Only */}
-      {isDesktop && (
-        <WindowsTaskbar
-          onSelectView={handleNavigateView}
-          onOpenNewSale={() => handleOpenNewSale('Wholesale')}
-          onOpenNewPurchase={() => setShowNewPurchaseModal(true)}
-          onOpenDueCollection={() => handleOpenDueCollection()}
-        />
-      )}
 
       {/* Global Interactive Modals */}
       <IMEISearchModal

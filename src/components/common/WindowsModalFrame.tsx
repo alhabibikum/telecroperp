@@ -95,76 +95,57 @@ export const WindowsModalFrame: React.FC<WindowsModalFrameProps> = ({
         </div>
       )}
 
-      {/* Apple macOS & SAP Fiori Modal Dialog */}
+      {/* Linear & Mercury Enterprise Modal Dialog */}
       <div
         onClick={e => e.stopPropagation()}
-        className={`relative bg-white dark:bg-[#131c2e] text-slate-800 dark:text-slate-100 shadow-2xl flex flex-col rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all overflow-hidden ${
+        className={`relative bg-white dark:bg-[#111726] text-slate-800 dark:text-slate-100 shadow-2xl flex flex-col rounded-2xl border border-slate-200/80 dark:border-slate-800 transition-all overflow-hidden ${
           isLocalMaximized
             ? 'w-full h-full max-w-none max-h-none rounded-none'
             : `w-full ${maxWidth} max-h-[90vh]`
         } ${shakeNotice ? 'ring-2 ring-amber-500' : ''}`}
       >
-        {/* Apple macOS Frosted Header */}
-        <div className="h-11 px-4 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0 select-none">
-          {/* Left: macOS Traffic Light Controls */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="traffic-light-close group"
-              title="Close Dialog (Esc)"
-            >
-              <span className="opacity-0 group-hover:opacity-100 font-bold leading-none">✕</span>
-            </button>
-
-            {isDesktop && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => minimizeWindow(effectiveId)}
-                  className="traffic-light-min group"
-                  title="Minimize"
-                >
-                  <span className="opacity-0 group-hover:opacity-100 font-bold leading-none">−</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsLocalMaximized(prev => !prev)}
-                  className="traffic-light-zoom group"
-                  title={isLocalMaximized ? 'Restore' : 'Zoom'}
-                >
-                  <span className="opacity-0 group-hover:opacity-100 font-bold leading-none">⤢</span>
-                </button>
-              </>
+        {/* Clean Enterprise Modal Header */}
+        <div className="h-14 px-5 bg-white dark:bg-[#111726] border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0 select-none">
+          {/* Left: Icon, Title and Subtitle */}
+          <div className="flex items-center gap-3 min-w-0 pr-4">
+            {icon && (
+              <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                {icon}
+              </div>
             )}
+            <div className="truncate">
+              <h3 className="font-semibold text-sm text-slate-900 dark:text-slate-100 tracking-tight leading-none truncate">
+                {title}
+              </h3>
+              {subtitle && (
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
+                  {subtitle}
+                </p>
+              )}
+            </div>
           </div>
 
-          {/* Center: Title and Subtitle */}
-          <div className="flex items-center gap-2 min-w-0 px-3">
-            {icon && <span className="text-base shrink-0">{icon}</span>}
-            <span className="font-semibold text-xs tracking-tight text-slate-800 dark:text-slate-200 truncate">
-              {title}
-            </span>
-            {subtitle && (
-              <span className="hidden sm:inline font-normal text-[11px] text-slate-400 dark:text-slate-500 truncate">
-                • {subtitle}
-              </span>
-            )}
-          </div>
-
-          {/* Right: Quick actions (Skip button) */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          {/* Right: Quick actions & Close button */}
+          <div className="flex items-center gap-2 shrink-0">
             {showSkipButton && (
               <button
                 type="button"
                 onClick={handleSkip}
-                className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition cursor-pointer"
+                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition cursor-pointer"
                 title="Skip / Dismiss"
               >
-                স্কিপ (Skip)
+                স্কিপ
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              title="বন্ধ করুন (Esc)"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </div>
 

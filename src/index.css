@@ -5,44 +5,52 @@
 
 @layer base {
   :root {
-    /* Apple macOS & SAP Fiori Corporate Enterprise Theme (Light) */
-    --fiori-bg: #f5f7fa;
-    --fiori-canvas: #ffffff;
-    --fiori-surface: #ffffff;
-    --fiori-header: #ffffff;
-    --fiori-border: #e2e8f0;
-    --fiori-border-subtle: #edf2f7;
-    --fiori-primary: #0066cc;
-    --fiori-primary-hover: #0052a3;
-    --fiori-accent: #0284c7;
-    --fiori-success: #10b981;
-    --fiori-warning: #f59e0b;
-    --fiori-danger: #ef4444;
-    --fiori-text-main: #0f172a;
-    --fiori-text-muted: #64748b;
-    --fiori-table-hover: #f1f5f9;
-    --fiori-table-header: #f8fafc;
+    /* Linear & Mercury Enterprise Fintech Light Theme */
+    --canvas-bg: #f8fafc;
+    --surface-bg: #ffffff;
+    --surface-hover: #f1f5f9;
+    --surface-active: #e2e8f0;
+    --border-subtle: #f1f5f9;
+    --border-default: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --primary-light: #eef2ff;
+    --accent: #0284c7;
+    --success: #10b981;
+    --success-light: #ecfdf5;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --danger-light: #fef2f2;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --table-header: #f8fafc;
     color-scheme: light;
   }
 
   .dark, [data-theme="dark"] {
-    /* Apple macOS & SAP Fiori Horizon Dark Theme */
-    --fiori-bg: #0b0f19;
-    --fiori-canvas: #111827;
-    --fiori-surface: #131c2e;
-    --fiori-header: #101726;
-    --fiori-border: #232f48;
-    --fiori-border-subtle: #1a2438;
-    --fiori-primary: #38bdf8;
-    --fiori-primary-hover: #0284c7;
-    --fiori-accent: #38bdf8;
-    --fiori-success: #34d399;
-    --fiori-warning: #fbbf24;
-    --fiori-danger: #f87171;
-    --fiori-text-main: #f8fafc;
-    --fiori-text-muted: #94a3b8;
-    --fiori-table-hover: #172338;
-    --fiori-table-header: #0f172a;
+    /* Linear & Mercury Obsidian Fintech Dark Theme */
+    --canvas-bg: #090d16;
+    --surface-bg: #111726;
+    --surface-hover: #161e31;
+    --surface-active: #1e2942;
+    --border-subtle: #161e31;
+    --border-default: #1f293d;
+    --border-strong: #2d3b55;
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --primary-light: #1e1b4b;
+    --accent: #38bdf8;
+    --success: #10b981;
+    --success-light: #064e3b;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --danger-light: #450a0a;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --table-header: #0d1322;
     color-scheme: dark;
   }
 
@@ -52,63 +60,63 @@
   }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", "Inter", Roboto, sans-serif;
-    background-color: var(--fiori-bg);
-    color: var(--fiori-text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Geist", "SF Pro Text", system-ui, sans-serif;
+    background-color: var(--canvas-bg);
+    color: var(--text-primary);
     line-height: 1.5;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.011em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   .dark body,
   html.dark body {
-    background-color: #0b0f19;
+    background-color: #090d16;
     color: #f8fafc;
   }
 
   /* Monospace for Numbers, BDT Currency, and IMEIs */
   table, .font-mono, [data-tabular="true"] {
-    font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+    font-family: "SF Mono", "JetBrains Mono", "Fira Code", monospace;
     font-variant-numeric: tabular-nums;
   }
 
-  /* Apple macOS / SAP Fiori Input Fields */
+  /* Linear-style Crisp Inputs */
   input:not([type="checkbox"]):not([type="radio"]),
   select,
   textarea {
-    border: 1px solid var(--fiori-border);
+    border: 1px solid var(--border-default);
     border-radius: 8px;
-    padding: 6px 10px;
+    padding: 7px 11px;
     font-size: 13px;
     background-color: #ffffff;
-    color: var(--fiori-text-main);
+    color: var(--text-primary);
     transition: all 0.15s ease-in-out;
   }
 
   html.dark input:not([type="checkbox"]):not([type="radio"]),
   html.dark select,
   html.dark textarea {
-    border: 1px solid var(--fiori-border);
-    background-color: #131c2e;
+    border: 1px solid var(--border-default);
+    background-color: #0d1322;
     color: #f8fafc;
   }
 
   input:focus,
   select:focus,
   textarea:focus {
-    border-color: #0284c7;
+    border-color: #6366f1;
     outline: none;
-    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
   }
   html.dark input:focus,
   html.dark select:focus,
   html.dark textarea:focus {
-    border-color: #38bdf8;
-    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
   }
 
-  /* SAP Fiori Smart Table Styling */
+  /* High-Density Enterprise Data Tables (Linear / Mercury Style) */
   table {
     border-collapse: separate;
     border-spacing: 0;
@@ -116,154 +124,119 @@
   }
 
   thead th {
-    background-color: var(--fiori-table-header);
-    color: var(--fiori-text-muted);
-    font-size: 11.5px;
+    background-color: var(--table-header);
+    color: var(--text-muted);
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--fiori-border);
+    letter-spacing: 0.05em;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border-default);
     user-select: none;
+    white-space: nowrap;
   }
 
   tbody td {
-    padding: 8px 12px;
+    padding: 9px 12px;
     font-size: 12.5px;
-    border-bottom: 1px solid var(--fiori-border-subtle);
-    color: var(--fiori-text-main);
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-primary);
     transition: background-color 0.1s ease;
   }
 
   tbody tr:hover {
-    background-color: var(--fiori-table-hover);
+    background-color: var(--surface-hover);
   }
 }
 
 /* =========================================================================
-   Apple macOS & SAP Fiori Design Utilities
+   Linear & Mercury Utility Classes
    ========================================================================= */
 
-/* Apple macOS Glassmorphism Surfaces */
-.macos-glass {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 0 1px 1px rgba(0, 0, 0, 0.02);
-}
-
-.dark .macos-glass {
-  background: rgba(19, 28, 46, 0.82);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.4), 0 0 1px 1px rgba(255, 255, 255, 0.05);
-}
-
-/* Apple macOS Traffic Light Dots */
-.traffic-light-close {
-  width: 12px;
-  height: 12px;
-  border-radius: 9999px;
-  background-color: #ff5f56;
-  border: 1px solid #e0443e;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 8px;
-  color: rgba(0, 0, 0, 0.6);
-  cursor: pointer;
-  transition: transform 0.1s ease, filter 0.15s ease;
-}
-.traffic-light-close:hover {
-  filter: brightness(0.9);
-}
-.traffic-light-close:active {
-  transform: scale(0.9);
-}
-
-.traffic-light-min {
-  width: 12px;
-  height: 12px;
-  border-radius: 9999px;
-  background-color: #ffbd2e;
-  border: 1px solid #dea123;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 8px;
-  color: rgba(0, 0, 0, 0.6);
-  cursor: pointer;
-  transition: transform 0.1s ease, filter 0.15s ease;
-}
-.traffic-light-min:hover {
-  filter: brightness(0.9);
-}
-.traffic-light-min:active {
-  transform: scale(0.9);
-}
-
-.traffic-light-zoom {
-  width: 12px;
-  height: 12px;
-  border-radius: 9999px;
-  background-color: #27c93f;
-  border: 1px solid #1aab29;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 8px;
-  color: rgba(0, 0, 0, 0.6);
-  cursor: pointer;
-  transition: transform 0.1s ease, filter 0.15s ease;
-}
-.traffic-light-zoom:hover {
-  filter: brightness(0.9);
-}
-.traffic-light-zoom:active {
-  transform: scale(0.9);
-}
-
-/* SAP Fiori Corporate Cards */
-.fiori-card {
+/* Minimalist Elevated Surface */
+.fintech-card {
   background-color: #ffffff;
-  border: 1px solid var(--fiori-border);
+  border: 1px solid var(--border-default);
   border-radius: 12px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
-.fiori-card:hover {
-  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.08);
+.fintech-card:hover {
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.06);
 }
-.dark .fiori-card {
-  background-color: #131c2e;
-  border-color: #232f48;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+.dark .fintech-card {
+  background-color: #111726;
+  border-color: #1f293d;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
-.dark .fiori-card:hover {
-  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.4);
-  border-color: #2d3d5c;
+.dark .fintech-card:hover {
+  box-shadow: 0 6px 16px -2px rgba(0, 0, 0, 0.35);
+  border-color: #2b3854;
 }
 
-/* Apple Smooth Scrollbar */
+/* Primary Fintech Action Button */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  background-color: #4f46e5;
+  color: #ffffff;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px 0 rgba(79, 70, 229, 0.3);
+  cursor: pointer;
+}
+.btn-primary:hover {
+  background-color: #4338ca;
+  box-shadow: 0 2px 6px 0 rgba(79, 70, 229, 0.4);
+}
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* Secondary Action Button */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  background-color: var(--surface-bg);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.btn-secondary:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+/* Smooth Minimal Scrollbar */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.4);
+  background: rgba(148, 163, 184, 0.35);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.7);
+  background: rgba(148, 163, 184, 0.6);
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.15);
 }
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.3);
 }
