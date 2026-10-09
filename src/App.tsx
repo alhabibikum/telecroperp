@@ -63,6 +63,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { WindowsWindowFrame } from './components/common/WindowsWindowFrame';
 import { WindowsTaskbar } from './components/layout/WindowsTaskbar';
+import { FunctionKeyBar } from './components/layout/FunctionKeyBar';
 import { DesktopView } from './components/views/DesktopView';
 import { useAppZoom } from './hooks/useAppZoom';
 import { useAppUpdater } from './hooks/useAppUpdater';
@@ -554,35 +555,113 @@ const ERPAppContent: React.FC = () => {
         return;
       }
 
-      // 9. Ctrl + / or F1: Keyboard Shortcuts Help
-      if ((isCtrl && e.key === '/') || e.key === 'F1') {
+      // 9. F1 or Ctrl + /: Keyboard Shortcuts Help
+      if (e.key === 'F1' || (isCtrl && e.key === '/')) {
         e.preventDefault();
         setShowShortcutHelp(prev => !prev);
         return;
       }
 
-      // 10. F11: Toggle Desktop Fullscreen
+      // 10. F2: Day Closing / Date
+      if (e.key === 'F2') {
+        e.preventDefault();
+        handleNavigateView('day-closing');
+        return;
+      }
+
+      // 11. F3: Branch & Outlets
+      if (e.key === 'F3') {
+        e.preventDefault();
+        handleNavigateView('warehouses');
+        return;
+      }
+
+      // 12. F4: Stock Transfer / Contra
+      if (e.key === 'F4') {
+        e.preventDefault();
+        setShowStockTransferModal(true);
+        return;
+      }
+
+      // 13. F5: Payment / Expenses
+      if (e.key === 'F5') {
+        e.preventDefault();
+        handleOpenDueCollection();
+        return;
+      }
+
+      // 14. F6: Customer Due Collection Receipt
+      if (e.key === 'F6') {
+        e.preventDefault();
+        handleOpenDueCollection();
+        return;
+      }
+
+      // 15. F7: Accounting Ledger & Journals
+      if (e.key === 'F7') {
+        e.preventDefault();
+        handleNavigateView('accounting');
+        return;
+      }
+
+      // 16. F8: Wholesale Sales (Ctrl + F8 for Retail POS)
+      if (e.key === 'F8') {
+        e.preventDefault();
+        if (isCtrl) {
+          handleNavigateView('retail-pos');
+        } else {
+          handleOpenNewSale('Wholesale');
+        }
+        return;
+      }
+
+      // 17. F9: New Purchase (Ctrl + F9 for New Product)
+      if (e.key === 'F9') {
+        e.preventDefault();
+        if (isCtrl) {
+          setShowNewProductModal(true);
+        } else {
+          setShowNewPurchaseModal(true);
+        }
+        return;
+      }
+
+      // 18. F10: Stock & Inventory Ledger
+      if (e.key === 'F10') {
+        e.preventDefault();
+        handleNavigateView('inventory');
+        return;
+      }
+
+      // 19. F11: Toggle Desktop Fullscreen
       if (e.key === 'F11') {
         e.preventDefault();
         handleToggleFullscreen();
         return;
       }
 
-      // 11. Ctrl + B: Multi-Barcode Scanner
+      // 20. F12: System Settings
+      if (e.key === 'F12') {
+        e.preventDefault();
+        handleNavigateView('settings');
+        return;
+      }
+
+      // 21. Ctrl + B: Multi-Barcode Scanner
       if (isCtrl && key === 'b') {
         e.preventDefault();
         handleOpenMultiScanner();
         return;
       }
 
-      // 12. Ctrl + [: Toggle Desktop Sidebar
+      // 22. Ctrl + [: Toggle Desktop Sidebar
       if (isCtrl && e.key === '[') {
         e.preventDefault();
         setIsSidebarExpanded(prev => !prev);
         return;
       }
 
-      // 12. Escape: Top Modal Dismiss
+      // 23. Escape: Top Modal Dismiss in Reverse Hierarchy
       if (e.key === 'Escape') {
         if (showShortcutHelp) {
           e.preventDefault();
@@ -593,6 +672,21 @@ const ERPAppContent: React.FC = () => {
         } else if (showMultiScanner) {
           e.preventDefault();
           setShowMultiScanner(false);
+        } else if (showNewSaleModal) {
+          e.preventDefault();
+          setShowNewSaleModal(false);
+        } else if (showNewPurchaseModal) {
+          e.preventDefault();
+          setShowNewPurchaseModal(false);
+        } else if (showDueCollectionModal) {
+          e.preventDefault();
+          setShowDueCollectionModal(false);
+        } else if (showCustomerReturnModal) {
+          e.preventDefault();
+          setShowCustomerReturnModal(false);
+        } else if (showNewProductModal) {
+          e.preventDefault();
+          setShowNewProductModal(false);
         } else if (showIMEIModal) {
           e.preventDefault();
           setShowIMEIModal(false);
@@ -612,6 +706,11 @@ const ERPAppContent: React.FC = () => {
     showCommandPalette,
     showShortcutHelp,
     showMultiScanner,
+    showNewSaleModal,
+    showNewPurchaseModal,
+    showDueCollectionModal,
+    showCustomerReturnModal,
+    showNewProductModal,
     showIMEIModal,
     showInvoicePrintModal,
     showStockTransferModal,
@@ -957,6 +1056,33 @@ const ERPAppContent: React.FC = () => {
           </div>
         </main>
       </div>
+
+      {/* Classic Visual Studio / Tally F1-F12 Function Key Bar */}
+      <FunctionKeyBar
+        onF1Help={() => setShowShortcutHelp(prev => !prev)}
+        onF2DateClosing={() => handleNavigateView('day-closing')}
+        onF3Branch={() => handleNavigateView('warehouses')}
+        onF4Transfer={() => setShowStockTransferModal(true)}
+        onF5Payment={() => handleOpenDueCollection()}
+        onF6Receipt={() => handleOpenDueCollection()}
+        onF7JournalLedger={() => handleNavigateView('accounting')}
+        onF8Sales={() => handleOpenNewSale('Wholesale')}
+        onF9Purchase={() => setShowNewPurchaseModal(true)}
+        onF10Inventory={() => handleNavigateView('inventory')}
+        onF11Fullscreen={handleToggleFullscreen}
+        onF12Settings={() => handleNavigateView('settings')}
+        onEscapeClose={() => {
+          if (showNewSaleModal) setShowNewSaleModal(false);
+          else if (showNewPurchaseModal) setShowNewPurchaseModal(false);
+          else if (showDueCollectionModal) setShowDueCollectionModal(false);
+          else if (showCustomerReturnModal) setShowCustomerReturnModal(false);
+          else if (showStockTransferModal) setShowStockTransferModal(false);
+          else if (showNewProductModal) setShowNewProductModal(false);
+          else if (showIMEIModal) setShowIMEIModal(false);
+          else if (showShortcutHelp) setShowShortcutHelp(false);
+          else if (showCommandPalette) setShowCommandPalette(false);
+        }}
+      />
 
       {/* Windows OS Taskbar - Desktop Only */}
       {isDesktop && (
