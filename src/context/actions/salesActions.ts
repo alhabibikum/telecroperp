@@ -77,6 +77,7 @@ export const executeCreateSale = (
     setProducts,
     setCustomers,
     setCashTransactions,
+    bankAccounts,
     setBankAccounts,
     journalEntries,
     setJournalEntries,
@@ -203,7 +204,7 @@ export const executeCreateSale = (
     }))
   );
 
-  if (customer && customer.customerType !== 'Walk-in') {
+  if (customer) {
     setCustomers(prev =>
       prev.map(c =>
         c.id === saleData.customerId
@@ -225,18 +226,23 @@ export const executeCreateSale = (
             amount: p.amount,
             referenceNo: invoiceNo,
             description: `Payment received for invoice ${invoiceNo} from ${saleData.customerName}`,
-            performedBy: currentUserRole
+            performedBy: currentUserRole,
+            warehouseId: saleData.warehouseId,
+            customerId: saleData.customerId
           },
           ...prev
         ]);
-      } else if (p.bankAccountId) {
-        setBankAccounts(prev =>
-          prev.map(b =>
-            b.id === p.bankAccountId
-              ? { ...b, currentBalance: b.currentBalance + p.amount }
-              : b
-          )
-        );
+      } else {
+        const targetBankId = p.bankAccountId || (bankAccounts[0]?.id);
+        if (targetBankId) {
+          setBankAccounts(prev =>
+            prev.map(b =>
+              b.id === targetBankId
+                ? { ...b, currentBalance: b.currentBalance + p.amount }
+                : b
+            )
+          );
+        }
       }
     }
   });
@@ -388,6 +394,7 @@ export const executeCancelSale = (
     customers,
     setCustomers,
     setCashTransactions,
+    bankAccounts,
     setBankAccounts,
     salesmen,
     setSalesmen,
@@ -461,7 +468,7 @@ export const executeCancelSale = (
   );
 
   const customer = customers.find(c => c.id === inv.customerId);
-  if (customer && customer.customerType !== 'Walk-in') {
+  if (customer) {
     setCustomers(prev =>
       prev.map(c => (c.id === inv.customerId ? { ...c, currentDue: Math.max(0, c.currentDue - inv.dueAmount) } : c))
     );
@@ -470,9 +477,21 @@ export const executeCancelSale = (
   inv.payments.forEach(p => {
     if (p.amount <= 0) return;
     if (p.method === 'Cash') {
-      pushCashHelper(setCashTransactions, 'Cash Out', 'Customer Sale', p.amount, inv.invoiceNo, `Refund/reversal for cancelled invoice ${inv.invoiceNo}`, currentUserRole);
+      pushCashHelper(
+        setCashTransactions,
+        'Cash Out',
+        'Customer Sale',
+        p.amount,
+        inv.invoiceNo,
+        `Refund/reversal for cancelled invoice ${inv.invoiceNo}`,
+        currentUserRole,
+        {
+          warehouseId: inv.warehouseId,
+          customerId: inv.customerId
+        }
+      );
     } else {
-      adjustBankHelper(setBankAccounts, p.bankAccountId, -p.amount);
+      adjustBankHelper(setBankAccounts, p.bankAccountId || bankAccounts[0]?.id, -p.amount);
     }
   });
 
@@ -574,6 +593,9 @@ export const executeCollectCustomerPayment = (
     );
   }
 
+  const linkedInvoice = salesInvoices.find(inv => inv.customerId === data.customerId);
+  const targetWarehouseId = (data as any).warehouseId || linkedInvoice?.warehouseId;
+
   if (data.paymentMethod === 'Cash') {
     setCashTransactions(prev => [
       {
@@ -584,18 +606,23 @@ export const executeCollectCustomerPayment = (
         amount: data.amount,
         referenceNo: collectionNo,
         description: `Customer payment from ${customer.shopName} (Ref: ${data.transactionRef || collectionNo})`,
-        performedBy: currentUserRole
+        performedBy: currentUserRole,
+        warehouseId: targetWarehouseId,
+        customerId: data.customerId
       },
       ...prev
     ]);
-  } else if (data.bankAccountId) {
-    setBankAccounts(prev =>
-      prev.map(b =>
-        b.id === data.bankAccountId
-          ? { ...b, currentBalance: b.currentBalance + data.amount }
-          : b
-      )
-    );
+  } else {
+    const targetBankId = data.bankAccountId || bankAccounts[0]?.id;
+    if (targetBankId) {
+      setBankAccounts(prev =>
+        prev.map(b =>
+          b.id === targetBankId
+            ? { ...b, currentBalance: b.currentBalance + data.amount }
+            : b
+        )
+      );
+    }
   }
 
   const jvNo = generateDocNumber('JV', journalEntries.length);
@@ -1010,8 +1037,8 @@ export const executeProcessPhoneExchange = (
     supplierName: `Trade-in from ${data.customerName}`,
     purchaseInvoiceNo: exchangeNo,
     purchaseDate: today,
-    warehouseId: 'wh-1',
-    warehouseName: 'Central Warehouse (Motijheel, Dhaka)',
+    warehouseId: (data as any).warehouseId || newImeiRecord.warehouseId || 'wh-1',
+    warehouseName: (data as any).warehouseName || newImeiRecord.warehouseName || 'Central Warehouse',
     status: 'In Stock',
     condition: data.oldCondition === 'Used' ? 'Open Box' : 'Refurbished',
     history: [
@@ -1045,15 +1072,22 @@ export const executeProcessPhoneExchange = (
         'Customer Sale',
         data.amountPaidNow,
         exchangeNo,
-        `Exchange differential cash received (${exchangeNo})`,
-        currentUserRole
+        `Exchange differential cash received (${exchangeNo}) from ${data.customerName}`,
+        currentUserRole,
+        {
+          warehouseId: (data as any).warehouseId || newImeiRecord.warehouseId,
+          customerId: data.customerId
+        }
       );
-    } else if (data.bankAccountId) {
-      adjustBankHelper(
-        setBankAccounts,
-        data.bankAccountId,
-        data.amountPaidNow
-      );
+    } else {
+      const targetBankId = data.bankAccountId || bankAccounts[0]?.id;
+      if (targetBankId) {
+        adjustBankHelper(
+          setBankAccounts,
+          targetBankId,
+          data.amountPaidNow
+        );
+      }
     }
   }
 
@@ -1215,6 +1249,8 @@ export const executeSettleChallanCod = (
   enqueueChange('delivery_challans', 'UPDATE', id, updatedChallan, `চালান সিওডি আদায় ও সেটেল্ড #${challan.challanNo}`);
 
   // 2. Deposit into Bank Account or Vault Cash
+  const targetInvoice = salesInvoices.find(inv => inv.invoiceNo === challan.invoiceNo);
+
   if (bankAccountId) {
     const bank = bankAccounts.find(b => b.id === bankAccountId);
     if (bank) {
@@ -1230,12 +1266,15 @@ export const executeSettleChallanCod = (
       codAmount,
       challan.challanNo,
       `Courier COD remittance for Challan ${challan.challanNo} (${challan.courierPartner})`,
-      currentUserRole
+      currentUserRole,
+      {
+        warehouseId: targetInvoice?.warehouseId,
+        customerId: targetInvoice?.customerId
+      }
     );
   }
 
   // 3. Update Sales Invoice payment and due balances
-  const targetInvoice = salesInvoices.find(inv => inv.invoiceNo === challan.invoiceNo);
   if (targetInvoice) {
     const newPaidAmount = targetInvoice.paidAmount + codAmount;
     const newDueAmount = Math.max(0, targetInvoice.dueAmount - codAmount);

@@ -42,6 +42,7 @@ export const EMIInstallmentView: React.FC = () => {
     products,
     imeis,
     warehouses,
+    bankAccounts,
     settings,
     createEMIPlan,
     collectInstallmentPayment,
@@ -92,6 +93,7 @@ export const EMIInstallmentView: React.FC = () => {
   const [collectAmount, setCollectAmount] = useState<number>(0);
   const [collectLateFee, setCollectLateFee] = useState<number>(0);
   const [collectMethod, setCollectMethod] = useState<PaymentMethodType>('Cash');
+  const [collectBankAccountId, setCollectBankAccountId] = useState<string>('');
   const [collectRef, setCollectRef] = useState('');
 
   const showToast = (type: 'success' | 'error' | 'info', text: string) => {
@@ -239,6 +241,7 @@ export const EMIInstallmentView: React.FC = () => {
     setCollectAmount(amount);
     setCollectLateFee(lateFee);
     setCollectMethod('Cash');
+    setCollectBankAccountId(bankAccounts[0]?.id || '');
     setCollectRef('');
   };
 
@@ -254,6 +257,7 @@ export const EMIInstallmentView: React.FC = () => {
         paidAmount: collectAmount,
         lateFee: collectLateFee,
         paymentMethod: collectMethod,
+        bankAccountId: collectMethod !== 'Cash' ? collectBankAccountId : undefined,
         transactionRef: collectRef || undefined
       }
     );
@@ -1200,6 +1204,24 @@ export const EMIInstallmentView: React.FC = () => {
                   ))}
                 </div>
               </div>
+
+              {collectMethod !== 'Cash' && (
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">জমা করার ব্যাংক অ্যাকাউন্ট *</label>
+                  <select
+                    value={collectBankAccountId}
+                    onChange={e => setCollectBankAccountId(e.target.value)}
+                    required
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800"
+                  >
+                    {bankAccounts.map(b => (
+                      <option key={b.id} value={b.id}>
+                        {b.bankName} - {b.accountNumber} ({formatBDT(b.currentBalance)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">ট্রানজেকশন আইডি / রেফারেন্স</label>

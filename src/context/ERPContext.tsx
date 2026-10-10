@@ -551,7 +551,7 @@ interface ERPContextType {
   // EMI & Hire-Purchase Management
   emiPlans: EMIPlan[];
   createEMIPlan: (plan: Omit<EMIPlan, 'id' | 'planNo' | 'status' | 'installments' | 'totalPaid' | 'totalRemaining' | 'overdueCount' | 'createdAt' | 'financedAmount' | 'monthlyInstallment'>) => { success: boolean; planNo?: string; error?: string };
-  collectInstallmentPayment: (planId: string, installmentNo: number, payment: { paidAmount: number; lateFee?: number; paymentMethod: PaymentMethodType; transactionRef?: string }) => { success: boolean; error?: string };
+  collectInstallmentPayment: (planId: string, installmentNo: number, payment: { paidAmount: number; lateFee?: number; paymentMethod: PaymentMethodType; bankAccountId?: string; transactionRef?: string }) => { success: boolean; error?: string };
   sendEMIReminderSMS: (planId: string, installmentNo: number) => { success: boolean; error?: string };
   deleteEMIPlan: (planId: string) => { success: boolean; error?: string };
 
@@ -2524,7 +2524,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const createEMIPlan = (plan: Omit<EMIPlan, 'id' | 'planNo' | 'status' | 'installments' | 'totalPaid' | 'totalRemaining' | 'overdueCount' | 'createdAt' | 'financedAmount' | 'monthlyInstallment'>) =>
     executeCreateEMIPlan(plan, emiContextBundle);
 
-  const collectInstallmentPayment = (planId: string, installmentNo: number, payment: { paidAmount: number; lateFee?: number; paymentMethod: PaymentMethodType; transactionRef?: string }) =>
+  const collectInstallmentPayment = (planId: string, installmentNo: number, payment: { paidAmount: number; lateFee?: number; paymentMethod: PaymentMethodType; bankAccountId?: string; transactionRef?: string }) =>
     executeCollectInstallmentPayment(planId, installmentNo, payment, emiContextBundle);
 
   const sendEMIReminderSMS = (planId: string, installmentNo: number) =>
@@ -2625,6 +2625,9 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 3. Update Cash or Bank
     const bank = bankAccounts.find(b => b.id === data.bankAccountId);
+    const invoice = data.referenceInvoice ? salesInvoices.find(i => i.invoiceNo === data.referenceInvoice) : undefined;
+    const targetWarehouseId = invoice?.warehouseId || (warehouses[0]?.id || 'wh-1');
+
     if (data.paymentMethod === 'Cash') {
       const newCashTx: CashTransaction = {
         id: `cash-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
@@ -2634,17 +2637,22 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         amount: data.amount,
         referenceNo: receiptNo,
         description: `Due collection from ${customer.shopName} (MR: ${receiptNo})`,
-        performedBy: currentUserRole
+        performedBy: currentUserRole,
+        warehouseId: targetWarehouseId,
+        customerId: data.customerId
       };
       setCashTransactions(prev => [newCashTx, ...prev]);
-    } else if (data.bankAccountId) {
-      setBankAccounts(prev =>
-        prev.map(b =>
-          b.id === data.bankAccountId
-            ? { ...b, currentBalance: b.currentBalance + data.amount }
-            : b
-        )
-      );
+    } else {
+      const targetBankId = data.bankAccountId || bankAccounts[0]?.id;
+      if (targetBankId) {
+        setBankAccounts(prev =>
+          prev.map(b =>
+            b.id === targetBankId
+              ? { ...b, currentBalance: b.currentBalance + data.amount }
+              : b
+          )
+        );
+      }
     }
 
     // 4. Update Salesman collection achievement
@@ -2796,6 +2804,9 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 
     // 2. Rollback Cash or Bank
+    const targetInvoice = target.referenceInvoice ? salesInvoices.find(i => i.invoiceNo === target.referenceInvoice) : undefined;
+    const rollbackWarehouseId = targetInvoice?.warehouseId || (warehouses[0]?.id || 'wh-1');
+
     if (target.paymentMethod === 'Cash') {
       const today = new Date().toISOString().split('T')[0];
       const voidCashTx: CashTransaction = {
@@ -2806,17 +2817,22 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         amount: target.amount,
         referenceNo: target.receiptNo,
         description: `Rollback of voided Money Receipt #${target.receiptNo} (${target.shopName}) - ${reason || 'Voided'}`,
-        performedBy: currentUserRole
+        performedBy: currentUserRole,
+        warehouseId: rollbackWarehouseId,
+        customerId: target.customerId
       };
       setCashTransactions(prev => [voidCashTx, ...prev]);
-    } else if (target.bankAccountId) {
-      setBankAccounts(prev =>
-        prev.map(b =>
-          b.id === target.bankAccountId
-            ? { ...b, currentBalance: Math.max(0, b.currentBalance - target.amount) }
-            : b
-        )
-      );
+    } else {
+      const targetBankId = target.bankAccountId || bankAccounts[0]?.id;
+      if (targetBankId) {
+        setBankAccounts(prev =>
+          prev.map(b =>
+            b.id === targetBankId
+              ? { ...b, currentBalance: Math.max(0, b.currentBalance - target.amount) }
+              : b
+          )
+        );
+      }
     }
 
     // 3. Mark receipt as Voided
@@ -3083,6 +3099,20 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }));
     }
 
+    // 3. Revert stock count if unit was restocked
+    if (ret.restockStatus === 'Restocked' && ret.imei) {
+      const imeiRec = imeis.find(i => i.imei1 === ret.imei);
+      if (imeiRec?.productId && imeiRec?.variantId) {
+        setProducts(prev => prev.map(p => {
+          if (p.id !== imeiRec.productId) return p;
+          return {
+            ...p,
+            variants: p.variants.map(v => v.id === imeiRec.variantId ? { ...v, currentStock: Math.max(0, v.currentStock - 1) } : v)
+          };
+        }));
+      }
+    }
+
     setCustomerReturns(prev => prev.filter(r => r.id !== id));
     enqueueChange('customer_returns', 'DELETE', id, null, `কাস্টমার রিটার্ন মুছে ফেলা হয়েছে (${ret.returnNo})`);
     addAudit('RETURNS', `কাস্টমার রিটার্ন ডিলিট ও রিভার্স করা হয়েছে: ${ret.returnNo}`, ret.returnNo);
@@ -3101,6 +3131,46 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteSupplierReturn = (id: string) => {
     const ret = supplierReturns.find(r => r.id === id);
     if (!ret) return { success: false, error: 'সাপ্লায়ার রিটার্ন রেকর্ড পাওয়া যায়নি।' };
+
+    // 1. Revert Supplier due
+    if (ret.supplierId && ret.amount > 0) {
+      setSuppliers(prev => prev.map(s => {
+        if (s.id === ret.supplierId) {
+          const revertedSup = { ...s, currentDue: s.currentDue + ret.amount };
+          enqueueChange('suppliers', 'UPDATE', s.id, revertedSup, `সাপ্লায়ার রিটার্ন ডিলিট: পাওনা রিভার্সাল (${s.name})`);
+          return revertedSup;
+        }
+        return s;
+      }));
+    }
+
+    // 2. Revert IMEI back to In Stock
+    if (ret.imei) {
+      setImeis(prev => prev.map(im => {
+        if (im.imei1 === ret.imei) {
+          const revertedIm: IMEIRecord = {
+            ...im,
+            status: 'In Stock'
+          };
+          enqueueChange('imeis', 'UPDATE', im.id, revertedIm, `সাপ্লায়ার রিটার্ন ডিলিট: আইএমইআই স্টক রিভার্স (#${im.imei1})`);
+          return revertedIm;
+        }
+        return im;
+      }));
+
+      // 3. Re-increment product variant stock (+1)
+      const imeiRec = imeis.find(i => i.imei1 === ret.imei);
+      if (imeiRec?.productId && imeiRec?.variantId) {
+        setProducts(prev => prev.map(p => {
+          if (p.id !== imeiRec.productId) return p;
+          return {
+            ...p,
+            variants: p.variants.map(v => v.id === imeiRec.variantId ? { ...v, currentStock: v.currentStock + 1 } : v)
+          };
+        }));
+      }
+    }
+
     setSupplierReturns(prev => prev.filter(r => r.id !== id));
     enqueueChange('supplier_returns', 'DELETE', id, null, `সাপ্লায়ার রিটার্ন মুছে ফেলা হয়েছে (${ret.returnNo})`);
     addAudit('RETURNS', `সাপ্লায়ার রিটার্ন ডিলিট করা হয়েছে: ${ret.returnNo}`, ret.returnNo);
