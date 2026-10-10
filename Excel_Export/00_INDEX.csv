@@ -1,0 +1,31 @@
+﻿ক্রম,ফাইলের নাম,বিষয়
+1,01_Company_Info.csv,কোম্পানি তথ্য
+2,02_Ledger_Party.csv,সব Ledger/পার্টি তালিকা
+3,03_Ledger_Groups.csv,Ledger গ্রুপ
+4,04_All_Vouchers.csv,সব ভাউচার (লেনদেন)
+5,05_Bill_Transactions.csv,বিল লেনদেন (কেনা-বেচার আইটেম)
+6,06_Voucher_Types.csv,ভাউচার টাইপ
+7,07_Outstanding_Bills.csv,বাকি বিল (Outstanding)
+8,08_Cheque_Register.csv,চেক রেজিস্টার
+9,09_Stock_Items.csv,সব পণ্যের তালিকা (Stock Items)
+10,10_Stock_Groups.csv,পণ্য গ্রুপ
+11,11_Inventory_Transactions.csv,Inventory লেনদেন (সব কেনা-বেচা)
+12,12_Stock_Summary.csv,স্টক সারসংক্ষেপ (বর্তমান স্টক)
+13,13_Stock_Opening.csv,Opening Stock
+14,14_Godowns.csv,গুদাম/লোকেশন
+15,15_Sales_Price.csv,বিক্রয় মূল্য তালিকা
+16,16_Unit_Measurement.csv,পরিমাপ একক
+17,17_Trial_Balance.csv,Trial Balance
+18,18_Profit_Loss.csv,Profit & Loss
+19,19_Balance_Sheet.csv,Balance Sheet
+20,20_General_Ledger.csv,General Ledger
+21,21_PDC_Cheques.csv,Post-Dated চেক
+22,22_PDC_Bill_Wise.csv,PDC Bill Wise
+23,23_Users_Login.csv,ইউজার লগইন ইতিহাস
+24,24_Cost_Centre.csv,Cost Centre
+25,25_Cost_Centre_Transactions.csv,Cost Centre লেনদেন
+26,26_Ledger_Opening.csv,Ledger Opening Balance
+27,27_Monthly_Summary.csv,Monthly Summary
+28,28_Batch_Info.csv,Batch তথ্য (লট নম্বর)
+29,29_Serial_Numbers.csv,Serial Numbers (IMEI/Serial)
+30,30_Fixed_Assets.csv,Fixed Assets (স্থায়ী সম্পদ)
