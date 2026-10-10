@@ -106,6 +106,14 @@ export const executeCreateExpense = (
   setExpenses(prev => [newExpense, ...prev]);
   setJournalEntries(prev => [newJv, ...prev]);
 
+  // Update Chart of Accounts balances
+  ctx.setChartOfAccounts(prev => prev.map(a => {
+    if (a.code === '6000') return { ...a, balance: a.balance + data.amount };
+    if (data.paymentMethod === 'Cash' && a.code === '1000') return { ...a, balance: a.balance - data.amount };
+    if (data.paymentMethod !== 'Cash' && a.code === '1010') return { ...a, balance: a.balance - data.amount };
+    return a;
+  }));
+
   enqueueChange('expenses', 'INSERT', newExpense.id, newExpense, `নতুন খরচ রেকর্ড #${expenseNo}`);
   addAudit('Recorded Business Expense', 'Expense', expenseNo, undefined, `Category: ${data.categoryName}, Amount: ৳ ${data.amount}`);
 
@@ -153,6 +161,15 @@ export const executeDeleteExpense = (
   }
 
   reverseJournalsHelper(journalEntries, setJournalEntries, currentUserRole, exp.expenseNo, `Deleted expense ${exp.expenseNo}`);
+
+  // Reverse Chart of Accounts balance
+  ctx.setChartOfAccounts(prev => prev.map(a => {
+    if (a.code === '6000') return { ...a, balance: Math.max(0, a.balance - exp.amount) };
+    if (exp.paymentMethod === 'Cash' && a.code === '1000') return { ...a, balance: a.balance + exp.amount };
+    if (exp.paymentMethod !== 'Cash' && a.code === '1010') return { ...a, balance: a.balance + exp.amount };
+    return a;
+  }));
+
   setExpenses(prev => prev.filter(e => e.id !== id));
   enqueueChange('expenses', 'DELETE', id, null, `খরচ ভাউচার ডিলিট (${exp.expenseNo})`);
   addAudit('Deleted Expense', 'Expense', exp.expenseNo, `${exp.categoryName}: ৳ ${exp.amount}`);
@@ -468,8 +485,9 @@ export const executePerformDayClosing = (
   data: Omit<DayClosingRecord, 'id' | 'closingNo' | 'createdAt'>,
   ctx: AccountingContextBundle
 ): { success: boolean; closingNo: string } => {
-  const { setDayClosings, enqueueChange, addAudit } = ctx;
-  const closingNo = `DAY-CLOSE-${data.date}`;
+  const { dayClosings, setDayClosings, journalEntries, setJournalEntries, setChartOfAccounts, enqueueChange, addAudit, currentUserRole } = ctx;
+  const whTag = (data.warehouseName || data.warehouseId || 'MAIN').replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase();
+  const closingNo = `DAY-${whTag}-${data.date}-${(dayClosings.length + 1).toString().padStart(3, '0')}`;
   const newClosing: DayClosingRecord = {
     ...data,
     id: `close-${Date.now()}`,
@@ -477,7 +495,119 @@ export const executePerformDayClosing = (
     createdAt: new Date().toISOString().replace('T', ' ').substr(0, 19)
   };
   setDayClosings(prev => [newClosing, ...prev]);
+
+  // If there is discrepancy, post balancing journal voucher and update COA
+  if (data.discrepancy !== 0) {
+    const absDiscrepancy = Math.abs(data.discrepancy);
+    const jvNo = generateDocNumber('JV', journalEntries.length);
+    const isShortage = data.discrepancy < 0;
+    const jv: JournalEntry = {
+      id: `jv-${Date.now()}`,
+      voucherNo: jvNo,
+      date: data.date,
+      voucherType: 'Journal Voucher',
+      referenceNo: closingNo,
+      description: `Day Closing ${isShortage ? 'Cash Shortage' : 'Cash Surplus'} (${data.warehouseName || 'Till'}): ৳${absDiscrepancy}`,
+      lines: isShortage ? [
+        {
+          accountCode: '6060',
+          accountName: 'Cash Shortage & Till Variance Expense',
+          debit: absDiscrepancy,
+          credit: 0,
+          memo: `Cash till shortage recorded on ${data.date}`
+        },
+        {
+          accountCode: '1000',
+          accountName: 'Cash in Hand (Main Vault & Till)',
+          debit: 0,
+          credit: absDiscrepancy,
+          memo: `Till write-down for day closing ${closingNo}`
+        }
+      ] : [
+        {
+          accountCode: '1000',
+          accountName: 'Cash in Hand (Main Vault & Till)',
+          debit: absDiscrepancy,
+          credit: 0,
+          memo: `Till overage added for day closing ${closingNo}`
+        },
+        {
+          accountCode: '4050',
+          accountName: 'Cash Surplus & Overage Income',
+          debit: 0,
+          credit: absDiscrepancy,
+          memo: `Cash till surplus recorded on ${data.date}`
+        }
+      ],
+      totalDebit: absDiscrepancy,
+      totalCredit: absDiscrepancy,
+      createdBy: currentUserRole,
+      createdAt: todayStr()
+    };
+    setJournalEntries(prev => [jv, ...prev]);
+
+    setChartOfAccounts(prev => prev.map(a => {
+      if (a.code === '1000') {
+        return { ...a, balance: a.balance + (isShortage ? -absDiscrepancy : absDiscrepancy) };
+      }
+      if (isShortage && a.code === '6060') {
+        return { ...a, balance: a.balance + absDiscrepancy };
+      }
+      if (!isShortage && a.code === '4050') {
+        return { ...a, balance: a.balance + absDiscrepancy };
+      }
+      return a;
+    }));
+  }
+
   enqueueChange('day_closings', 'INSERT', newClosing.id, newClosing, `দিন সমাপ্তি ক্লোজিং #${closingNo}`);
   addAudit('Performed End-of-Day Closing', 'Day Closing', closingNo, undefined, `Expected: ৳ ${data.expectedClosingCash}, Actual: ৳ ${data.actualPhysicalCash}, Status: ${data.status}`);
   return { success: true, closingNo };
+};
+
+export const executeCreateJournalEntry = (
+  data: Omit<JournalEntry, 'id' | 'voucherNo' | 'createdAt'>,
+  ctx: AccountingContextBundle
+): CrudResult => {
+  const { journalEntries, setJournalEntries, setChartOfAccounts, enqueueChange, addAudit, currentUserRole } = ctx;
+  if (!data.lines || data.lines.length < 2) {
+    return fail('জার্নাল ভাউচারে কমপক্ষে ২টি লাইন (ডেবিট এবং ক্রেডিট) থাকতে হবে।');
+  }
+  const totalDebit = data.lines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
+  const totalCredit = data.lines.reduce((s, l) => s + (Number(l.credit) || 0), 0);
+  if (Math.abs(totalDebit - totalCredit) > 0.01) {
+    return fail(`ডেবিট (৳${totalDebit}) এবং ক্রেডিট (৳${totalCredit}) অবশ্যই সমান হতে হবে।`);
+  }
+  const voucherNo = generateDocNumber('JV', journalEntries.length);
+  const newJv: JournalEntry = {
+    ...data,
+    id: `jv-${Date.now()}`,
+    voucherNo,
+    totalDebit,
+    totalCredit,
+    createdBy: data.createdBy || currentUserRole,
+    createdAt: todayStr()
+  };
+  setJournalEntries(prev => [newJv, ...prev]);
+
+  // Update Chart of Accounts balances
+  setChartOfAccounts(prev => prev.map(acc => {
+    const matchingLines = data.lines.filter(l => l.accountCode === acc.code);
+    if (!matchingLines.length) return acc;
+    let netChange = 0;
+    matchingLines.forEach(l => {
+      const lineDebit = Number(l.debit) || 0;
+      const lineCredit = Number(l.credit) || 0;
+      if (acc.nature === 'Debit') {
+        netChange += (lineDebit - lineCredit);
+      } else {
+        netChange += (lineCredit - lineDebit);
+      }
+    });
+    return { ...acc, balance: acc.balance + netChange };
+  }));
+
+  enqueueChange('journal_entries', 'INSERT', newJv.id, newJv, `নতুন জার্নাল ভাউচার #${voucherNo}`);
+  addAudit('Created Journal Voucher', 'General Ledger', voucherNo, undefined, `Debit: ৳${totalDebit}, Ref: ${data.referenceNo || 'None'}`);
+  return { success: true };
 };

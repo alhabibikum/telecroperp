@@ -23,7 +23,8 @@ import {
   RotateCcw,
   Sparkles,
   QrCode,
-  DollarSign
+  DollarSign,
+  RefreshCw
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -112,6 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { id: 'day-closing', label: isBn ? 'দিন সমাপ্তি (Day Closing)' : 'Day Closing', icon: Clock },
         { id: 'cash-bank', label: isBn ? 'ক্যাশ ও ব্যাংক লেজার' : 'Cash & Bank', icon: Wallet },
+        { id: 'bank-reconciliation', label: isBn ? 'ব্যাংক রিকনসিলিয়েশন' : 'Bank Reconciliation', icon: RefreshCw },
         { id: 'expenses', label: isBn ? 'দৈনিক খরচ ও ব্যয়' : 'Daily Expenses', icon: DollarSign },
         { id: 'accounting', label: isBn ? 'জেনারেল লেজার (GL)' : 'Accounting Ledger', icon: FileSpreadsheet }
       ]

@@ -132,7 +132,8 @@ import {
   executeReconcileBankTransaction,
   executeReconcileStatementEntry,
   executeAddBankStatementEntry,
-  executePerformDayClosing
+  executePerformDayClosing,
+  executeCreateJournalEntry
 } from './actions/accountingActions';
 import {
   MasterDataContextBundle,
@@ -597,7 +598,9 @@ interface ERPContextType {
   resetCashAndBankBalances: () => void;
   setVaultOpeningCash: (amount: number) => void;
   addCashTransaction: (data: Omit<CashTransaction, 'id'>) => { success: boolean; error?: string };
+  updateCashTransaction: (id: string, data: Partial<CashTransaction>) => { success: boolean; error?: string };
   deleteCashTransaction: (id: string) => { success: boolean; error?: string };
+  createJournalEntry: (data: Omit<JournalEntry, 'id' | 'voucherNo' | 'createdAt'>) => CrudResult;
   createStockTransfer: (data: {
     sourceWarehouseId: string;
     destinationWarehouseId: string;
@@ -2374,6 +2377,9 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const performDayClosing = (data: Omit<DayClosingRecord, 'id' | 'closingNo' | 'createdAt'>) =>
     executePerformDayClosing(data, accountingBundle);
 
+  const createJournalEntry = (data: Omit<JournalEntry, 'id' | 'voucherNo' | 'createdAt'>) =>
+    executeCreateJournalEntry(data, accountingBundle);
+
   // Master Data Operations
   const addBrand = (b: Omit<Brand, 'id'>) => executeAddBrand(b, masterDataBundle);
   const updateBrand = (id: string, data: Partial<Omit<Brand, 'id'>>) => executeUpdateBrand(id, data, masterDataBundle);
@@ -2920,14 +2926,69 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `cash-${Date.now()}`
     };
     setCashTransactions(prev => [newTx, ...prev]);
+
+    // If Cash To Bank and bankAccountId is present, increase that bank's currentBalance!
+    if (data.category === 'Cash To Bank' && data.bankAccountId && data.type === 'Cash Out') {
+      setBankAccounts(prev => prev.map(b => b.id === data.bankAccountId ? { ...b, currentBalance: b.currentBalance + data.amount } : b));
+      const targetBank = bankAccounts.find(b => b.id === data.bankAccountId);
+      const stEntry: BankStatementEntry = {
+        id: `st-${Date.now()}`,
+        bankAccountId: data.bankAccountId,
+        date: data.date.split(' ')[0],
+        description: `নগদ ভল্ট/ড্রয়ার থেকে জমা (${data.referenceNo})`,
+        referenceNo: data.referenceNo,
+        debit: 0,
+        credit: data.amount,
+        status: 'Matched'
+      };
+      setBankStatements(prev => [stEntry, ...prev]);
+      if (targetBank) {
+        enqueueChange('bank_accounts', 'UPDATE', targetBank.id, { ...targetBank, currentBalance: targetBank.currentBalance + data.amount }, `ক্যাশ ডিপোজিট: ${targetBank.bankName}`);
+      }
+    }
+
+    // If Customer Due Collection, update customer currentDue
+    if (data.category === 'Due Collection' && data.customerId && data.type === 'Cash In') {
+      setCustomers(prev => prev.map(c => c.id === data.customerId ? { ...c, currentDue: Math.max(0, c.currentDue - data.amount) } : c));
+    }
+
+    // If Supplier Payment, update supplier currentDue
+    if (data.category === 'Supplier Payment' && data.supplierId && data.type === 'Cash Out') {
+      setSuppliers(prev => prev.map(s => s.id === data.supplierId ? { ...s, currentDue: Math.max(0, s.currentDue - data.amount) } : s));
+    }
+
     enqueueChange('cash_transactions', 'INSERT', newTx.id, newTx, `ক্যাশ লেনদেন রেকর্ড (${data.type}: ৳${data.amount})`);
     addAudit('CASH_MANAGEMENT', `নতুন ক্যাশ লেনদেন যুক্ত হয়েছে: ${data.type} ৳${data.amount}`, newTx.referenceNo);
+    return { success: true };
+  };
+
+  const updateCashTransaction = (id: string, updates: Partial<CashTransaction>) => {
+    const tx = cashTransactions.find(t => t.id === id);
+    if (!tx) return { success: false, error: 'লেনদেন খুঁজে পাওয়া যায়নি।' };
+    const updated: CashTransaction = { ...tx, ...updates };
+    setCashTransactions(prev => prev.map(t => t.id === id ? updated : t));
+    enqueueChange('cash_transactions', 'UPDATE', id, updated, `ক্যাশ লেনদেন আপডেট (${tx.referenceNo})`);
+    addAudit('CASH_MANAGEMENT', `ক্যাশ লেনদেন আপডেট: ${tx.referenceNo}`, tx.referenceNo);
     return { success: true };
   };
 
   const deleteCashTransaction = (id: string) => {
     const tx = cashTransactions.find(t => t.id === id);
     if (!tx) return { success: false, error: 'লেনদেন খুঁজে পাওয়া যায়নি।' };
+
+    // Reversal if Cash To Bank
+    if (tx.category === 'Cash To Bank' && tx.bankAccountId && tx.type === 'Cash Out') {
+      setBankAccounts(prev => prev.map(b => b.id === tx.bankAccountId ? { ...b, currentBalance: Math.max(0, b.currentBalance - tx.amount) } : b));
+    }
+    // Reversal if Due Collection
+    if (tx.category === 'Due Collection' && tx.customerId && tx.type === 'Cash In') {
+      setCustomers(prev => prev.map(c => c.id === tx.customerId ? { ...c, currentDue: c.currentDue + tx.amount } : c));
+    }
+    // Reversal if Supplier Payment
+    if (tx.category === 'Supplier Payment' && tx.supplierId && tx.type === 'Cash Out') {
+      setSuppliers(prev => prev.map(s => s.id === tx.supplierId ? { ...s, currentDue: s.currentDue + tx.amount } : s));
+    }
+
     setCashTransactions(prev => prev.filter(t => t.id !== id));
     enqueueChange('cash_transactions', 'DELETE', id, null, `ক্যাশ লেনদেন মুছে ফেলা হয়েছে (${tx.referenceNo})`);
     addAudit('CASH_MANAGEMENT', `ক্যাশ লেনদেন ডিলিট করা হয়েছে: ${tx.referenceNo} (৳${tx.amount})`, tx.referenceNo);
@@ -3196,7 +3257,9 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         resetCashAndBankBalances,
         setVaultOpeningCash,
         addCashTransaction,
+        updateCashTransaction,
         deleteCashTransaction,
+        createJournalEntry,
         createStockTransfer,
         updateStockTransferStatus,
         deleteStockTransfer,
