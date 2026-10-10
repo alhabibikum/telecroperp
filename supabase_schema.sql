@@ -204,7 +204,7 @@ CREATE TABLE products (
 CREATE TABLE product_variants (
     id TEXT PRIMARY KEY,
     product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-    sku TEXT UNIQUE NOT NULL,
+    sku TEXT NOT NULL,
     ram TEXT NOT NULL,
     storage TEXT NOT NULL,
     color TEXT NOT NULL,
@@ -1731,7 +1731,7 @@ INSERT INTO products (id, brand_id, brand_name, model, category, network_region,
 ) ON CONFLICT (id) DO UPDATE SET model = EXCLUDED.model, brand_name = EXCLUDED.brand_name;
 
 INSERT INTO product_variants (id, product_id, sku, ram, storage, color, purchase_price, dealer_price, wholesale_price, retail_price, min_selling_price, max_discount, reorder_level, current_stock, created_at) VALUES (
-  'var-23-1', 'prod-23', 'TEC-LIVEDEMO-8-128', '8GB', '128GB', 'Standard Black', 20894, 21765, 21983, 22853, 21330, 500, 5, 0, NOW()
+  'var-23-1', 'prod-23', 'TEC-LIVEDEMO-8-128-V23', '8GB', '128GB', 'Standard Black', 20894, 21765, 21983, 22853, 21330, 500, 5, 0, NOW()
 ) ON CONFLICT (id) DO UPDATE SET current_stock = EXCLUDED.current_stock, dealer_price = EXCLUDED.dealer_price, purchase_price = EXCLUDED.purchase_price;
 
 INSERT INTO products (id, brand_id, brand_name, model, category, network_region, warranty_period_months, description, status, created_at) VALUES (
@@ -1739,7 +1739,7 @@ INSERT INTO products (id, brand_id, brand_name, model, category, network_region,
 ) ON CONFLICT (id) DO UPDATE SET model = EXCLUDED.model, brand_name = EXCLUDED.brand_name;
 
 INSERT INTO product_variants (id, product_id, sku, ram, storage, color, purchase_price, dealer_price, wholesale_price, retail_price, min_selling_price, max_discount, reorder_level, current_stock, created_at) VALUES (
-  'var-24-1', 'prod-24', 'TEC-LIVEDEMO-8-128', '8GB', '128GB', 'Standard Black', 6720, 7000, 7070, 7350, 6860, 500, 5, 1, NOW()
+  'var-24-1', 'prod-24', 'TEC-LIVEDEMO-8-128-V24', '8GB', '128GB', 'Standard Black', 6720, 7000, 7070, 7350, 6860, 500, 5, 1, NOW()
 ) ON CONFLICT (id) DO UPDATE SET current_stock = EXCLUDED.current_stock, dealer_price = EXCLUDED.dealer_price, purchase_price = EXCLUDED.purchase_price;
 
 INSERT INTO products (id, brand_id, brand_name, model, category, network_region, warranty_period_months, description, status, created_at) VALUES (
@@ -1747,7 +1747,7 @@ INSERT INTO products (id, brand_id, brand_name, model, category, network_region,
 ) ON CONFLICT (id) DO UPDATE SET model = EXCLUDED.model, brand_name = EXCLUDED.brand_name;
 
 INSERT INTO product_variants (id, product_id, sku, ram, storage, color, purchase_price, dealer_price, wholesale_price, retail_price, min_selling_price, max_discount, reorder_level, current_stock, created_at) VALUES (
-  'var-25-1', 'prod-25', 'TEC-LIVEDEMO-8-128', '8GB', '128GB', 'Standard Black', 21600, 22500, 22725, 23625, 22050, 500, 5, 0, NOW()
+  'var-25-1', 'prod-25', 'TEC-LIVEDEMO-8-128-V25', '8GB', '128GB', 'Standard Black', 21600, 22500, 22725, 23625, 22050, 500, 5, 0, NOW()
 ) ON CONFLICT (id) DO UPDATE SET current_stock = EXCLUDED.current_stock, dealer_price = EXCLUDED.dealer_price, purchase_price = EXCLUDED.purchase_price;
 
 INSERT INTO products (id, brand_id, brand_name, model, category, network_region, warranty_period_months, description, status, created_at) VALUES (
@@ -1755,7 +1755,7 @@ INSERT INTO products (id, brand_id, brand_name, model, category, network_region,
 ) ON CONFLICT (id) DO UPDATE SET model = EXCLUDED.model, brand_name = EXCLUDED.brand_name;
 
 INSERT INTO product_variants (id, product_id, sku, ram, storage, color, purchase_price, dealer_price, wholesale_price, retail_price, min_selling_price, max_discount, reorder_level, current_stock, created_at) VALUES (
-  'var-26-1', 'prod-26', 'TEC-LIVEDEMO-8-128', '8GB', '128GB', 'Standard Black', 23590, 24573, 24819, 25802, 24082, 500, 5, 0, NOW()
+  'var-26-1', 'prod-26', 'TEC-LIVEDEMO-8-128-V26', '8GB', '128GB', 'Standard Black', 23590, 24573, 24819, 25802, 24082, 500, 5, 0, NOW()
 ) ON CONFLICT (id) DO UPDATE SET current_stock = EXCLUDED.current_stock, dealer_price = EXCLUDED.dealer_price, purchase_price = EXCLUDED.purchase_price;
 
 INSERT INTO products (id, brand_id, brand_name, model, category, network_region, warranty_period_months, description, status, created_at) VALUES (
@@ -1763,7 +1763,7 @@ INSERT INTO products (id, brand_id, brand_name, model, category, network_region,
 ) ON CONFLICT (id) DO UPDATE SET model = EXCLUDED.model, brand_name = EXCLUDED.brand_name;
 
 INSERT INTO product_variants (id, product_id, sku, ram, storage, color, purchase_price, dealer_price, wholesale_price, retail_price, min_selling_price, max_discount, reorder_level, current_stock, created_at) VALUES (
-  'var-27-1', 'prod-27', 'TEC-LIVEDEMO-8-128', '8GB', '128GB', 'Standard Black', 22176, 23100, 23331, 24255, 22638, 500, 5, 0, NOW()
+  'var-27-1', 'prod-27', 'TEC-LIVEDEMO-8-128-V27', '8GB', '128GB', 'Standard Black', 22176, 23100, 23331, 24255, 22638, 500, 5, 0, NOW()
 ) ON CONFLICT (id) DO UPDATE SET current_stock = EXCLUDED.current_stock, dealer_price = EXCLUDED.dealer_price, purchase_price = EXCLUDED.purchase_price;
 
 INSERT INTO products (id, brand_id, brand_name, model, category, network_region, warranty_period_months, description, status, created_at) VALUES (
@@ -1771,7 +1771,7 @@ INSERT INTO products (id, brand_id, brand_name, model, category, network_region,
 ) ON CONFLICT (id) DO UPDATE SET model = EXCLUDED.model, brand_name = EXCLUDED.brand_name;
 
 INSERT INTO product_variants (id, product_id, sku, ram, storage, color, purchase_price, dealer_price, wholesale_price, retail_price, min_selling_price, max_discount, reorder_level, current_stock, created_at) VALUES (
-  'var-28-1', 'prod-28', 'TEC-LIVEDEMO-8-128', '8GB', '128GB', 'Standard Black', 24864, 25900, 26159, 27195, 25382, 500, 5, 0, NOW()
+  'var-28-1', 'prod-28', 'TEC-LIVEDEMO-8-128-V28', '8GB', '128GB', 'Standard Black', 24864, 25900, 26159, 27195, 25382, 500, 5, 0, NOW()
 ) ON CONFLICT (id) DO UPDATE SET current_stock = EXCLUDED.current_stock, dealer_price = EXCLUDED.dealer_price, purchase_price = EXCLUDED.purchase_price;
 
 INSERT INTO products (id, brand_id, brand_name, model, category, network_region, warranty_period_months, description, status, created_at) VALUES (
@@ -1779,7 +1779,7 @@ INSERT INTO products (id, brand_id, brand_name, model, category, network_region,
 ) ON CONFLICT (id) DO UPDATE SET model = EXCLUDED.model, brand_name = EXCLUDED.brand_name;
 
 INSERT INTO product_variants (id, product_id, sku, ram, storage, color, purchase_price, dealer_price, wholesale_price, retail_price, min_selling_price, max_discount, reorder_level, current_stock, created_at) VALUES (
-  'var-29-1', 'prod-29', 'TEC-LIVEDEMO-8-128', '8GB', '128GB', 'Standard Black', 20220, 21063, 21274, 22116, 20642, 500, 5, 0, NOW()
+  'var-29-1', 'prod-29', 'TEC-LIVEDEMO-8-128-V29', '8GB', '128GB', 'Standard Black', 20220, 21063, 21274, 22116, 20642, 500, 5, 0, NOW()
 ) ON CONFLICT (id) DO UPDATE SET current_stock = EXCLUDED.current_stock, dealer_price = EXCLUDED.dealer_price, purchase_price = EXCLUDED.purchase_price;
 
 INSERT INTO products (id, brand_id, brand_name, model, category, network_region, warranty_period_months, description, status, created_at) VALUES (
@@ -1787,7 +1787,7 @@ INSERT INTO products (id, brand_id, brand_name, model, category, network_region,
 ) ON CONFLICT (id) DO UPDATE SET model = EXCLUDED.model, brand_name = EXCLUDED.brand_name;
 
 INSERT INTO product_variants (id, product_id, sku, ram, storage, color, purchase_price, dealer_price, wholesale_price, retail_price, min_selling_price, max_discount, reorder_level, current_stock, created_at) VALUES (
-  'var-30-1', 'prod-30', 'TEC-LIVEDEMO-8-128', '8GB', '128GB', 'Standard Black', 9437, 9830, 9928, 10322, 9633, 500, 5, 1, NOW()
+  'var-30-1', 'prod-30', 'TEC-LIVEDEMO-8-128-V30', '8GB', '128GB', 'Standard Black', 9437, 9830, 9928, 10322, 9633, 500, 5, 1, NOW()
 ) ON CONFLICT (id) DO UPDATE SET current_stock = EXCLUDED.current_stock, dealer_price = EXCLUDED.dealer_price, purchase_price = EXCLUDED.purchase_price;
 
 INSERT INTO products (id, brand_id, brand_name, model, category, network_region, warranty_period_months, description, status, created_at) VALUES (
@@ -1803,7 +1803,7 @@ INSERT INTO products (id, brand_id, brand_name, model, category, network_region,
 ) ON CONFLICT (id) DO UPDATE SET model = EXCLUDED.model, brand_name = EXCLUDED.brand_name;
 
 INSERT INTO product_variants (id, product_id, sku, ram, storage, color, purchase_price, dealer_price, wholesale_price, retail_price, min_selling_price, max_discount, reorder_level, current_stock, created_at) VALUES (
-  'var-32-1', 'prod-32', 'TEC-LIVEDEMO-8-128', '8GB', '128GB', 'Standard Black', 13480, 14042, 14182, 14744, 13761, 500, 5, 0, NOW()
+  'var-32-1', 'prod-32', 'TEC-LIVEDEMO-8-128-V32', '8GB', '128GB', 'Standard Black', 13480, 14042, 14182, 14744, 13761, 500, 5, 0, NOW()
 ) ON CONFLICT (id) DO UPDATE SET current_stock = EXCLUDED.current_stock, dealer_price = EXCLUDED.dealer_price, purchase_price = EXCLUDED.purchase_price;
 
 INSERT INTO products (id, brand_id, brand_name, model, category, network_region, warranty_period_months, description, status, created_at) VALUES (
@@ -1819,7 +1819,7 @@ INSERT INTO products (id, brand_id, brand_name, model, category, network_region,
 ) ON CONFLICT (id) DO UPDATE SET model = EXCLUDED.model, brand_name = EXCLUDED.brand_name;
 
 INSERT INTO product_variants (id, product_id, sku, ram, storage, color, purchase_price, dealer_price, wholesale_price, retail_price, min_selling_price, max_discount, reorder_level, current_stock, created_at) VALUES (
-  'var-34-1', 'prod-34', 'TEC-LIVEDEMO-8-256', '8GB', '256GB', 'Standard Black', 16128, 16800, 16968, 17640, 16464, 500, 5, 0, NOW()
+  'var-34-1', 'prod-34', 'TEC-LIVEDEMO-8-256-V34', '8GB', '256GB', 'Standard Black', 16128, 16800, 16968, 17640, 16464, 500, 5, 0, NOW()
 ) ON CONFLICT (id) DO UPDATE SET current_stock = EXCLUDED.current_stock, dealer_price = EXCLUDED.dealer_price, purchase_price = EXCLUDED.purchase_price;
 
 INSERT INTO products (id, brand_id, brand_name, model, category, network_region, warranty_period_months, description, status, created_at) VALUES (
@@ -1867,7 +1867,7 @@ INSERT INTO products (id, brand_id, brand_name, model, category, network_region,
 ) ON CONFLICT (id) DO UPDATE SET model = EXCLUDED.model, brand_name = EXCLUDED.brand_name;
 
 INSERT INTO product_variants (id, product_id, sku, ram, storage, color, purchase_price, dealer_price, wholesale_price, retail_price, min_selling_price, max_discount, reorder_level, current_stock, created_at) VALUES (
-  'var-40-1', 'prod-40', 'TEC-POVACURV-8-128', '8GB', '128GB', 'Standard Black', 33514, 34910, 35259, 36656, 34212, 500, 5, 9, NOW()
+  'var-40-1', 'prod-40', 'TEC-POVACURV-8-128-V40', '8GB', '128GB', 'Standard Black', 33514, 34910, 35259, 36656, 34212, 500, 5, 9, NOW()
 ) ON CONFLICT (id) DO UPDATE SET current_stock = EXCLUDED.current_stock, dealer_price = EXCLUDED.dealer_price, purchase_price = EXCLUDED.purchase_price;
 
 INSERT INTO products (id, brand_id, brand_name, model, category, network_region, warranty_period_months, description, status, created_at) VALUES (
@@ -2019,7 +2019,7 @@ INSERT INTO products (id, brand_id, brand_name, model, category, network_region,
 ) ON CONFLICT (id) DO UPDATE SET model = EXCLUDED.model, brand_name = EXCLUDED.brand_name;
 
 INSERT INTO product_variants (id, product_id, sku, ram, storage, color, purchase_price, dealer_price, wholesale_price, retail_price, min_selling_price, max_discount, reorder_level, current_stock, created_at) VALUES (
-  'var-59-1', 'prod-59', 'TEC-SPARK40P-8-128', '8GB', '128GB', 'Standard Black', 22646, 23590, 23826, 24770, 23118, 500, 5, 0, NOW()
+  'var-59-1', 'prod-59', 'TEC-SPARK40P-8-128-V59', '8GB', '128GB', 'Standard Black', 22646, 23590, 23826, 24770, 23118, 500, 5, 0, NOW()
 ) ON CONFLICT (id) DO UPDATE SET current_stock = EXCLUDED.current_stock, dealer_price = EXCLUDED.dealer_price, purchase_price = EXCLUDED.purchase_price;
 
 INSERT INTO products (id, brand_id, brand_name, model, category, network_region, warranty_period_months, description, status, created_at) VALUES (
