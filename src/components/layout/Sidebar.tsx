@@ -24,7 +24,10 @@ import {
   Sparkles,
   QrCode,
   DollarSign,
-  RefreshCw
+  RefreshCw,
+  Wrench,
+  CheckCircle2,
+  PackageCheck
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -70,9 +73,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'core',
       title: isBn ? 'ড্যাশবোর্ড ও ককপিট' : 'Overview & Cockpit',
       items: [
-        { id: 'dashboard', label: isBn ? 'ড্যাশবোর্ড' : 'Dashboard', icon: LayoutDashboard },
+        { id: 'dashboard', label: isBn ? 'ড্যাশবোর্ড (Dashboard)' : 'Dashboard', icon: LayoutDashboard },
         { id: 'imei-trace', label: isBn ? 'আইএমইআই ট্রেস' : 'IMEI Trace', icon: Smartphone, badge: imeis.length ? `${imeis.length}` : undefined },
-        { id: 'alert-center', label: isBn ? 'অ্যালার্ট ও নোটিফিকেশন' : 'Alert Center', icon: ShieldAlert, badge: unreadAlerts ? `${unreadAlerts}` : undefined, badgeColor: 'bg-rose-500 text-white' }
+        { id: 'alert-center', label: isBn ? 'অ্যালার্ট ও নোটিফিকেশন' : 'Alert Center', icon: ShieldAlert, badge: unreadAlerts ? `${unreadAlerts}` : undefined, badgeColor: 'bg-rose-600 text-white' }
+      ]
+    },
+    {
+      id: 'rma_doa',
+      title: isBn ? 'ডিওএ ও কোয়ালিটি কন্ট্রোল' : 'DOA & Quality Control',
+      items: [
+        { id: 'warranty-service', label: isBn ? 'DOA / Defective ম্যানেজমেন্ট' : 'DOA & Defective Management', icon: Wrench, badge: warrantyClaims.length ? `${warrantyClaims.length}` : undefined },
+        { id: 'returns', label: isBn ? 'ভেন্ডর ও কাস্টমার রিটার্ন' : 'Vendor & Customer Returns', icon: RotateCcw }
+      ]
+    },
+    {
+      id: 'logistics',
+      title: isBn ? 'ডিসপ্যাচ ও ওয়্যারহাউজ' : 'Warehouse & Logistics',
+      items: [
+        { id: 'delivery-dispatch', label: isBn ? 'ওয়্যারহাউজ ডিসপ্যাচ ও ট্র্যাকিং' : 'Warehouse Dispatch Bay', icon: Truck },
+        { id: 'stock-transfers', label: isBn ? 'স্টক ট্রান্সফার চালান' : 'Stock Transfers', icon: ArrowLeftRight },
+        { id: 'warehouses', label: isBn ? 'ওয়্যারহাউজ ও গোডাউন' : 'Warehouses & Godowns', icon: Building2 },
+        { id: 'barcode-labels', label: isBn ? 'বারকোড ও লেবেল প্রিন্ট' : 'Barcode & Labels', icon: QrCode }
       ]
     },
     {
@@ -89,13 +110,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'inventory',
-      title: isBn ? 'ইনভেন্টরি ও স্টক' : 'Inventory & Stock',
+      title: isBn ? 'ইনভেন্টরি ও সাপ্লাই' : 'Inventory & Supply',
       items: [
         { id: 'inventory', label: isBn ? 'পণ্য ও লাইভ স্টক' : 'Inventory & IMEIs', icon: Boxes },
-        { id: 'purchases', label: isBn ? 'পারচেজ ও চালান' : 'Purchases & Inward', icon: Truck },
-        { id: 'stock-transfers', label: isBn ? 'স্টক ট্রান্সফার' : 'Stock Transfers', icon: ArrowLeftRight },
-        { id: 'warehouses', label: isBn ? 'ওয়্যারহাউজ ও গোডাউন' : 'Warehouses', icon: Building2 },
-        { id: 'barcode-labels', label: isBn ? 'বারকোড ও লেবেল' : 'Barcode Labels', icon: QrCode }
+        { id: 'purchases', label: isBn ? 'পারচেজ ও চালান' : 'Purchases & Inward', icon: Truck }
       ]
     },
     {
@@ -103,8 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       title: isBn ? 'পার্টনার্স ও সিআরএম' : 'Partners & CRM',
       items: [
         { id: 'customers', label: isBn ? 'কাস্টমার ও ডিলার' : 'Customers', icon: Users2 },
-        { id: 'suppliers', label: isBn ? 'সাপ্লায়ার তালিকা' : 'Suppliers', icon: Building2 },
-        { id: 'returns', label: isBn ? 'রিটার্নস ও আরএমএ' : 'Customer Returns', icon: RotateCcw }
+        { id: 'suppliers', label: isBn ? 'সাপ্লায়ার তালিকা' : 'Suppliers', icon: Building2 }
       ]
     },
     {
@@ -146,28 +163,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      className={`h-full bg-white dark:bg-[#0d1322] border-r border-slate-200/80 dark:border-slate-800/80 flex flex-col shrink-0 select-none transition-all duration-200 z-20 ${
+      className={`h-full bg-[#244b82] dark:bg-[#0b1120] text-white border-r border-[#1a3863] dark:border-slate-800 flex flex-col shrink-0 select-none transition-all duration-200 z-20 ${
         isExpanded ? 'w-64' : 'w-16'
       }`}
     >
-      {/* Search Header (When Expanded) */}
+      {/* Top Sidebar Header */}
       {isExpanded && (
-        <div className="p-3 border-b border-slate-200/70 dark:border-slate-800/70">
+        <div className="p-3.5 border-b border-white/10 dark:border-slate-800 bg-[#1c3c6a] dark:bg-[#080d1a]">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-black tracking-widest uppercase text-blue-200">
+              TELECORP ENTERPRISE
+            </span>
+          </div>
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-blue-200/60 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="মেনু খুঁজুন..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-lg text-xs placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full pl-8 pr-3 py-1.5 bg-[#173259] dark:bg-slate-900 border border-blue-300/30 dark:border-slate-700 text-xs text-white placeholder-blue-200/50 focus:outline-none focus:ring-1 focus:ring-blue-400"
             />
           </div>
         </div>
       )}
 
       {/* Navigation List */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-4">
+      <div className="flex-1 overflow-y-auto p-2 space-y-3">
         {filteredSections.map(section => {
           const isCollapsed = collapsedCategories[section.id];
           return (
@@ -175,10 +197,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {isExpanded && (
                 <div
                   onClick={() => toggleCategory(section.id)}
-                  className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center justify-between cursor-pointer hover:text-slate-600 dark:hover:text-slate-300"
+                  className="px-2.5 py-1 text-[11.5px] font-bold uppercase tracking-wider text-blue-200/70 dark:text-slate-400 flex items-center justify-between cursor-pointer hover:text-white transition"
                 >
                   <span>{section.title}</span>
-                  {isCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                 </div>
               )}
 
@@ -194,19 +216,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         type="button"
                         onClick={() => onSelectView(item.id)}
                         title={!isExpanded ? item.label : undefined}
-                        className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-xs font-medium transition cursor-pointer text-left ${
+                        className={`w-full flex items-center gap-3 px-3 py-2 text-[13.5px] font-semibold transition cursor-pointer text-left border ${
                           isActive
-                            ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400 font-semibold shadow-xs'
-                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100'
+                            ? 'bg-[#1a3863] text-white border-blue-400/60 shadow-xs dark:bg-blue-600 dark:border-blue-500'
+                            : 'text-blue-100/90 dark:text-slate-300 border-transparent hover:bg-white/10 dark:hover:bg-slate-800/80 hover:text-white'
                         }`}
                       >
-                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`} />
+                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-300 dark:text-white' : 'text-blue-200/80 dark:text-slate-400'}`} />
                         {isExpanded && (
                           <div className="flex-1 flex items-center justify-between truncate">
                             <span className="truncate">{item.label}</span>
                             {item.badge && (
-                              <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-semibold ${
-                                item.badgeColor || 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                              <span className={`text-[11px] font-mono px-1.5 py-0.5 rounded-none font-bold ${
+                                item.badgeColor || 'bg-blue-900/80 text-blue-100 border border-blue-400/40 dark:bg-slate-800 dark:text-slate-200'
                               }`}>
                                 {item.badge}
                               </span>
@@ -225,11 +247,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Collapse/Expand Toggle Footer */}
       {onToggleExpand && (
-        <div className="p-2 border-t border-slate-200/70 dark:border-slate-800/70 flex items-center justify-between">
+        <div className="p-2 border-t border-white/10 dark:border-slate-800 flex items-center justify-between bg-[#1c3c6a] dark:bg-[#080d1a]">
           <button
             type="button"
             onClick={onToggleExpand}
-            className="w-full flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+            className="w-full flex items-center justify-center p-1.5 text-blue-200 hover:text-white hover:bg-white/10 dark:hover:bg-slate-800 transition cursor-pointer"
             title={isExpanded ? 'Collapse Sidebar' : 'Expand Sidebar'}
           >
             {isExpanded ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}

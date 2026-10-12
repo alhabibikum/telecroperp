@@ -72,7 +72,7 @@ const VIEW_CONFIG: Record<string, { title: string; subtitle: string; icon: strin
   'retail-pos': { title: 'রিটেইল পিওএস (Retail POS)', subtitle: 'কাউন্টার ক্যাশ বিক্রয়', icon: '🛒' },
   'phone-exchange': { title: 'ফোন এক্সচেঞ্জ (Phone Exchange)', subtitle: 'হ্যান্ডসেট ট্রেড-ইন ও এক্সচেঞ্জ', icon: '🔄' },
   'emi-installment': { title: 'কিস্তি ও ইএমআই (EMI Installment)', subtitle: 'মাসিক কিস্তি শিডিউল ও আদায়', icon: '📅' },
-  'delivery-dispatch': { title: 'ডেলিভারি ও কুরিয়ার (Delivery)', subtitle: 'কুরিয়ার চালান ও পার্সেল ট্র্যাকিং', icon: '🚚' },
+  'delivery-dispatch': { title: 'ওয়্যারহাউজ ডিসপ্যাচ (Warehouse Dispatch & Packaging Bay)', subtitle: 'প্যাকিং বে, শিপমেন্ট ট্র্যাকিং ও কুরিয়ার চালান', icon: '🚚' },
   'sms-marketing': { title: 'এসএমএস মার্কেটিং (SMS Marketing)', subtitle: 'বাল্ক মেসেজ ও অ্যালার্ট গেটওয়ে', icon: '💬' },
   'due-ageing': { title: 'বকেয়া এইজিং রিপোর্ট (Due Ageing)', subtitle: 'বকেয়া বয়স বিশ্লেষণ ও রিকভারি', icon: '⏳' },
   'due-collection': { title: 'বকেয়া কালেকশন (Due Collection)', subtitle: 'ডিলার পেমেন্ট জমা ও রসিদ', icon: '💰' },
@@ -87,7 +87,7 @@ const VIEW_CONFIG: Record<string, { title: string; subtitle: string; icon: strin
   'customers': { title: 'কাস্টমার ও ডিলার (Customers)', subtitle: 'ডিলার নেটওয়ার্ক প্রোফাইল', icon: '👥' },
   'suppliers': { title: 'সাপ্লায়ার তালিকা (Suppliers)', subtitle: 'ভেন্ডর ও ডিস্ট্রিবিউটর ডিরেক্টরি', icon: '🏭' },
   'returns': { title: 'রিটার্ন ব্যবস্থাপনা (Returns)', subtitle: 'কাস্টমার ও সাপ্লায়ার রিটার্ন ইঞ্জিন', icon: '↩️' },
-  'warranty-service': { title: 'ওয়ারেন্টি সার্ভিস (Warranty & RMA)', subtitle: 'সার্ভিসিং জব ও রিপেয়ার ট্র্যাকিং', icon: '🛠️' },
+  'warranty-service': { title: 'DOA ও ডিফেক্টিভ ডিভাইস (DOA & Defective Management)', subtitle: 'ডিভাইস ইনটেক, রিপ্লেসমেন্ট অলটমেন্ট ও কিউসি ওয়ার্কফ্লো', icon: '🛠️' },
   'salesmen': { title: 'সেলসম্যান ও ফিল্ড স্টাফ (Salesmen)', subtitle: 'মার্কেট অফিসার ও প্রতিনিধি তালিকা', icon: '👔' },
   'salesman-app': { title: 'মোবাইল সেলসম্যান পোর্টাল (Salesman App)', subtitle: 'ফিল্ড অর্ডার গ্রহণ ইন্টারফেস', icon: '📱' },
   'field-visits': { title: 'ফিল্ড ভিজিট ও রুট প্ল্যান (Field Visits)', subtitle: 'জিপিএস ট্র্যাকিং ও আউটলেট লগ', icon: '📍' },
@@ -871,8 +871,8 @@ const ERPAppContent: React.FC = () => {
           onSelectView={handleNavigateView}
         />
 
-        {/* Main Content Workspace (Linear & Mercury Enterprise Canvas) */}
-        <main className="flex-1 h-full overflow-y-auto bg-slate-50/50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100 p-4 sm:p-6 lg:p-8">
+        {/* Main Content Workspace (Executive Desktop Enterprise Canvas) */}
+        <main className="flex-1 h-full overflow-y-auto bg-[#f1f5f9] dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 p-3 sm:p-4 lg:p-6">
           {!hasPermission(currentUserRole, currentView) ? (
             <div className="h-full flex items-center justify-center p-6">
               <div className="max-w-md w-full bg-white dark:bg-[#111726] rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 p-8 text-center space-y-4">
