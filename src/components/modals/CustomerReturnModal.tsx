@@ -18,6 +18,7 @@ import { WindowsModalFrame } from '../common/WindowsModalFrame';
 import { HistoryInput } from '../common/HistoryInput';
 import { recordFieldHistory } from '../../services/formHistoryService';
 import { useToast } from '../common/ToastNotificationSystem';
+import { useQuickCreateMasterData } from '../common/QuickCreateMasterDataModal';
 
 interface CustomerReturnModalProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export const CustomerReturnModal: React.FC<CustomerReturnModalProps> = ({
   onSuccessReturn
 }) => {
   const { showSuccess } = useToast();
+  const { onQuickCreateKeyDown, quickCreateModal } = useQuickCreateMasterData();
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const {
     imeis,
@@ -228,6 +230,7 @@ export const CustomerReturnModal: React.FC<CustomerReturnModalProps> = ({
               <select
                 value={restockWarehouseId}
                 onChange={(e) => setRestockWarehouseId(e.target.value)}
+                onKeyDown={onQuickCreateKeyDown('warehouse', setRestockWarehouseId)}
                 className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-600"
               >
                 {warehouses.map(w => (
@@ -302,6 +305,7 @@ export const CustomerReturnModal: React.FC<CustomerReturnModalProps> = ({
         }}
         confirmButtonText="রিটার্ন আইটেম নির্ধারণ করুন"
       />
+      {quickCreateModal}
     </>
   );
 };

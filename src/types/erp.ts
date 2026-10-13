@@ -75,7 +75,7 @@ export interface Product {
   brandId: string;
   brandName: string;
   model: string;
-  category: 'Smartphone' | 'Feature Phone' | 'Tablet' | 'Accessories';
+  category: string;
   networkRegion: string; // e.g. "Global / BTRC Approved", "Official BD", "Unofficial"
   warrantyPeriodMonths: number;
   description: string;

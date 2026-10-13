@@ -16,6 +16,7 @@ import { WindowsModalFrame } from '../common/WindowsModalFrame';
 import { HistoryInput } from '../common/HistoryInput';
 import { recordFieldHistory } from '../../services/formHistoryService';
 import { useToast } from '../common/ToastNotificationSystem';
+import { useQuickCreateMasterData } from '../common/QuickCreateMasterDataModal';
 
 interface StockTransferModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export const StockTransferModal: React.FC<StockTransferModalProps> = ({
 }) => {
   const { warehouses, products, imeis, transferStock } = useERP();
   const { showSuccess } = useToast();
+  const { onQuickCreateKeyDown, quickCreateModal } = useQuickCreateMasterData();
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const [sourceWarehouseId, setSourceWarehouseId] = useState<string>(warehouses[0]?.id || '');
@@ -158,6 +160,10 @@ export const StockTransferModal: React.FC<StockTransferModalProps> = ({
                   setSourceWarehouseId(e.target.value);
                   setSelectedImeis([]);
                 }}
+                onKeyDown={onQuickCreateKeyDown('warehouse', id => {
+                  setSourceWarehouseId(id);
+                  setSelectedImeis([]);
+                })}
                 className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600"
                 required
               >
@@ -174,6 +180,7 @@ export const StockTransferModal: React.FC<StockTransferModalProps> = ({
               <select
                 value={destinationWarehouseId}
                 onChange={(e) => setDestinationWarehouseId(e.target.value)}
+                onKeyDown={onQuickCreateKeyDown('warehouse', setDestinationWarehouseId)}
                 className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600"
                 required
               >
@@ -198,6 +205,12 @@ export const StockTransferModal: React.FC<StockTransferModalProps> = ({
                   if (p?.variants[0]) setSelectedVariantId(p.variants[0].id);
                   setSelectedImeis([]);
                 }}
+                onKeyDown={onQuickCreateKeyDown('product', (id, variant) => {
+                  if (!variant) return;
+                  setSelectedProductId(id);
+                  setSelectedVariantId(variant.id);
+                  setSelectedImeis([]);
+                })}
                 className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100"
               >
                 {products.map(p => (
@@ -216,6 +229,10 @@ export const StockTransferModal: React.FC<StockTransferModalProps> = ({
                   setSelectedVariantId(e.target.value);
                   setSelectedImeis([]);
                 }}
+                onKeyDown={onQuickCreateKeyDown('variant', (id) => {
+                  setSelectedVariantId(id);
+                  setSelectedImeis([]);
+                }, selectedProductId)}
                 className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100"
               >
                 {currentProduct?.variants.map(v => (
@@ -326,6 +343,7 @@ export const StockTransferModal: React.FC<StockTransferModalProps> = ({
         onConfirm={handleMultiScanConfirm}
         confirmButtonText="ট্রান্সফার তালিকায় যুক্ত করুন"
       />
+      {quickCreateModal}
     </>
   );
 };

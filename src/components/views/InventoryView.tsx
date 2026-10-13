@@ -37,6 +37,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const { products, imeis, warehouses, brands, settings, updateProduct, deleteProduct, adjustStockIMEIs } = useERP();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [showNewProductModal, setShowNewProductModal] = useState(false);
   const [editing, setEditing] = useState<{ product: Product; variant: ProductVariant } | null>(null);
 
@@ -74,8 +75,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       row.variant.color.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesBrand = selectedBrand === 'All' || row.product.brandName.toLowerCase() === selectedBrand.toLowerCase();
+    const matchesCategory = selectedCategory === 'All' || row.product.category.toLowerCase() === selectedCategory.toLowerCase();
 
-    return matchesSearch && matchesBrand;
+    return matchesSearch && matchesBrand && matchesCategory;
   });
 
   return (
@@ -209,7 +211,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </button>
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
           <label className="text-slate-500 dark:text-slate-400 font-semibold">Filter Brand:</label>
           <select
             value={selectedBrand}
@@ -219,6 +221,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <option value="All">All Brands</option>
             {brands.map(b => (
               <option key={b.id} value={b.name}>{b.name}</option>
+            ))}
+          </select>
+          <label className="text-slate-500 dark:text-slate-400 font-semibold">Category:</label>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="p-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg font-semibold text-slate-700 dark:text-slate-200"
+          >
+            <option value="All">All Categories</option>
+            {[...new Set(products.map(product => product.category).filter(Boolean))].sort().map(category => (
+              <option key={category} value={category}>{category}</option>
             ))}
           </select>
         </div>
@@ -252,6 +265,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       </span>
                       <span>{product.model}</span>
                     </div>
+                    <span className="mt-1 inline-block text-[10px] text-slate-500 dark:text-slate-400">{product.category}</span>
                   </td>
                   <td className="p-3">
                     <div className="font-mono text-slate-800 dark:text-slate-200 font-semibold">{variant.sku}</div>
@@ -331,7 +345,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           }}
           fields={[
             { key: 'model', label: 'Model Name', required: true },
-            { key: 'category', label: 'Category', type: 'select', options: ['Smartphone', 'Feature Phone', 'Tablet', 'Accessories'] },
+            { key: 'category', label: 'Category', type: 'select', options: [...new Set(['Smartphone', 'Feature Phone', 'Tablet', 'Accessories', ...products.map(product => product.category)])], quickCreate: 'category', hint: 'তালিকায় না থাকলে ড্রপডাউনে ফোকাস করে Ctrl+C চাপুন।' },
             { key: 'networkRegion', label: 'Network / Region' },
             { key: 'warrantyPeriodMonths', label: 'Warranty (months)', type: 'number' },
             { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Discontinued'] },

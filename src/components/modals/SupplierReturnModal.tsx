@@ -17,6 +17,7 @@ import { WindowsModalFrame } from '../common/WindowsModalFrame';
 import { HistoryInput } from '../common/HistoryInput';
 import { recordFieldHistory } from '../../services/formHistoryService';
 import { useToast } from '../common/ToastNotificationSystem';
+import { useQuickCreateMasterData } from '../common/QuickCreateMasterDataModal';
 
 interface SupplierReturnModalProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export const SupplierReturnModal: React.FC<SupplierReturnModalProps> = ({
 }) => {
   const { suppliers, imeis, processSupplierReturn } = useERP();
   const { showSuccess } = useToast();
+  const { onQuickCreateKeyDown, quickCreateModal } = useQuickCreateMasterData();
 
   const [supplierId, setSupplierId] = useState(suppliers[0]?.id || '');
   const [selectedImei, setSelectedImei] = useState('');
@@ -139,6 +141,11 @@ export const SupplierReturnModal: React.FC<SupplierReturnModalProps> = ({
                 setSelectedImei('');
                 setReturnAmount(0);
               }}
+              onKeyDown={onQuickCreateKeyDown('supplier', id => {
+                setSupplierId(id);
+                setSelectedImei('');
+                setReturnAmount(0);
+              })}
               className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg"
             >
               {suppliers.map(s => (
@@ -233,6 +240,7 @@ export const SupplierReturnModal: React.FC<SupplierReturnModalProps> = ({
         }}
         confirmButtonText="রিটার্ন আইটেম নির্ধারণ করুন"
       />
+      {quickCreateModal}
     </>
   );
 };

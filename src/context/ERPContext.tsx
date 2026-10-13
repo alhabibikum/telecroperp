@@ -400,12 +400,12 @@ interface ERPContextType {
     notes?: string;
   }) => { success: boolean; transferNo?: string; error?: string };
   createExpense: (data: Omit<Expense, 'id' | 'expenseNo' | 'createdAt'>) => { success: boolean; error?: string };
-  addBrand: (brand: Omit<Brand, 'id'>) => void;
-  addProduct: (product: Omit<Product, 'id'>) => void;
-  addSupplier: (supplier: Omit<Supplier, 'id' | 'supplierCode'>) => void;
-  addCustomer: (customer: Omit<Customer, 'id' | 'customerCode'>) => void;
-  addSalesman: (salesman: Omit<Salesman, 'id' | 'employeeCode'>) => void;
-  addWarehouse: (warehouse: Omit<Warehouse, 'id' | 'code'>) => void;
+  addBrand: (brand: Omit<Brand, 'id'>) => string;
+  addProduct: (product: Omit<Product, 'id'>) => string;
+  addSupplier: (supplier: Omit<Supplier, 'id' | 'supplierCode'>) => string;
+  addCustomer: (customer: Omit<Customer, 'id' | 'customerCode'>) => string;
+  addSalesman: (salesman: Omit<Salesman, 'id' | 'employeeCode'>) => string;
+  addWarehouse: (warehouse: Omit<Warehouse, 'id' | 'code'>) => string;
   reconcileBankTransaction: (bankAccountId: string, txnId: string) => void;
   reconcileStatementEntry: (id: string, status: BankStatementEntry['status'], matchedSystemTxnId?: string) => void;
 

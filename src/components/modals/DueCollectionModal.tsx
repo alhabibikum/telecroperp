@@ -17,6 +17,7 @@ import { HistoryInput } from '../common/HistoryInput';
 import { recordFieldHistory } from '../../services/formHistoryService';
 import { useToast } from '../common/ToastNotificationSystem';
 import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog';
+import { useQuickCreateMasterData } from '../common/QuickCreateMasterDataModal';
 
 interface DueCollectionModalProps {
   isOpen: boolean;
@@ -70,6 +71,7 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
     autoFocusFirst: true,
     onCancel: handleRequestClose
   });
+  const { onQuickCreateKeyDown, quickCreateModal } = useQuickCreateMasterData();
 
   useEffect(() => {
     if (initialCustomerId) setCustomerId(initialCustomerId);
@@ -202,6 +204,7 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
               <select
                 value={customerId}
                 onChange={(e) => setCustomerId(e.target.value)}
+                onKeyDown={onQuickCreateKeyDown('customer', setCustomerId)}
                 className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-amber-500"
                 required
               >
@@ -371,6 +374,7 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
                 <select
                   value={bankAccountId}
                   onChange={(e) => setBankAccountId(e.target.value)}
+                  onKeyDown={onQuickCreateKeyDown('bankAccount', setBankAccountId)}
                   className="w-full text-xs p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100"
                 >
                   {bankAccounts.map(b => (
@@ -387,6 +391,7 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
               <select
                 value={collectorSalesmanId}
                 onChange={(e) => setCollectorSalesmanId(e.target.value)}
+                onKeyDown={onQuickCreateKeyDown('salesman', setCollectorSalesmanId)}
                 className="w-full text-xs p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100"
               >
                 <option value="">Direct Office Deposit</option>
@@ -447,6 +452,7 @@ export const DueCollectionModal: React.FC<DueCollectionModalProps> = ({
         title="বকেয়া আদায় ড্রাফট বাতিল করবেন? (Discard Due Collection?)"
         message="আপনি ইতিমধ্যে আদায়ের পরিমাণ বা নোট পরিবর্তন করেছেন। এখন বাতিল করলে কোনো ভাউচার তৈরি হবে না।"
       />
+      {quickCreateModal}
     </>
   );
 };

@@ -66,13 +66,14 @@ export interface MasterDataContextBundle {
 export const executeAddBrand = (
   b: Omit<Brand, 'id'>,
   ctx: MasterDataContextBundle
-) => {
+): string => {
   const { setBrands, enqueueChange, addAudit } = ctx;
   const id = `brand-${Date.now()}`;
   const newBrand = { ...b, id };
   setBrands(prev => [...prev, newBrand]);
   enqueueChange('brands', 'INSERT', id, newBrand, `নতুন ব্র্যান্ড যুক্ত (${b.name})`);
   addAudit('Added Brand', 'Brand Master', b.code, undefined, b.name);
+  return id;
 };
 
 export const executeUpdateBrand = (
@@ -115,13 +116,14 @@ export const executeDeleteBrand = (
 export const executeAddProduct = (
   p: Omit<Product, 'id'>,
   ctx: MasterDataContextBundle
-) => {
+): string => {
   const { setProducts, enqueueChange, addAudit } = ctx;
   const id = `prod-${Date.now()}`;
   const newProd = { ...p, id };
   setProducts(prev => [...prev, newProd]);
   enqueueChange('products', 'INSERT', id, newProd, `নতুন প্রোডাক্ট মডেল যুক্ত (${p.model})`);
   addAudit('Added Product Model', 'Product Master', p.model, undefined, `${p.brandName} - ${p.model}`);
+  return id;
 };
 
 export const executeUpdateProduct = (
@@ -174,13 +176,14 @@ export const executeDeleteProduct = (
 export const executeAddSupplier = (
   s: Omit<Supplier, 'id' | 'supplierCode'>,
   ctx: MasterDataContextBundle
-) => {
+): string => {
   const { suppliers, setSuppliers, enqueueChange, addAudit } = ctx;
   const code = `SUP-${(suppliers.length + 1).toString().padStart(3, '0')}`;
   const newSup: Supplier = { ...s, id: `sup-${Date.now()}`, supplierCode: code };
   setSuppliers(prev => [...prev, newSup]);
   enqueueChange('suppliers', 'INSERT', newSup.id, newSup, `নতুন সাপ্লায়ার যুক্ত (${s.name})`);
   addAudit('Added Supplier', 'Supplier Master', code, undefined, s.name);
+  return newSup.id;
 };
 
 export const executeUpdateSupplier = (
@@ -220,13 +223,14 @@ export const executeDeleteSupplier = (
 export const executeAddCustomer = (
   c: Omit<Customer, 'id' | 'customerCode'>,
   ctx: MasterDataContextBundle
-) => {
+): string => {
   const { customers, setCustomers, enqueueChange, addAudit } = ctx;
   const code = `CUST-${(customers.length + 1).toString().padStart(3, '0')}`;
   const newCust: Customer = { ...c, id: `cust-${Date.now()}`, customerCode: code };
   setCustomers(prev => [...prev, newCust]);
   enqueueChange('customers', 'INSERT', newCust.id, newCust, `নতুন কাস্টমার যুক্ত (${c.shopName})`);
   addAudit('Added Customer / Dealer', 'Customer Master', code, undefined, `${c.shopName} (${c.ownerName})`);
+  return newCust.id;
 };
 
 export const executeUpdateCustomer = (
@@ -263,13 +267,14 @@ export const executeDeleteCustomer = (
 export const executeAddSalesman = (
   sm: Omit<Salesman, 'id' | 'employeeCode'>,
   ctx: MasterDataContextBundle
-) => {
+): string => {
   const { salesmen, setSalesmen, enqueueChange, addAudit } = ctx;
   const code = `EMP-SM-${(salesmen.length + 1).toString().padStart(2, '0')}`;
   const newSm: Salesman = { ...sm, id: `sm-${Date.now()}`, employeeCode: code };
   setSalesmen(prev => [...prev, newSm]);
   enqueueChange('salesmen', 'INSERT', newSm.id, newSm, `নতুন সেলসম্যান যুক্ত (${sm.name})`);
   addAudit('Added Salesman', 'Salesman Master', code, undefined, sm.name);
+  return newSm.id;
 };
 
 export const executeUpdateSalesman = (
@@ -308,13 +313,14 @@ export const executeDeleteSalesman = (
 export const executeAddWarehouse = (
   wh: Omit<Warehouse, 'id' | 'code'>,
   ctx: MasterDataContextBundle
-) => {
+): string => {
   const { warehouses, setWarehouses, enqueueChange, addAudit } = ctx;
   const code = `WH-${wh.city.toUpperCase().substring(0, 3)}-${(warehouses.length + 1).toString().padStart(2, '0')}`;
   const newWh: Warehouse = { ...wh, id: `wh-${Date.now()}`, code };
   setWarehouses(prev => [...prev, newWh]);
   enqueueChange('warehouses', 'INSERT', newWh.id, newWh, `নতুন ওয়্যারহাউস যুক্ত (${wh.name})`);
   addAudit('Added Warehouse / Outlet', 'Warehouse Master', code, undefined, wh.name);
+  return newWh.id;
 };
 
 export const executeUpdateWarehouse = (

@@ -185,7 +185,7 @@ export const executeAddBankAccount = (
   setBankAccounts(prev => [...prev, acc]);
   enqueueChange('bank_accounts', 'INSERT', acc.id, acc, `নতুন ব্যাংক একাউন্ট (${data.bankName})`);
   addAudit('Added Bank Account', 'Banking', data.accountNumber, undefined, `${data.bankName} - ${data.accountName}`);
-  return { success: true };
+  return { success: true, id: acc.id };
 };
 
 export const executeUpdateBankAccount = (

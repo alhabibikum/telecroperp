@@ -21,6 +21,7 @@ import { WindowsModalFrame } from '../common/WindowsModalFrame';
 import { HistoryInput } from '../common/HistoryInput';
 import { recordFieldHistory } from '../../services/formHistoryService';
 import { useToast } from '../common/ToastNotificationSystem';
+import { useQuickCreateMasterData } from '../common/QuickCreateMasterDataModal';
 
 interface NewPurchaseModalProps {
   isOpen: boolean;
@@ -44,6 +45,7 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
     createPurchase,
     imeis
   } = useERP();
+  const { onQuickCreateKeyDown, quickCreateModal } = useQuickCreateMasterData();
 
   const [supplierId, setSupplierId] = useState<string>(suppliers[0]?.id || '');
   const [warehouseId, setWarehouseId] = useState<string>(warehouses[0]?.id || '');
@@ -379,6 +381,7 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                 <select
                   value={supplierId}
                   onChange={(e) => setSupplierId(e.target.value)}
+                  onKeyDown={onQuickCreateKeyDown('supplier', setSupplierId)}
                   className="w-full text-xs"
                   required
                 >
@@ -397,6 +400,7 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                 <select
                   value={warehouseId}
                   onChange={(e) => setWarehouseId(e.target.value)}
+                  onKeyDown={onQuickCreateKeyDown('warehouse', setWarehouseId)}
                   className="w-full text-xs"
                   required
                 >
@@ -468,6 +472,12 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                         <select
                           value={item.productId}
                           onChange={(e) => handleProductChange(idx, e.target.value)}
+                          onKeyDown={onQuickCreateKeyDown('product', (id, variant) => {
+                            if (!variant) return;
+                            setItems(prev => prev.map((line, lineIndex) => lineIndex === idx
+                              ? { ...line, productId: id, variantId: variant.id, unitCost: variant.purchasePrice }
+                              : line));
+                          })}
                           className="w-full text-xs"
                         >
                           {products.map(p => (
@@ -483,6 +493,12 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                         <select
                           value={item.variantId}
                           onChange={(e) => handleVariantChange(idx, e.target.value)}
+                          onKeyDown={onQuickCreateKeyDown('variant', (id, variant) => {
+                            if (!variant) return;
+                            setItems(prev => prev.map((line, lineIndex) => lineIndex === idx
+                              ? { ...line, variantId: id, unitCost: variant.purchasePrice }
+                              : line));
+                          }, item.productId)}
                           className="w-full text-xs"
                         >
                           {prod?.variants.map(v => (
@@ -631,6 +647,7 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                   <select
                     value={bankAccountId}
                     onChange={(e) => setBankAccountId(e.target.value)}
+                    onKeyDown={onQuickCreateKeyDown('bankAccount', setBankAccountId)}
                     className="w-full text-xs"
                   >
                     {bankAccounts.map(b => (
@@ -749,6 +766,7 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
         title="পারচেজ ইনভয়েস বাতিল করবেন? (Discard Purchase Entry?)"
         message="আপনি ইতিমধ্যে আইটেম বিবরণ বা আইএমইআই টাইপ করেছেন। এখন বাতিল করলে সব ইনওয়ার্ড এন্ট্রি ড্রাফট মুছে যাবে।"
       />
+      {quickCreateModal}
     </>
   );
 };
