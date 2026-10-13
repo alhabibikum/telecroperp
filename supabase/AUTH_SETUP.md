@@ -14,7 +14,8 @@ any real password or provider key that was previously committed.
 2. Copy `.env.example` to `.env.local` and set the project URL, anon key, and
    service-role key. Set a unique bootstrap email, name, and password using
    `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_NAME`, and
-   `BOOTSTRAP_ADMIN_PASSWORD`.
+   `BOOTSTRAP_ADMIN_PASSWORD`. For remote database CLI operations, also set
+   `SUPABASE_DB_PASSWORD`; never use a `VITE_` prefix for it.
 3. Create the first account:
 
    ```sh
@@ -25,9 +26,11 @@ any real password or provider key that was previously committed.
    creates a confirmed Supabase Auth user and links a `Super Admin` profile.
    Remove the bootstrap values from `.env.local` after setup.
 4. Run `supabase/migrations/001_add_auth_user_link.sql`, then
-   `supabase/migrations/002_enable_auth_and_rls.sql` in order. The first
-   migration is safe to run after bootstrap; the second enables role-based RLS
-   and grants authenticated access only through its policies.
+   `supabase/migrations/002_enable_auth_and_rls.sql` and
+   `supabase/migrations/003_restrict_public_function_execution.sql` in order.
+   The first migration is safe to run after bootstrap; the second enables
+   role-based RLS and grants authenticated access only through its policies.
+   The third restricts direct execution of public RPC and trigger functions.
 5. Set `ERP_ALLOWED_ORIGIN` and the Supabase URL, anon key, and service-role
    key as Supabase Edge Function secrets, then deploy the `admin-users`
    function. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in the
@@ -36,7 +39,10 @@ any real password or provider key that was previously committed.
 ## Existing database with legacy password profiles
 
 1. Back up the database and deploy the application only after reviewing this
-   migration. Run `001_add_auth_user_link.sql`.
+   migration. Authenticate the CLI and link the project (`supabase login`,
+   then `supabase link --project-ref <project-ref>`). Set
+   `SUPABASE_DB_PASSWORD` in `.env.local` for remote database CLI operations.
+   Run `001_add_auth_user_link.sql`.
 2. Set the URL, anon key, service-role key, and
    `SUPABASE_PASSWORD_RESET_REDIRECT_URL` in `.env.local`. Allow the redirect
    URL in Supabase Auth settings.
@@ -45,9 +51,10 @@ any real password or provider key that was previously committed.
    it transfers legacy passwords to Auth, links profiles, and requests resets
    for passwords shorter than Supabase's six-character minimum. Verify all
    users are linked and test sign-in/recovery before continuing.
-4. Run `002_enable_auth_and_rls.sql`, deploy the Edge Function as described
-   above, and remove the legacy password field/data from any backups or exports
-   according to the organization's retention policy.
+4. Run `002_enable_auth_and_rls.sql`, then
+   `003_restrict_public_function_execution.sql`. Deploy the Edge Function as
+   described above, and remove the legacy password field/data from any backups
+   or exports according to the organization's retention policy.
 
 Do not run the base schema script against an existing database. Do not enable
 the application before RLS is applied and an active Auth-linked Super Admin
