@@ -2,18 +2,15 @@ import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
 import { useTheme } from '../../context/ThemeContext';
 import {
-  Search,
   Bell,
   Plus,
   Truck,
   Wallet,
-  Wifi,
   WifiOff,
   Sun,
   Moon,
   Menu,
   Keyboard,
-  LogOut,
   Building2,
   RefreshCw,
   QrCode
@@ -28,7 +25,6 @@ interface HeaderProps {
   onOpenDueCollection: () => void;
   onOpenIMEILookup: (imei?: string) => void;
   onOpenMultiScanner?: (initialTokens?: string[], mode?: string) => void;
-  onOpenCommandPalette?: () => void;
   onOpenShortcutsHelp?: () => void;
   onSelectView: (view: string) => void;
   isPinned?: boolean;
@@ -45,21 +41,17 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenDueCollection,
   onOpenIMEILookup,
   onOpenMultiScanner,
-  onOpenCommandPalette,
   onOpenShortcutsHelp,
   onSelectView,
   onCheckForUpdates,
   isCheckingUpdates = false
 }) => {
   const {
-    currentUserRole,
-    currentUser,
     settings,
     updateSettings,
     isOnline,
     isSyncing,
-    triggerManualSync,
-    logout
+    triggerManualSync
   } = useERP();
   const { theme, toggleTheme } = useTheme();
 
@@ -96,31 +88,13 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Center: Command Palette Global Search (Square Desktop Bar) */}
-      <div className="flex-1 max-w-md mx-6 hidden md:block">
-        <button
-          type="button"
-          onClick={onOpenCommandPalette}
-          className="w-full h-9 px-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between transition cursor-pointer"
-          title="Search anything or run commands (Ctrl+K)"
-        >
-          <div className="flex items-center gap-2">
-            <Search className="w-4 h-4 text-slate-400" />
-            <span className="font-medium">আইএমইআই, ইনভয়েস, কাস্টমার খুঁজুন...</span>
-          </div>
-          <kbd className="font-mono text-[10.5px] bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-2 py-0.5 text-slate-600 font-bold">
-            Ctrl+K
-          </kbd>
-        </button>
-      </div>
-
-      {/* Right: Quick Action Buttons & Profile Controls */}
+      {/* Right: Quick Action Buttons */}
       <div className="flex items-center gap-2">
         {/* Quick New Sale Button */}
         <button
           type="button"
           onClick={onOpenNewSale}
-          className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#1d4ed8] hover:bg-[#1e40af] text-white font-bold text-xs border border-blue-700 shadow-2xs transition cursor-pointer"
+          className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#1d4ed8] hover:bg-[#1e40af] text-white font-bold text-[13px] border border-blue-700 shadow-2xs transition cursor-pointer"
           title="নতুন বিক্রয় ইনভয়েস (F8 / Ctrl+N)"
         >
           <Plus className="w-3.5 h-3.5" />
@@ -131,7 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           type="button"
           onClick={onOpenNewPurchase}
-          className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs border border-slate-300 dark:border-slate-700 transition cursor-pointer"
+          className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-[13px] border border-slate-300 dark:border-slate-700 transition cursor-pointer"
           title="নতুন পারচেজ ইনওয়ার্ড (F9)"
         >
           <Truck className="w-3.5 h-3.5 text-slate-500" />
@@ -142,7 +116,7 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           type="button"
           onClick={onOpenDueCollection}
-          className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs border border-slate-300 dark:border-slate-700 transition cursor-pointer"
+          className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-[13px] border border-slate-300 dark:border-slate-700 transition cursor-pointer"
           title="বকেয়া কালেকশন রসিদ (F6)"
         >
           <Wallet className="w-3.5 h-3.5 text-slate-500" />
@@ -212,28 +186,6 @@ export const Header: React.FC<HeaderProps> = ({
           {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
         </button>
 
-        {/* User Profile Pill */}
-        <div className="flex items-center gap-2 pl-2 border-l border-slate-300 dark:border-slate-700 ml-1">
-          <div className="w-7 h-7 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-bold text-xs flex items-center justify-center border border-blue-300 dark:border-blue-700">
-            {currentUser?.name?.charAt(0) || 'A'}
-          </div>
-          <div className="hidden md:block text-left">
-            <div className="text-[12.5px] font-bold text-slate-900 dark:text-slate-100 leading-none">
-              {currentUser?.name || 'Administrator'}
-            </div>
-            <div className="text-[11px] text-slate-500 font-semibold capitalize mt-0.5 leading-none">
-              {currentUserRole}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => logout()}
-            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-300 transition cursor-pointer"
-            title="লগআউট (Logout)"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
       </div>
     </header>
   );

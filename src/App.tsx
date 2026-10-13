@@ -849,7 +849,6 @@ const ERPAppContent: React.FC = () => {
         onOpenDueCollection={() => handleOpenDueCollection()}
         onOpenIMEILookup={handleOpenIMEILookup}
         onOpenMultiScanner={handleOpenMultiScanner}
-        onOpenCommandPalette={() => setShowCommandPalette(true)}
         onOpenShortcutsHelp={() => setShowShortcutHelp(true)}
         onSelectView={handleNavigateView}
         isPinned={isHeaderPinned}
