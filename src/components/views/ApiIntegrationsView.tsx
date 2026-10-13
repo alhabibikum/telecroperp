@@ -106,109 +106,56 @@ export const ApiIntegrationsView: React.FC = () => {
     updateSettings({
       apiIntegrations: {
         smsProvider,
-        smsApiKey,
         smsSenderId,
-        smsGatewayUrl,
         autoSmsOnSale,
-        bkashMerchant,
-        bkashAppKey,
-        bkashAppSecret,
         bkashEnvironment,
-        nagadMerchant,
-        nagadPublicKey,
-        sslStoreId,
-        sslStorePass,
-        steadfastApiKey,
-        steadfastSecret,
-        pathaoClientId,
-        pathaoSecret,
         autoSyncTracking,
-        btrcEirToken,
-        btrcWebhookUrl,
         btrcAutoReport
       }
     });
-    setSavedNotice(isBn ? 'কনফিগারেশন সফলভাবে ক্লাউড ডাটাবেজ ও লোকাল সিস্টেমে সংরক্ষণ করা হয়েছে!' : 'API credentials updated & persisted successfully to Supabase and storage!');
+    setSmsApiKey('');
+    setSmsGatewayUrl('');
+    setBkashMerchant('');
+    setBkashAppKey('');
+    setBkashAppSecret('');
+    setNagadMerchant('');
+    setNagadPublicKey('');
+    setSslStoreId('');
+    setSslStorePass('');
+    setSteadfastApiKey('');
+    setSteadfastSecret('');
+    setPathaoClientId('');
+    setPathaoSecret('');
+    setBtrcEirToken('');
+    setBtrcWebhookUrl('');
+    setSavedNotice(isBn
+      ? 'নিরাপত্তার জন্য API secret সংরক্ষণ করা হয়নি। লাইভ ইন্টিগ্রেশন server-side endpoint ও secret configuration না হওয়া পর্যন্ত কাজ করবে না।'
+      : 'API secrets were not saved. Live integrations remain unavailable until a server-side endpoint and secret configuration are deployed.');
     setTimeout(() => setSavedNotice(null), 3500);
   };
 
   const handleTestConnection = async (service: string) => {
     setConnectionTestResult({
       service,
-      status: 'testing',
-      message: `Connecting to ${service} API Gateway...`
+      status: 'error',
+      message: `${service} has no server-side connection-test endpoint configured. Credentials were not verified.`
     });
-
-    const start = performance.now();
-
-    try {
-      if (service === 'SMS Gateway') {
-        if (!smsApiKey.trim() && !smsGatewayUrl.trim()) {
-          throw new Error('SMS API Token or Gateway URL cannot be empty.');
-        }
-        if (smsGatewayUrl.trim().startsWith('http')) {
-          await fetch(smsGatewayUrl.trim(), { method: 'HEAD', mode: 'no-cors' }).catch(() => null);
-        }
-      } else if (service === 'bKash') {
-        if (!bkashMerchant.trim() || !bkashAppKey.trim()) {
-          throw new Error('bKash Merchant ID or App Key cannot be empty.');
-        }
-      } else if (service === 'Nagad') {
-        if (!nagadMerchant.trim() || !nagadPublicKey.trim()) {
-          throw new Error('Nagad Merchant or Public Key cannot be empty.');
-        }
-      } else if (service === 'SSLCommerz') {
-        if (!sslStoreId.trim() || !sslStorePass.trim()) {
-          throw new Error('SSLCommerz Store ID or Store Password cannot be empty.');
-        }
-      } else if (service === 'Steadfast') {
-        if (!steadfastApiKey.trim()) {
-          throw new Error('Steadfast API Key cannot be empty.');
-        }
-      } else if (service === 'Pathao') {
-        if (!pathaoClientId.trim()) {
-          throw new Error('Pathao Client ID cannot be empty.');
-        }
-      } else if (service === 'BTRC EIR') {
-        if (!btrcEirToken.trim()) {
-          throw new Error('BTRC EIR Token cannot be empty.');
-        }
-        if (btrcWebhookUrl.trim().startsWith('http')) {
-          await fetch(btrcWebhookUrl.trim(), { method: 'HEAD', mode: 'no-cors' }).catch(() => null);
-        }
-      }
-
-      const elapsed = Math.round(performance.now() - start);
-      setConnectionTestResult({
-        service,
-        status: 'success',
-        latencyMs: Math.max(34, elapsed),
-        message: `HTTP 200 OK — Authentication handshake verified with ${service} active endpoint.`
-      });
-    } catch (err: any) {
-      setConnectionTestResult({
-        service,
-        status: 'error',
-        message: `Connection Failed: ${err?.message || 'Authentication error'}`
-      });
-    }
   };
 
   const handleSendTestSms = () => {
     if (!testSmsPhone) return;
     setTestSmsStatus('Sending test SMS...');
-    setTimeout(() => {
-      sendSmsNotification({
-        recipientPhone: testSmsPhone,
-        recipientName: 'Test Recipient',
-        messageType: 'Promotional Campaign',
-        messageBody: `[TeleCorp ERP] Gateway Test Success. API: ${smsProvider}, SenderID: ${smsSenderId}. Time: ${new Date().toLocaleTimeString()}`,
-        masking: smsSenderId,
-        smsUnits: 1
-      });
-      setTestSmsStatus(isBn ? 'টেস্ট এসএমএস সফলভাবে পাঠানো হয়েছে!' : 'Test SMS delivered successfully via gateway!');
-      setTimeout(() => setTestSmsStatus(null), 4000);
-    }, 500);
+    const result = sendSmsNotification({
+      recipientPhone: testSmsPhone,
+      recipientName: 'Test Recipient',
+      messageType: 'Promotional Campaign',
+      messageBody: `[TeleCorp ERP] Gateway Test. API: ${smsProvider}, SenderID: ${smsSenderId}. Time: ${new Date().toLocaleTimeString()}`,
+      masking: smsSenderId,
+      smsUnits: 1
+    });
+    setTestSmsStatus(result.success
+      ? (isBn ? 'এসএমএস গেটওয়েতে পাঠানোর অনুরোধ করা হয়েছে; চূড়ান্ত অবস্থা SMS লগে দেখুন।' : 'SMS dispatch requested; check the SMS log for the provider result.')
+      : (isBn ? 'এসএমএস পাঠানো হয়নি: নিরাপদ server-side dispatch endpoint কনফিগার করা নেই।' : 'SMS was not sent: secure server-side dispatch is not configured.'));
   };
 
   return (
@@ -226,8 +173,8 @@ export const ApiIntegrationsView: React.FC = () => {
               </h2>
               <p className="text-xs text-slate-500 font-medium">
                 {isBn
-                  ? 'এসএমএস গেটওয়ে, বিকাশ/নগদ পেমেন্ট এপিআই, কুরিয়ার এপিআই এবং বিটিআরসি ইআইআর লাইভ কানেকশন'
-                  : 'Manage Greenweb SMS, bKash/Nagad Checkout, Steadfast Courier, and BTRC EIR API Webhooks'}
+                  ? 'ইন্টিগ্রেশন কনফিগারেশন; নিরাপদ server-side adapter স্থাপন না হওয়া পর্যন্ত কোনো provider request পাঠানো হবে না'
+                  : 'Integration settings only; provider requests remain disabled until secure server-side adapters are deployed'}
               </p>
             </div>
           </div>
@@ -312,10 +259,12 @@ export const ApiIntegrationsView: React.FC = () => {
             : 'bg-rose-50 border-rose-200 text-rose-800'
         }`}>
           <div className="flex items-center gap-2.5 font-bold">
-            {connectionTestResult.status === 'testing' ? (
+            {connectionTestResult.status === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            ) : connectionTestResult.status === 'testing' ? (
               <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
             ) : (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <AlertCircle className="w-4 h-4 text-rose-600" />
             )}
             <span>
               [{connectionTestResult.service}] {connectionTestResult.message}
@@ -457,19 +406,19 @@ export const ApiIntegrationsView: React.FC = () => {
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 space-y-1">
-                  <div className="font-bold text-slate-800">লাইভ ব্যালেন্স স্ট্যাটাস:</div>
+                  <div className="font-bold text-slate-800">ব্যালেন্স স্ট্যাটাস:</div>
                   <div className="flex items-center justify-between">
                     <span>অবশিষ্ট এসএমএস ক্রেডিট:</span>
-                    <span className="font-black text-blue-600">৪,৮৫০ টি</span>
+                    <span className="font-black text-slate-500">সংযুক্ত নয়</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>প্রতি এসএমএস খরচ:</span>
-                    <span className="font-mono text-slate-700">৳ ০.৩৫</span>
+                    <span className="font-mono text-slate-500">উপলভ্য নয়</span>
                   </div>
                 </div>
 
                 {testSmsStatus && (
-                  <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold">
+                  <div className={`p-2.5 rounded-xl border text-[11px] font-bold ${testSmsStatus.includes('পাঠানো হয়নি') || testSmsStatus.includes('not sent') ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
                     {testSmsStatus}
                   </div>
                 )}

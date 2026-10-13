@@ -1,11 +1,12 @@
 {
-  "name": "react-example",
+  "name": "telecroperp",
   "private": true,
   "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
+    "test": "tsx --test src/utils/financialMetrics.test.ts src/utils/sanitizeApiIntegrations.test.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",

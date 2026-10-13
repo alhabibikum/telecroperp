@@ -929,85 +929,21 @@ export const executeSendSmsNotification = (
   sms: Omit<SmsLog, 'id' | 'sentAt' | 'status'>,
   ctx: MasterDataContextBundle
 ): { success: boolean } => {
-  const { setSmsLogs, enqueueChange, addAudit, settings } = ctx;
-  const today = new Date().toISOString().replace('T', ' ').substr(0, 16);
+  const { setSmsLogs, enqueueChange, addAudit } = ctx;
+  const sentAt = new Date().toISOString().replace('T', ' ').substring(0, 16);
   const smsId = `sms-${Date.now()}`;
-  const integrations = settings?.apiIntegrations;
-  const apiKey = integrations?.smsApiKey;
-  const provider = integrations?.smsProvider || 'Greenweb';
-  const senderId = integrations?.smsSenderId || sms.masking || 'TeleCorp';
-  const gatewayUrl = integrations?.smsGatewayUrl;
-
-  const newSms: SmsLog = {
-    ...sms,
-    id: smsId,
-    sentAt: today,
-    status: apiKey || gatewayUrl ? 'Sent' : 'Delivered'
-  };
+  const newSms: SmsLog = { ...sms, id: smsId, sentAt, status: 'Failed' };
 
   setSmsLogs(prev => [newSms, ...prev]);
-  enqueueChange('sms_logs', 'INSERT', newSms.id, newSms, `এসএমএস লগ (${sms.recipientPhone})`);
-  addAudit(`Dispatched SMS to ${sms.recipientPhone} via ${provider}`, 'SMS Gateway', sms.recipientName);
+  enqueueChange('sms_logs', 'INSERT', newSms.id, newSms, `SMS log (${sms.recipientPhone})`);
+  addAudit(
+    `SMS not sent to ${sms.recipientPhone}: secure server-side dispatch is not configured`,
+    'SMS Gateway',
+    sms.recipientName
+  );
 
-  // Live Async Dispatch to SMS Gateway
-  if (apiKey || gatewayUrl) {
-    (async () => {
-      try {
-        let dispatchUrl = '';
-        let requestOptions: RequestInit = { method: 'GET' };
-        const cleanPhone = sms.recipientPhone.replace(/[^0-9]/g, '');
-
-        if (gatewayUrl) {
-          dispatchUrl = gatewayUrl;
-          requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}) },
-            body: JSON.stringify({
-              to: cleanPhone,
-              message: sms.messageBody,
-              senderId: senderId,
-              apiKey: apiKey
-            })
-          };
-        } else if (provider === 'Greenweb') {
-          dispatchUrl = `https://api.greenweb.com.bd/api.php?token=${encodeURIComponent(apiKey || '')}&to=${cleanPhone}&message=${encodeURIComponent(sms.messageBody)}`;
-        } else if (provider === 'BulkSMSBD') {
-          dispatchUrl = `https://bulksmsbd.net/api/smsapi?api_key=${encodeURIComponent(apiKey || '')}&type=text&number=${cleanPhone}&senderid=${encodeURIComponent(senderId)}&message=${encodeURIComponent(sms.messageBody)}`;
-        } else if (provider === 'MimSMS') {
-          dispatchUrl = `https://api.mimsms.com/api/v3/send-sms`;
-          requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-            body: JSON.stringify({
-              sender_id: senderId,
-              type: 'plain',
-              phone: cleanPhone,
-              message: sms.messageBody
-            })
-          };
-        } else {
-          dispatchUrl = `https://api.greenweb.com.bd/api.php?token=${encodeURIComponent(apiKey || '')}&to=${cleanPhone}&message=${encodeURIComponent(sms.messageBody)}`;
-        }
-
-        const resp = await fetch(dispatchUrl, { ...requestOptions, mode: 'cors' });
-        const isOk = resp.ok;
-
-        setSmsLogs(prev => prev.map(s => s.id === smsId ? {
-          ...s,
-          status: isOk ? 'Delivered' : 'Failed'
-        } : s));
-        enqueueChange('sms_logs', 'UPDATE', smsId, { ...newSms, status: isOk ? 'Delivered' : 'Failed' }, `এসএমএস গেটওয়ে রেসপন্স (${cleanPhone})`);
-      } catch (netErr: any) {
-        console.warn('Live SMS Gateway dispatch notice:', netErr);
-        // In browser without backend CORS proxy, mark as Sent
-        setSmsLogs(prev => prev.map(s => s.id === smsId ? { ...s, status: 'Sent' } : s));
-      }
-    })();
-  }
-
-  return { success: true };
+  return { success: false };
 };
-
 // ---- STOCK ADJUSTMENT FOR IMEIS ----
 export const executeAdjustStockIMEIs = (
   data: {

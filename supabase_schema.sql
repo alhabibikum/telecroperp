@@ -10,57 +10,14 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- =========================================================================
--- 0. CLEAN RESET (Drop old/incomplete tables to ensure fresh synchronization)
--- =========================================================================
-DROP TABLE IF EXISTS audit_logs CASCADE;
-DROP TABLE IF EXISTS backup_snapshots CASCADE;
-DROP TABLE IF EXISTS gateway_configs CASCADE;
-DROP TABLE IF EXISTS system_alerts CASCADE;
-DROP TABLE IF EXISTS sms_logs CASCADE;
-DROP TABLE IF EXISTS salesman_visits CASCADE;
-DROP TABLE IF EXISTS customer_follow_ups CASCADE;
-DROP TABLE IF EXISTS phone_exchange_records CASCADE;
-DROP TABLE IF EXISTS price_drop_claims CASCADE;
-DROP TABLE IF EXISTS delivery_challans CASCADE;
-DROP TABLE IF EXISTS brand_incentive_schemes CASCADE;
-DROP TABLE IF EXISTS warranty_claims CASCADE;
-DROP TABLE IF EXISTS journal_entries CASCADE;
-DROP TABLE IF EXISTS chart_of_accounts CASCADE;
-DROP TABLE IF EXISTS day_closings CASCADE;
-DROP TABLE IF EXISTS expenses CASCADE;
-DROP TABLE IF EXISTS expense_categories CASCADE;
-DROP TABLE IF EXISTS cash_transactions CASCADE;
-DROP TABLE IF EXISTS bank_statements CASCADE;
-DROP TABLE IF EXISTS bank_transactions CASCADE;
-DROP TABLE IF EXISTS bank_accounts CASCADE;
-DROP TABLE IF EXISTS emi_plans CASCADE;
-DROP TABLE IF EXISTS commission_disbursements CASCADE;
-DROP TABLE IF EXISTS money_receipts CASCADE;
-DROP TABLE IF EXISTS supplier_returns CASCADE;
-DROP TABLE IF EXISTS customer_returns CASCADE;
-DROP TABLE IF EXISTS stock_transfers CASCADE;
-DROP TABLE IF EXISTS sales_invoices CASCADE;
-DROP TABLE IF EXISTS purchase_invoices CASCADE;
-DROP TABLE IF EXISTS imeis CASCADE;
-DROP TABLE IF EXISTS product_variants CASCADE;
-DROP TABLE IF EXISTS products CASCADE;
-DROP TABLE IF EXISTS salesmen CASCADE;
-DROP TABLE IF EXISTS customers CASCADE;
-DROP TABLE IF EXISTS suppliers CASCADE;
-DROP TABLE IF EXISTS warehouses CASCADE;
-DROP TABLE IF EXISTS brands CASCADE;
-DROP TABLE IF EXISTS system_settings CASCADE;
-DROP TABLE IF EXISTS app_users CASCADE;
-
--- =========================================================================
 -- 1. AUTH & USERS (Profiles & RBAC 9 Enterprise Roles)
 -- =========================================================================
 CREATE TABLE app_users (
     id TEXT PRIMARY KEY,
+    auth_user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'Salesman',
-    password TEXT NOT NULL DEFAULT '123456',
     status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Suspended')),
     phone TEXT,
     department TEXT,
@@ -854,56 +811,13 @@ CREATE TABLE audit_logs (
     details TEXT
 );
 
--- =========================================================================
--- 25. SECURITY: DISABLE RLS & GRANT ACCESSIBILITY TO CONNECTED ERP
--- =========================================================================
-ALTER TABLE app_users DISABLE ROW LEVEL SECURITY;
-ALTER TABLE system_settings DISABLE ROW LEVEL SECURITY;
-ALTER TABLE brands DISABLE ROW LEVEL SECURITY;
-ALTER TABLE warehouses DISABLE ROW LEVEL SECURITY;
-ALTER TABLE suppliers DISABLE ROW LEVEL SECURITY;
-ALTER TABLE customers DISABLE ROW LEVEL SECURITY;
-ALTER TABLE salesmen DISABLE ROW LEVEL SECURITY;
-ALTER TABLE products DISABLE ROW LEVEL SECURITY;
-ALTER TABLE product_variants DISABLE ROW LEVEL SECURITY;
-ALTER TABLE imeis DISABLE ROW LEVEL SECURITY;
-ALTER TABLE sales_invoices DISABLE ROW LEVEL SECURITY;
-ALTER TABLE purchase_invoices DISABLE ROW LEVEL SECURITY;
-ALTER TABLE stock_transfers DISABLE ROW LEVEL SECURITY;
-ALTER TABLE customer_returns DISABLE ROW LEVEL SECURITY;
-ALTER TABLE supplier_returns DISABLE ROW LEVEL SECURITY;
-ALTER TABLE emi_plans DISABLE ROW LEVEL SECURITY;
-ALTER TABLE commission_disbursements DISABLE ROW LEVEL SECURITY;
-ALTER TABLE money_receipts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE bank_accounts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE bank_transactions DISABLE ROW LEVEL SECURITY;
-ALTER TABLE bank_statements DISABLE ROW LEVEL SECURITY;
-ALTER TABLE cash_transactions DISABLE ROW LEVEL SECURITY;
-ALTER TABLE expense_categories DISABLE ROW LEVEL SECURITY;
-ALTER TABLE expenses DISABLE ROW LEVEL SECURITY;
-ALTER TABLE day_closings DISABLE ROW LEVEL SECURITY;
-ALTER TABLE chart_of_accounts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE journal_entries DISABLE ROW LEVEL SECURITY;
-ALTER TABLE warranty_claims DISABLE ROW LEVEL SECURITY;
-ALTER TABLE brand_incentive_schemes DISABLE ROW LEVEL SECURITY;
-ALTER TABLE delivery_challans DISABLE ROW LEVEL SECURITY;
-ALTER TABLE price_drop_claims DISABLE ROW LEVEL SECURITY;
-ALTER TABLE phone_exchange_records DISABLE ROW LEVEL SECURITY;
-ALTER TABLE customer_follow_ups DISABLE ROW LEVEL SECURITY;
-ALTER TABLE salesman_visits DISABLE ROW LEVEL SECURITY;
-ALTER TABLE sms_logs DISABLE ROW LEVEL SECURITY;
-ALTER TABLE system_alerts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE gateway_configs DISABLE ROW LEVEL SECURITY;
-ALTER TABLE backup_snapshots DISABLE ROW LEVEL SECURITY;
-ALTER TABLE audit_logs DISABLE ROW LEVEL SECURITY;
-
-GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
-GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, service_role;
-
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO anon, authenticated, service_role;
+-- API roles stay locked down until the Auth-linked RLS migration is applied.
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL ON ALL ROUTINES IN SCHEMA public FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON ROUTINES FROM anon, authenticated;
 
 -- =========================================================================
 -- 26. STORED PROCEDURES, TRIGGERS & ATOMIC BUSINESS FUNCTIONS
@@ -1086,15 +1000,6 @@ INSERT INTO system_settings (id, company_name, company_address, company_phone, c
   'primary_settings', 'Firoza Enterprise', 'Konabari New Market, Konabari Gazipur', '01712996757', 'info@firozaenterprise.com', 'BIN: 530914078318 (BTRC Reg: 578902)', 5.00, 'BDT', '৳', 'FIFO', false, false, 0.00, 'bn', NOW()
 ) ON CONFLICT (id) DO UPDATE SET
   company_name = EXCLUDED.company_name, company_address = EXCLUDED.company_address, company_phone = EXCLUDED.company_phone;
-
--- 2. USERS
-INSERT INTO app_users (id, email, name, role, password, status, phone, department, branch_name, avatar, created_at, updated_at) VALUES (
-  'usr-admin', 'firoza1122@firoza.com', 'Firoza Enterprise Admin', 'Super Admin', 'password123', 'Active', '01712996757', 'Management', 'Konabari Head Office', '👑', NOW(), NOW()
-) ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name, role = EXCLUDED.role;
-
-INSERT INTO app_users (id, email, name, role, password, status, phone, department, branch_name, avatar, created_at, updated_at) VALUES (
-  'usr-troyee', 'troyee@firoza.com', 'Troyee (Accounts Head)', 'Accounts Manager', 'password123', 'Active', '+880 1712-996758', 'Accounts', 'Konabari Head Office', '💼', NOW(), NOW()
-) ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name, role = EXCLUDED.role;
 
 -- 3. WAREHOUSES
 INSERT INTO warehouses (id, code, name, type, address, city, manager_name, contact_number, status, created_at) VALUES (

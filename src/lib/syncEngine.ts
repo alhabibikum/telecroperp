@@ -1,5 +1,6 @@
 import { getSupabaseClient } from './supabase';
 import { erpStorage } from '../services/storageService';
+import { sanitizeApiIntegrations } from '../utils/sanitizeApiIntegrations';
 
 export type SyncAction = 'INSERT' | 'UPDATE' | 'DELETE' | 'UPSERT';
 
@@ -20,10 +21,24 @@ const SYNC_QUEUE_KEY = 'TELECORP_OFFLINE_SYNC_QUEUE_V1';
 
 let memoryQueue: SyncQueueItem[] | null = null;
 
+const removeQueuedIntegrationSecrets = (queue: SyncQueueItem[]): SyncQueueItem[] =>
+  queue.map(item => {
+    if (item.table !== 'system_settings' || !item.data || typeof item.data !== 'object') {
+      return item;
+    }
+    const data = { ...item.data };
+    if (data.apiIntegrations) {
+      data.apiIntegrations = sanitizeApiIntegrations(data.apiIntegrations);
+    }
+    return { ...item, data };
+  });
+
 // Initialize queue from IndexedDB
 erpStorage.getItem<SyncQueueItem[]>(SYNC_QUEUE_KEY).then(items => {
   if (items && Array.isArray(items)) {
-    memoryQueue = items;
+    const safeItems = removeQueuedIntegrationSecrets(items);
+    memoryQueue = safeItems;
+    if (JSON.stringify(safeItems) !== JSON.stringify(items)) saveSyncQueue(safeItems);
   }
 }).catch(() => {});
 
@@ -37,8 +52,10 @@ export const getSyncQueue = (): SyncQueueItem[] => {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      memoryQueue = parsed;
-      return parsed;
+      const safeItems = removeQueuedIntegrationSecrets(parsed);
+      memoryQueue = safeItems;
+      if (JSON.stringify(safeItems) !== JSON.stringify(parsed)) saveSyncQueue(safeItems);
+      return safeItems;
     }
   } catch (err) {
     console.error('Failed to read sync queue from localStorage:', err);
@@ -776,10 +793,10 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
     case 'app_users':
       return {
         id: data.id,
+        auth_user_id: data.authUserId || data.auth_user_id || null,
         email: data.email,
         name: data.name,
         role: data.role,
-        password: data.password || '123456',
         status: data.status || 'Active',
         phone: data.phone || null,
         department: data.department || null,

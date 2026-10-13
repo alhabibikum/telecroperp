@@ -108,7 +108,7 @@ const VIEW_CONFIG: Record<string, { title: string; subtitle: string; icon: strin
 };
 
 const ERPAppContent: React.FC = () => {
-  const { isAuthenticated, currentUserRole, currentUser, hasPermission, salesInvoices, triggerManualSync } = useERP();
+  const { isAuthenticated, isAuthLoading, isPasswordRecovery, currentUserRole, currentUser, hasPermission, salesInvoices, triggerManualSync } = useERP();
   const { showSuccess, showInfo, showError } = useToast();
   const { zoomLevel, showZoomIndicator, isZoomed, zoomIn, zoomOut, resetZoom } = useAppZoom();
   const {
@@ -815,7 +815,11 @@ const ERPAppContent: React.FC = () => {
     }
   };
 
-  if (!isAuthenticated) {
+  if (isAuthLoading) {
+    return <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center" role="status">সেশন যাচাই করা হচ্ছে...</div>;
+  }
+
+  if (isPasswordRecovery || !isAuthenticated) {
     return (
       <>
         <OfflineStatusBanner />

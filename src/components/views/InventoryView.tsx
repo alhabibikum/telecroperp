@@ -90,7 +90,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </h2>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Valuation Method: <b className="text-blue-700 dark:text-blue-400">{settings.valuationMethod}</b> • Reorder level alerts & Serialized IMEI tracking
+            Inventory totals use recorded IMEI purchase costs; FIFO/weighted-average costing is not implemented.
           </p>
         </div>
 
@@ -158,7 +158,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       {/* Financial KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
         <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs">
-          <div className="text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px]">Net Stock Valuation ({settings.valuationMethod})</div>
+          <div className="text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px]">Recorded Cost of In-Stock IMEIs</div>
           <div className="text-lg font-black text-slate-900 dark:text-white mt-1">{formatBDT(totalValuation)}</div>
         </div>
         <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs">

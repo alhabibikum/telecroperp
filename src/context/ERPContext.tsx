@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { erpStorage } from '../services/storageService';
+import { sanitizePartialSystemSettings, sanitizeSystemSettings } from '../utils/sanitizeApiIntegrations';
 import {
   Brand,
   Product,
@@ -91,6 +92,7 @@ import {
   SyncQueueItem
 } from '../lib/syncEngine';
 import { seedCloudDemoData } from '../lib/resetEngine';
+import { persistAuthSession, toPublicUser } from '../utils/authSession';
 
 // Modular Action Slices
 import {
@@ -173,11 +175,6 @@ import {
 } from './actions/masterDataActions';
 import {
   SystemContextBundle,
-  executeCreateUser,
-  executeUpdateUser,
-  executeDeleteUser,
-  executeToggleUserStatus,
-  executeResetUserPassword,
   executeExportJSON,
   executeImportJSON,
   executeCreateBackupSnapshot,
@@ -200,14 +197,15 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   'General Manager': ['*'],
   'Sales Manager': [
     'dashboard', 'imei-trace', 'alert-center',
-    'wholesale-sales', 'retail-pos', 'delivery-dispatch', 'due-ageing', 'due-collection',
-    'sms-marketing', 'price-drop', 'brand-incentives',
-    'customers', 'salesmen', 'salesman-app', 'field-visits',
-    'reports', 'custom-reports'
+    'wholesale-sales', 'retail-pos', 'delivery-dispatch', 'inventory', 'purchases', 'accounting',
+    'due-ageing', 'due-collection',
+    'sms-marketing', 'price-drop', 'brand-incentives', 'emi-installment', 'phone-exchange',
+    'customers', 'salesmen', 'salesman-app', 'field-visits', 'returns',
+    'reports', 'classic-reports', 'dynamic-business-report', 'custom-reports'
   ],
   'Salesman': [
     'dashboard', 'salesman-app', 'field-visits', 'wholesale-sales',
-    'due-collection', 'customers', 'imei-trace'
+    'due-collection', 'due-ageing', 'customers', 'imei-trace', 'alert-center'
   ],
   'Warehouse Manager': [
     'dashboard', 'inventory', 'imei-trace', 'barcode-labels', 'brands',
@@ -217,17 +215,20 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   'Accounts Manager': [
     'dashboard', 'cash-bank', 'bank-reconciliation', 'day-closing', 'expenses',
     'accounting', 'due-ageing', 'due-collection', 'wholesale-sales', 'purchases',
-    'suppliers', 'customers', 'brand-incentives', 'price-drop', 'reports',
-    'custom-reports', 'audit-logs'
+    'suppliers', 'customers', 'brand-incentives', 'price-drop', 'emi-installment',
+    'reports', 'classic-reports', 'dynamic-business-report', 'custom-reports', 'audit-logs',
+    'alert-center'
   ],
   'Accountant': [
     'dashboard', 'cash-bank', 'bank-reconciliation', 'day-closing', 'expenses',
     'accounting', 'due-ageing', 'due-collection', 'wholesale-sales', 'purchases',
-    'suppliers', 'customers', 'reports'
+    'suppliers', 'customers', 'reports', 'classic-reports', 'dynamic-business-report',
+    'emi-installment', 'alert-center'
   ],
   'Cashier': [
     'dashboard', 'retail-pos', 'due-collection', 'phone-exchange',
-    'day-closing', 'imei-trace', 'wholesale-sales'
+    'day-closing', 'imei-trace', 'wholesale-sales', 'emi-installment', 'customers',
+    'alert-center', 'cash-bank'
   ]
 };
 
@@ -238,148 +239,60 @@ export const hasPermission = (role: UserRole, viewId: string): boolean => {
   return allowed.includes(viewId);
 };
 
-export const demoUsers: AuthUser[] = [
-  {
-    id: '8d510069-b154-440a-aa3e-0999a9c354e1',
-    name: 'Mansur Azad',
-    email: 'mansurazad@gmail.com',
-    role: 'Super Admin',
-    password: 'M#112233@a',
-    status: 'Active',
-    phone: '+880 1711-002233',
-    department: 'Executive Board / Managing Director',
-    branchName: 'Headquarters (Motijheel, Dhaka)',
-    avatar: '👨‍💼',
-    lastLogin: '2026-10-07 10:00',
-    createdAt: '2026-01-01'
-  },
-  {
-    id: 'user-admin',
-    name: 'Aminul Islam',
-    email: 'admin@telecorp.com',
-    role: 'Super Admin',
-    password: 'admin',
-    status: 'Active',
-    phone: '+880 1711-002233',
-    department: 'Executive Board / Managing Director',
-    branchName: 'Headquarters (Motijheel, Dhaka)',
-    avatar: '👨‍💼',
-    lastLogin: '2026-10-04 09:15',
-    createdAt: '2026-01-01'
-  },
-  {
-    id: 'user-owner',
-    name: 'M. A. Rashid',
-    email: 'owner@telecorp.com',
-    role: 'Owner',
-    password: 'owner',
-    status: 'Active',
-    phone: '+880 1711-112233',
-    department: 'Chairman & Principal Investor',
-    branchName: 'Headquarters (Motijheel, Dhaka)',
-    avatar: '👑',
-    lastLogin: '2026-10-04 08:00',
-    createdAt: '2026-01-01'
-  },
-  {
-    id: 'user-gm',
-    name: 'Rafiqul Bari',
-    email: 'gm@telecorp.com',
-    role: 'General Manager',
-    password: 'gm',
-    status: 'Active',
-    phone: '+880 1711-445566',
-    department: 'General Operations & Supply Chain',
-    branchName: 'Headquarters (Motijheel, Dhaka)',
-    avatar: '🎩',
-    lastLogin: '2026-10-04 08:30',
-    createdAt: '2026-01-05'
-  },
-  {
-    id: 'user-sales',
-    name: 'Tanvir Hasan',
-    email: 'sales@telecorp.com',
-    role: 'Sales Manager',
-    password: 'sales',
-    status: 'Active',
-    phone: '+880 1712-334455',
-    department: 'Wholesale Distribution & Dealer Sales',
-    branchName: 'Dhaka Division Hub',
-    avatar: '💼',
-    lastLogin: '2026-10-04 08:45',
-    createdAt: '2026-01-10'
-  },
-  {
-    id: 'user-wh',
-    name: 'Masum Billah',
-    email: 'warehouse@telecorp.com',
-    role: 'Warehouse Manager',
-    password: 'wh',
-    status: 'Active',
-    phone: '+880 1819-556677',
-    department: 'Central Logistics & Serial IMEI Registry',
-    branchName: 'Central Warehouse (Motijheel)',
-    avatar: '📦',
-    lastLogin: '2026-10-04 08:30',
-    createdAt: '2026-01-10'
-  },
-  {
-    id: 'user-accounts',
-    name: 'Farhana Akter',
-    email: 'accounts@telecorp.com',
-    role: 'Accounts Manager',
-    password: 'accounts',
-    status: 'Active',
-    phone: '+880 1911-778899',
-    department: 'Finance, Banking & Audit',
-    branchName: 'Headquarters (Motijheel, Dhaka)',
-    avatar: '📊',
-    lastLogin: '2026-10-04 09:00',
-    createdAt: '2026-01-12'
-  },
-  {
-    id: 'user-accountant',
-    name: 'Shabbir Ahmed',
-    email: 'accountant@telecorp.com',
-    role: 'Accountant',
-    password: 'acc',
-    status: 'Active',
-    phone: '+880 1911-223344',
-    department: 'Accounts & Day Ledgering',
-    branchName: 'Headquarters (Motijheel, Dhaka)',
-    avatar: '📑',
-    lastLogin: '2026-10-04 09:10',
-    createdAt: '2026-01-15'
-  },
-  {
-    id: 'user-field',
-    name: 'Karim Ullah',
-    email: 'field@telecorp.com',
-    role: 'Salesman',
-    password: 'field',
-    status: 'Active',
-    phone: '+880 1611-990011',
-    department: 'Field Sales & Dealer Route Service',
-    branchName: 'Dhaka North Territory',
-    avatar: '🛵',
-    lastLogin: '2026-10-04 09:30',
-    createdAt: '2026-02-01'
-  },
-  {
-    id: 'user-cashier',
-    name: 'Sumon Mia',
-    email: 'cashier@telecorp.com',
-    role: 'Cashier',
-    password: 'cash',
-    status: 'Active',
-    phone: '+880 1611-332211',
-    department: 'Retail POS Counter & Daily Vault',
-    branchName: 'Gulshan Express Outlet',
-    avatar: '💵',
-    lastLogin: '2026-10-04 09:20',
-    createdAt: '2026-02-05'
-  }
-];
+const normalizeUserRole = (role: string): UserRole | null => {
+  const roles: UserRole[] = [
+    'Super Admin', 'Owner', 'General Manager', 'Accounts Manager', 'Sales Manager',
+    'Warehouse Manager', 'Salesman', 'Cashier', 'Accountant'
+  ];
+  return roles.find(candidate => candidate.toLowerCase() === role.trim().toLowerCase()) || null;
+};
+
+interface AppUserProfile {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  status: 'Active' | 'Suspended';
+  phone?: string | null;
+  department?: string | null;
+  branch_name?: string | null;
+  avatar?: string | null;
+  last_login?: string | null;
+  created_at?: string | null;
+}
+
+const mapAppUserProfile = (data: AppUserProfile): AuthUser => {
+  const role = normalizeUserRole(data.role || '');
+  if (!role) throw new Error(`Unsupported account role for ${data.email}.`);
+
+  return {
+    id: data.id,
+    email: data.email,
+    name: data.name,
+    role,
+    status: data.status,
+    phone: data.phone || undefined,
+    department: data.department || undefined,
+    branchName: data.branch_name || undefined,
+    avatar: data.avatar || '👨‍💼',
+    lastLogin: data.last_login || undefined,
+    createdAt: data.created_at || undefined
+  };
+};
+
+const fetchAuthenticatedProfile = async (
+  supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
+  authUserId: string
+): Promise<AuthUser | null> => {
+  const { data, error } = await supabase
+    .from('app_users')
+    .select('id,email,name,role,status,phone,department,branch_name,avatar,last_login,created_at')
+    .eq('auth_user_id', authUserId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data || data.status !== 'Active') return null;
+  return mapAppUserProfile(data as AppUserProfile);
+};
 
 export type { CrudResult };
 
@@ -387,17 +300,19 @@ interface ERPContextType {
   // Auth & Session
   currentUser: AuthUser | null;
   isAuthenticated: boolean;
-  demoUsers: AuthUser[];
+  isAuthLoading: boolean;
+  isPasswordRecovery: boolean;
   users: AuthUser[];
   hasPermission: (role: UserRole, viewId: string) => boolean;
   login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
-  loginAsDemoUser: (userId: string) => { success: boolean; error?: string };
+  requestPasswordReset: (email: string) => Promise<{ success: boolean; error?: string }>;
+  completePasswordRecovery: (password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  createUser: (userData: Omit<AuthUser, 'id'>) => CrudResult;
-  updateUser: (id: string, userData: Partial<AuthUser>) => CrudResult;
-  deleteUser: (id: string) => CrudResult;
-  toggleUserStatus: (id: string) => CrudResult;
-  resetUserPassword: (id: string, newPassword: string) => CrudResult;
+  createUser: (userData: Omit<AuthUser, 'id'>) => Promise<CrudResult>;
+  updateUser: (id: string, userData: Partial<AuthUser>) => Promise<CrudResult>;
+  deleteUser: (id: string) => Promise<CrudResult>;
+  toggleUserStatus: (id: string) => Promise<CrudResult>;
+  resetUserPassword: (id: string, newPassword: string) => Promise<CrudResult>;
 
   // State
   brands: Brand[];
@@ -706,7 +621,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (idbState.journalEntries) setJournalEntries(idbState.journalEntries);
           if (idbState.alerts) setAlerts(idbState.alerts);
           if (idbState.auditLogs) setAuditLogs(idbState.auditLogs);
-          if (idbState.settings) setSettings(idbState.settings);
+          if (idbState.settings) setSettings(sanitizeSystemSettings(idbState.settings));
           if (idbState.salesmanVisits) setSalesmanVisits(idbState.salesmanVisits);
           if (idbState.customerFollowUps) setCustomerFollowUps(idbState.customerFollowUps);
           if (idbState.dayClosings) setDayClosings(idbState.dayClosings);
@@ -741,47 +656,22 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   // Users Management State (Real-Time RBAC)
-  const [users, setUsers] = useState<AuthUser[]>(() => {
-    try {
-      const saved = localStorage.getItem('TELECORP_USERS_LIST');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const hasMansur = parsed.some((u: any) => u.email?.toLowerCase() === 'mansurazad@gmail.com');
-          if (!hasMansur) {
-            return [demoUsers[0], ...parsed];
-          }
-          return parsed;
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    return demoUsers;
-  });
+  const [users, setUsers] = useState<AuthUser[]>([]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('TELECORP_USERS_LIST', JSON.stringify(users));
-    } catch (e) {
-      console.error(e);
+      localStorage.removeItem('TELECORP_USERS_LIST');
+    } catch (error) {
+      console.error('Failed to clear the legacy local user directory:', error);
     }
-  }, [users]);
+  }, []);
 
   // Auth User Session State
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
-    try {
-      const authState = localStorage.getItem('TELECORP_AUTH_STATE');
-      if (authState === 'logged_out') {
-        return null;
-      }
-      const savedUser = localStorage.getItem('TELECORP_AUTH_USER');
-      if (savedUser) return JSON.parse(savedUser);
-    } catch (e) {
-      console.error(e);
-    }
-    return demoUsers[0];
+    return null;
   });
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   // Backup Snapshots State
   const [backupSnapshots, setBackupSnapshots] = useState<BackupSnapshot[]>(() => {
@@ -811,14 +701,91 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     if (currentUser) {
-      localStorage.setItem('TELECORP_AUTH_STATE', 'logged_in');
-      localStorage.setItem('TELECORP_AUTH_USER', JSON.stringify(currentUser));
+      persistAuthSession(currentUser);
       setCurrentUserRole(currentUser.role);
     } else {
       localStorage.setItem('TELECORP_AUTH_STATE', 'logged_out');
       localStorage.removeItem('TELECORP_AUTH_USER');
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      setIsAuthLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+    const applyAuthSession = async (authUserId: string | null) => {
+      if (!authUserId) {
+        if (isMounted) {
+          setCurrentUser(null);
+          setUsers([]);
+        }
+        return;
+      }
+
+      try {
+        const profile = await fetchAuthenticatedProfile(supabase, authUserId);
+        if (!isMounted) return;
+        if (!profile) {
+          await supabase.auth.signOut();
+          setCurrentUser(null);
+          setUsers([]);
+          return;
+        }
+        setCurrentUser(profile);
+        setCurrentUserRole(profile.role);
+        setUsers(prev => [profile, ...prev.filter(user => user.id !== profile.id)]);
+      } catch (error) {
+        console.error('Failed to verify the Supabase Auth session profile:', error);
+        if (isMounted) {
+          setCurrentUser(null);
+          setUsers([]);
+          await supabase.auth.signOut();
+        }
+      } finally {
+        if (isMounted) setIsAuthLoading(false);
+      }
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setCurrentUser(null);
+        setIsPasswordRecovery(true);
+        setIsAuthLoading(false);
+        return;
+      }
+      if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        setUsers([]);
+        setIsPasswordRecovery(false);
+        setIsAuthLoading(false);
+        return;
+      }
+      queueMicrotask(() => {
+        void applyAuthSession(session?.user.id || null);
+      });
+    });
+
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        console.error('Failed to restore Supabase Auth session:', error);
+        void applyAuthSession(null);
+        return;
+      }
+      void applyAuthSession(data.session?.user.id || null);
+    }).catch(error => {
+      console.error('Failed to initialize Supabase Auth:', error);
+      if (isMounted) setIsAuthLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Network Online/Offline Detection State
   const [isOnline, setIsOnline] = useState<boolean>(() => {
@@ -856,25 +823,20 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setPendingSyncCount(getPendingSyncCount());
 
       // 1. Sync App Users
-      const { data: userData } = await supabase.from('app_users').select('*');
-      if (userData && userData.length > 0) {
+      const { data: userData, error: userError } = await supabase.from('app_users').select('*');
+      if (userError) throw userError;
+      if (userData) {
         const cloudUsers: AuthUser[] = userData.map((sbUser: any) => {
-          let normalizedRole: UserRole = 'Salesman';
-          const r = (sbUser.role || '').toLowerCase();
-          if (r === 'super admin' || r === 'admin' || r === 'owner') normalizedRole = 'Super Admin';
-          else if (r.includes('account')) normalizedRole = 'Accountant';
-          else if (r.includes('warehouse')) normalizedRole = 'Warehouse Manager';
-          else if (r.includes('cashier')) normalizedRole = 'Cashier';
-          else if (r.includes('sales manager')) normalizedRole = 'Sales Manager';
-          else if (r.includes('sales')) normalizedRole = 'Salesman';
-          else normalizedRole = 'Super Admin';
+          const normalizedRole = normalizeUserRole(sbUser.role || '');
+          if (!normalizedRole) {
+            throw new Error(`Unsupported account role for ${sbUser.email}.`);
+          }
 
           return {
             id: sbUser.id,
             email: sbUser.email,
             name: sbUser.name,
             role: normalizedRole,
-            password: sbUser.password,
             status: sbUser.status || 'Active',
             phone: sbUser.phone || undefined,
             department: sbUser.department || undefined,
@@ -885,18 +847,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           };
         });
 
-        setUsers(prev => {
-          const merged = [...prev];
-          cloudUsers.forEach(cu => {
-            const idx = merged.findIndex(u => u.email.toLowerCase() === cu.email.toLowerCase());
-            if (idx >= 0) {
-              merged[idx] = cu;
-            } else {
-              merged.unshift(cu);
-            }
-          });
-          return merged;
-        });
+        setUsers(cloudUsers);
       }
 
       // 2. Sync Brands
@@ -1472,7 +1423,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const { data: setArr } = await supabase.from('system_settings').select('*').limit(1);
       if (setArr && setArr.length > 0) {
         const s = setArr[0];
-        setSettings({
+        setSettings(sanitizeSystemSettings({
           companyName: s.company_name,
           companyAddress: s.company_address,
           companyPhone: s.company_phone,
@@ -1486,7 +1437,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           creditLimitHardBlock: Boolean(s.credit_limit_hard_block),
           maxDiscountWithoutApproval: Number(s.max_discount_without_approval || 1000),
           language: s.language || 'bn'
-        });
+        }));
       }
 
       // 28. Sync Alerts
@@ -1785,8 +1736,9 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateSettings = (newSettings: Partial<SystemSettings>) => {
+    const safeSettings = sanitizePartialSystemSettings(newSettings);
     setSettings(prev => {
-      const updated = { ...prev, ...newSettings };
+      const updated = sanitizeSystemSettings({ ...prev, ...safeSettings });
       enqueueChange('system_settings', 'UPDATE', 'primary_settings', updated, 'সিস্টেম সেটিংস পরিবর্তন');
 
       // Real-time direct cloud sync if Supabase is connected and client is online
@@ -1811,7 +1763,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       return updated;
     });
-    addAudit('Updated System Settings', 'Settings', 'SYSTEM', 'Prior Config', JSON.stringify(newSettings));
+    addAudit('Updated System Settings', 'Settings', 'SYSTEM');
   };
 
   const markAlertRead = (alertId: string) => {
@@ -1852,11 +1804,11 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       await erpStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(STORAGE_KEY);
-      localStorage.setItem('TELECORP_USERS_LIST', JSON.stringify(demoUsers));
+      localStorage.removeItem('TELECORP_USERS_LIST');
     } catch (e) {
       console.error(e);
     }
-    setUsers(demoUsers);
+    setUsers([]);
 
     setBrands(initialBrands);
     setProducts(initialProducts);
@@ -1923,153 +1875,82 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     const supabase = getSupabaseClient();
-    const canCheckSupabase = supabase && (typeof navigator === 'undefined' || navigator.onLine);
-
-    if (canCheckSupabase) {
-      try {
-        const fetchPromise = supabase
-          .from('app_users')
-          .select('*')
-          .ilike('email', trimmedEmail)
-          .limit(1);
-
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Cloud login timeout')), 3500)
-        );
-
-        const { data: sbUsers } = await Promise.race([fetchPromise, timeoutPromise]) as any;
-
-        if (sbUsers && sbUsers.length > 0) {
-          const sbUser = sbUsers[0];
-          const isMansur = (sbUser.email || '').toLowerCase() === 'mansurazad@gmail.com';
-          const isPasswordValid = sbUser.password === trimmedPass || 
-            (isMansur && (trimmedPass === 'M#112233@a' || trimmedPass === 'admin'));
-
-          if (sbUser.password && !isPasswordValid) {
-            return { success: false, error: 'ভুল পাসওয়ার্ড! দয়া করে সঠিক পাসওয়ার্ড দিয়ে পুনরায় চেষ্টা করুন।' };
-          }
-          if (sbUser.status === 'Suspended') {
-            return { success: false, error: 'এই অ্যাকাউন্টটি স্থগিত (Suspended) করা হয়েছে। সিস্টেম অ্যাডমিনের সাথে যোগাযোগ করুন।' };
-          }
-
-          let normalizedRole: UserRole = 'Salesman';
-          const r = (sbUser.role || '').toLowerCase();
-          if (r === 'super admin' || r === 'admin' || r === 'owner') normalizedRole = 'Super Admin';
-          else if (r.includes('account')) normalizedRole = 'Accountant';
-          else if (r.includes('warehouse')) normalizedRole = 'Warehouse Manager';
-          else if (r.includes('cashier')) normalizedRole = 'Cashier';
-          else if (r.includes('sales manager')) normalizedRole = 'Sales Manager';
-          else if (r.includes('sales')) normalizedRole = 'Salesman';
-          else normalizedRole = 'Super Admin';
-
-          const mappedUser: AuthUser = {
-            id: sbUser.id,
-            email: sbUser.email,
-            name: sbUser.name,
-            role: normalizedRole,
-            password: sbUser.password,
-            status: sbUser.status || 'Active',
-            phone: sbUser.phone || undefined,
-            department: sbUser.department || undefined,
-            branchName: sbUser.branch_name || undefined,
-            avatar: sbUser.avatar || '👨‍💼',
-            lastLogin: new Date().toISOString().replace('T', ' ').substr(0, 16)
-          };
-
-          supabase.from('app_users').update({
-            last_login: new Date().toISOString()
-          }).eq('id', sbUser.id).then(() => { });
-
-          setUsers(prev => {
-            const idx = prev.findIndex(u => u.email.toLowerCase() === trimmedEmail);
-            if (idx >= 0) {
-              const cp = [...prev];
-              cp[idx] = mappedUser;
-              return cp;
-            }
-            return [mappedUser, ...prev];
-          });
-
-          setCurrentUser(mappedUser);
-          setCurrentUserRole(mappedUser.role);
-
-          try {
-            localStorage.setItem('TELECORP_AUTH_STATE', 'logged_in');
-            localStorage.setItem('TELECORP_AUTH_USER', JSON.stringify(mappedUser));
-          } catch (e) {
-            console.error('LocalStorage write error', e);
-          }
-
-          addAudit(`User Logged In via Supabase Cloud (${mappedUser.name})`, 'Authentication', mappedUser.email);
-          return { success: true };
-        }
-      } catch (err) {
-        console.warn('Supabase authentication check failed, falling back to local users list', err);
-      }
+    if (!supabase) {
+      return { success: false, error: 'Supabase Auth is not configured. Local/demo login is disabled.' };
     }
-
-    let user = users.find(u => u.email.toLowerCase() === trimmedEmail || u.id === trimmedEmail);
-
-    if (!user) {
-      return { success: false, error: 'এই ইমেইল ঠিকানায় কোনো ইউজার একাউন্ট খুঁজে পাওয়া যায়নি।' };
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return { success: false, error: 'ইন্টারনেট সংযোগ ছাড়া Supabase Auth-এ লগইন করা যাবে না।' };
     }
-
-    const isMansur = (user.email || '').toLowerCase() === 'mansurazad@gmail.com';
-    const isPasswordValid = user.password === trimmedPass || 
-      (isMansur && (trimmedPass === 'M#112233@a' || trimmedPass === 'admin'));
-
-    if (user.password && !isPasswordValid) {
-      return { success: false, error: 'ভুল পাসওয়ার্ড! দয়া করে সঠিক পাসওয়ার্ড দিয়ে পুনরায় চেষ্টা করুন।' };
-    }
-
-    if (user.status === 'Suspended') {
-      return { success: false, error: 'এই অ্যাকাউন্টটি স্থগিত (Suspended) করা হয়েছে। সিস্টেম অ্যাডমিন বা ম্যানেজারের সাথে যোগাযোগ করুন।' };
-    }
-
-    const updatedUser: AuthUser = {
-      ...user,
-      lastLogin: new Date().toISOString().replace('T', ' ').substr(0, 16)
-    };
-
-    setUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
-    setCurrentUser(updatedUser);
-    setCurrentUserRole(user.role);
 
     try {
-      localStorage.setItem('TELECORP_AUTH_STATE', 'logged_in');
-      localStorage.setItem('TELECORP_AUTH_USER', JSON.stringify(updatedUser));
-    } catch (e) {
-      console.error('LocalStorage write error', e);
-    }
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password: trimmedPass
+      });
+      if (error) {
+        return { success: false, error: 'ইমেইল বা পাসওয়ার্ড সঠিক নয়।' };
+      }
 
-    addAudit(`User Logged In (${user.name})`, 'Authentication', user.email);
+      const profile = await fetchAuthenticatedProfile(supabase, data.user.id);
+      if (!profile) {
+        await supabase.auth.signOut();
+        return { success: false, error: 'এই অ্যাকাউন্টটি সক্রিয় ERP প্রোফাইলের সঙ্গে যুক্ত নয়।' };
+      }
+
+      setUsers(prev => [profile, ...prev.filter(user => user.id !== profile.id)]);
+      setCurrentUser(profile);
+      setCurrentUserRole(profile.role);
+      addAudit(`User Logged In (${profile.name})`, 'Authentication', profile.email);
+      return { success: true };
+    } catch (error) {
+      console.error('Supabase Auth login failed:', error);
+      const message = error instanceof Error ? error.message : 'লগইন প্রক্রিয়ায় ত্রুটি ঘটেছে।';
+      return { success: false, error: message };
+    }
+  };
+
+  const requestPasswordReset = async (email: string): Promise<{ success: boolean; error?: string }> => {
+    const supabase = getSupabaseClient();
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!supabase) return { success: false, error: 'Supabase Auth is not configured.' };
+    if (!normalizedEmail) return { success: false, error: 'দয়া করে আপনার ইমেইল লিখুন।' };
+
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo: `${window.location.origin}/`
+    });
+    if (error) {
+      console.error('Supabase password reset request failed:', error);
+      return { success: false, error: 'পাসওয়ার্ড রিসেট ইমেইল পাঠানো যায়নি।' };
+    }
     return { success: true };
   };
 
-  const loginAsDemoUser = (userId: string) => {
-    const user = users.find(u => u.id === userId) || users[0];
-    if (user.status === 'Suspended') {
-      return { success: false, error: 'স্থগিত (Suspended) একাউন্টে সরাসরি প্রবেশ নিষিদ্ধ।' };
+  const completePasswordRecovery = async (password: string): Promise<{ success: boolean; error?: string }> => {
+    const supabase = getSupabaseClient();
+    if (!supabase) return { success: false, error: 'Supabase Auth is not configured.' };
+    if (password.length < 6) return { success: false, error: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।' };
+
+    const { data, error } = await supabase.auth.updateUser({ password });
+    if (error || !data.user) {
+      console.error('Supabase password update failed:', error);
+      return { success: false, error: 'পাসওয়ার্ড আপডেট করা যায়নি। নতুন রিসেট লিংক অনুরোধ করুন।' };
     }
-
-    const updatedUser: AuthUser = {
-      ...user,
-      lastLogin: new Date().toISOString().replace('T', ' ').substr(0, 16)
-    };
-
-    setUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
-    setCurrentUser(updatedUser);
-    setCurrentUserRole(user.role);
 
     try {
-      localStorage.setItem('TELECORP_AUTH_STATE', 'logged_in');
-      localStorage.setItem('TELECORP_AUTH_USER', JSON.stringify(updatedUser));
-    } catch (e) {
-      console.error('LocalStorage write error', e);
+      const profile = await fetchAuthenticatedProfile(supabase, data.user.id);
+      if (!profile) {
+        await supabase.auth.signOut();
+        return { success: false, error: 'সক্রিয় ERP প্রোফাইল পাওয়া যায়নি।' };
+      }
+      setUsers(prev => [profile, ...prev.filter(user => user.id !== profile.id)]);
+      setCurrentUser(profile);
+      setCurrentUserRole(profile.role);
+      setIsPasswordRecovery(false);
+      return { success: true };
+    } catch (profileError) {
+      console.error('Failed to load profile after password reset:', profileError);
+      return { success: false, error: 'পাসওয়ার্ড বদলেছে, কিন্তু ERP প্রোফাইল যাচাই করা যায়নি।' };
     }
-
-    addAudit(`Role Switch: Switched to ${user.name} (${user.role})`, 'Authentication', user.email);
-    return { success: true };
   };
 
   const logout = () => {
@@ -2078,6 +1959,12 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     setCurrentUser(null);
     setCurrentUserRole('Super Admin');
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      void supabase.auth.signOut().then(({ error }) => {
+        if (error) console.error('Supabase sign-out failed:', error);
+      }).catch(error => console.error('Supabase sign-out failed:', error));
+    }
     try {
       localStorage.setItem('TELECORP_AUTH_STATE', 'logged_out');
       localStorage.removeItem('TELECORP_AUTH_USER');
@@ -2204,8 +2091,6 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const systemBundle: SystemContextBundle = {
-    users,
-    setUsers,
     currentUser,
     setCurrentUser,
     setCurrentUserRole,
@@ -2534,11 +2419,82 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     executeDeleteEMIPlan(planId, emiContextBundle);
 
   // System & RBAC Operations
-  const createUser = (userData: Omit<AuthUser, 'id'>) => executeCreateUser(userData, systemBundle);
-  const updateUser = (id: string, userData: Partial<AuthUser>) => executeUpdateUser(id, userData, systemBundle);
-  const deleteUser = (id: string) => executeDeleteUser(id, systemBundle);
-  const toggleUserStatus = (id: string) => executeToggleUserStatus(id, systemBundle);
-  const resetUserPassword = (id: string, newPassword: string) => executeResetUserPassword(id, newPassword, systemBundle);
+  const invokeAdminUserAction = async (body: Record<string, unknown>) => {
+    const supabase = getSupabaseClient();
+    if (!supabase) return { success: false as const, error: 'Supabase Auth is not configured.' };
+    const { data, error } = await supabase.functions.invoke('admin-users', { body });
+    if (error) return { success: false as const, error: error.message };
+    if (data?.error) return { success: false as const, error: String(data.error) };
+    return { success: true as const, data };
+  };
+
+  const createUser = async (userData: Omit<AuthUser, 'id'>): Promise<CrudResult> => {
+    const result = await invokeAdminUserAction({ action: 'create', user: userData });
+    if (!result.success) return { success: false, error: result.error };
+    try {
+      const user = mapAppUserProfile(result.data.user as AppUserProfile);
+      setUsers(prev => [user, ...prev.filter(existing => existing.id !== user.id)]);
+      addAudit(`User Created (${user.name} - ${user.role})`, 'User Management', user.email);
+      return { success: true, id: user.id };
+    } catch (error) {
+      console.error('Invalid user profile returned by admin-users function:', error);
+      return { success: false, error: 'The user was created but its profile response was invalid. Refresh users before continuing.' };
+    }
+  };
+
+  const updateUser = async (id: string, userData: Partial<AuthUser>): Promise<CrudResult> => {
+    const result = await invokeAdminUserAction({ action: 'update', id, user: userData });
+    if (!result.success) return { success: false, error: result.error };
+    try {
+      const user = mapAppUserProfile(result.data.user as AppUserProfile);
+      setUsers(prev => prev.map(existing => existing.id === id ? user : existing));
+      if (currentUser?.id === id) {
+        setCurrentUser(user);
+        setCurrentUserRole(user.role);
+      }
+      addAudit(`User Profile Updated (${user.name} - ${user.role})`, 'User Management', user.email);
+      return { success: true };
+    } catch (error) {
+      console.error('Invalid user profile returned by admin-users function:', error);
+      return { success: false, error: 'The user was updated but its profile response was invalid. Refresh users before continuing.' };
+    }
+  };
+
+  const deleteUser = async (id: string): Promise<CrudResult> => {
+    const target = users.find(user => user.id === id);
+    const result = await invokeAdminUserAction({ action: 'delete', id });
+    if (!result.success) return { success: false, error: result.error };
+    setUsers(prev => prev.filter(user => user.id !== id));
+    if (target) addAudit(`User Account Deleted (${target.name} - ${target.role})`, 'User Management', target.email);
+    return { success: true };
+  };
+
+  const toggleUserStatus = async (id: string): Promise<CrudResult> => {
+    const target = users.find(user => user.id === id);
+    const result = await invokeAdminUserAction({ action: 'toggle-status', id });
+    if (!result.success) return { success: false, error: result.error };
+    try {
+      const user = mapAppUserProfile(result.data.user as AppUserProfile);
+      setUsers(prev => prev.map(existing => existing.id === id ? user : existing));
+      if (target) addAudit(`User Status Changed to ${user.status} (${user.name})`, 'User Management', user.email);
+      return { success: true };
+    } catch (error) {
+      console.error('Invalid user profile returned by admin-users function:', error);
+      return { success: false, error: 'The user status changed but its profile response was invalid. Refresh users before continuing.' };
+    }
+  };
+
+  const resetUserPassword = async (id: string, newPassword: string): Promise<CrudResult> => {
+    const target = users.find(user => user.id === id);
+    const result = await invokeAdminUserAction({
+      action: 'reset-password',
+      id,
+      password: newPassword
+    });
+    if (!result.success) return { success: false, error: result.error };
+    if (target) addAudit(`User Password Reset (${target.name})`, 'Security', target.email);
+    return { success: true };
+  };
 
   const exportJSON = () => executeExportJSON(systemBundle);
   const importJSON = (jsonData: string) => executeImportJSON(jsonData, systemBundle);
@@ -3306,11 +3262,13 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         importJSON,
         currentUser,
         isAuthenticated: !!currentUser,
-        demoUsers,
+        isAuthLoading,
+        isPasswordRecovery,
         users,
         hasPermission,
         login,
-        loginAsDemoUser,
+        requestPasswordReset,
+        completePasswordRecovery,
         logout,
         createUser,
         updateUser,

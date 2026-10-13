@@ -14,55 +14,14 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- =========================================================================
--- 0. CLEAN RESET (Drop old/incomplete tables to ensure fresh synchronization)
--- =========================================================================
-DROP TABLE IF EXISTS audit_logs CASCADE;
-DROP TABLE IF EXISTS backup_snapshots CASCADE;
-DROP TABLE IF EXISTS gateway_configs CASCADE;
-DROP TABLE IF EXISTS system_alerts CASCADE;
-DROP TABLE IF EXISTS sms_logs CASCADE;
-DROP TABLE IF EXISTS salesman_visits CASCADE;
-DROP TABLE IF EXISTS customer_follow_ups CASCADE;
-DROP TABLE IF EXISTS phone_exchange_records CASCADE;
-DROP TABLE IF EXISTS price_drop_claims CASCADE;
-DROP TABLE IF EXISTS delivery_challans CASCADE;
-DROP TABLE IF EXISTS brand_incentive_schemes CASCADE;
-DROP TABLE IF EXISTS warranty_claims CASCADE;
-DROP TABLE IF EXISTS journal_entries CASCADE;
-DROP TABLE IF EXISTS chart_of_accounts CASCADE;
-DROP TABLE IF EXISTS day_closings CASCADE;
-DROP TABLE IF EXISTS expenses CASCADE;
-DROP TABLE IF EXISTS expense_categories CASCADE;
-DROP TABLE IF EXISTS cash_transactions CASCADE;
-DROP TABLE IF EXISTS bank_statements CASCADE;
-DROP TABLE IF EXISTS bank_transactions CASCADE;
-DROP TABLE IF EXISTS bank_accounts CASCADE;
-DROP TABLE IF EXISTS money_receipts CASCADE;
-DROP TABLE IF EXISTS supplier_returns CASCADE;
-DROP TABLE IF EXISTS customer_returns CASCADE;
-DROP TABLE IF EXISTS stock_transfers CASCADE;
-DROP TABLE IF EXISTS sales_invoices CASCADE;
-DROP TABLE IF EXISTS purchase_invoices CASCADE;
-DROP TABLE IF EXISTS imeis CASCADE;
-DROP TABLE IF EXISTS product_variants CASCADE;
-DROP TABLE IF EXISTS products CASCADE;
-DROP TABLE IF EXISTS salesmen CASCADE;
-DROP TABLE IF EXISTS customers CASCADE;
-DROP TABLE IF EXISTS suppliers CASCADE;
-DROP TABLE IF EXISTS warehouses CASCADE;
-DROP TABLE IF EXISTS brands CASCADE;
-DROP TABLE IF EXISTS system_settings CASCADE;
-DROP TABLE IF EXISTS app_users CASCADE;
-
--- =========================================================================
 -- 1. AUTH & USERS (Profiles & RBAC 9 Enterprise Roles)
 -- =========================================================================
 CREATE TABLE app_users (
     id TEXT PRIMARY KEY,
+    auth_user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'Salesman',
-    password TEXT NOT NULL DEFAULT '123456',
     status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Suspended')),
     phone TEXT,
     department TEXT,
@@ -789,50 +748,13 @@ CREATE TABLE audit_logs (
     details TEXT
 );
 
--- =========================================================================
--- 25. SECURITY: DISABLE RLS & GRANT ACCESSIBILITY TO CONNECTED ERP
--- =========================================================================
-ALTER TABLE app_users DISABLE ROW LEVEL SECURITY;
-ALTER TABLE system_settings DISABLE ROW LEVEL SECURITY;
-ALTER TABLE brands DISABLE ROW LEVEL SECURITY;
-ALTER TABLE warehouses DISABLE ROW LEVEL SECURITY;
-ALTER TABLE suppliers DISABLE ROW LEVEL SECURITY;
-ALTER TABLE customers DISABLE ROW LEVEL SECURITY;
-ALTER TABLE salesmen DISABLE ROW LEVEL SECURITY;
-ALTER TABLE products DISABLE ROW LEVEL SECURITY;
-ALTER TABLE product_variants DISABLE ROW LEVEL SECURITY;
-ALTER TABLE imeis DISABLE ROW LEVEL SECURITY;
-ALTER TABLE sales_invoices DISABLE ROW LEVEL SECURITY;
-ALTER TABLE purchase_invoices DISABLE ROW LEVEL SECURITY;
-ALTER TABLE stock_transfers DISABLE ROW LEVEL SECURITY;
-ALTER TABLE customer_returns DISABLE ROW LEVEL SECURITY;
-ALTER TABLE supplier_returns DISABLE ROW LEVEL SECURITY;
-ALTER TABLE money_receipts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE bank_accounts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE bank_transactions DISABLE ROW LEVEL SECURITY;
-ALTER TABLE bank_statements DISABLE ROW LEVEL SECURITY;
-ALTER TABLE cash_transactions DISABLE ROW LEVEL SECURITY;
-ALTER TABLE expense_categories DISABLE ROW LEVEL SECURITY;
-ALTER TABLE expenses DISABLE ROW LEVEL SECURITY;
-ALTER TABLE day_closings DISABLE ROW LEVEL SECURITY;
-ALTER TABLE chart_of_accounts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE journal_entries DISABLE ROW LEVEL SECURITY;
-ALTER TABLE warranty_claims DISABLE ROW LEVEL SECURITY;
-ALTER TABLE brand_incentive_schemes DISABLE ROW LEVEL SECURITY;
-ALTER TABLE delivery_challans DISABLE ROW LEVEL SECURITY;
-ALTER TABLE price_drop_claims DISABLE ROW LEVEL SECURITY;
-ALTER TABLE phone_exchange_records DISABLE ROW LEVEL SECURITY;
-ALTER TABLE customer_follow_ups DISABLE ROW LEVEL SECURITY;
-ALTER TABLE salesman_visits DISABLE ROW LEVEL SECURITY;
-ALTER TABLE sms_logs DISABLE ROW LEVEL SECURITY;
-ALTER TABLE system_alerts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE gateway_configs DISABLE ROW LEVEL SECURITY;
-ALTER TABLE backup_snapshots DISABLE ROW LEVEL SECURITY;
-ALTER TABLE audit_logs DISABLE ROW LEVEL SECURITY;
-
-GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
-GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, service_role;
+-- API roles stay locked down until the Auth-linked RLS migration is applied.
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL ON ALL ROUTINES IN SCHEMA public FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON ROUTINES FROM anon, authenticated;
 
 -- =========================================================================
 -- 26. STORED PROCEDURES & ATOMIC FUNCTIONS
@@ -920,17 +842,7 @@ $$ LANGUAGE plpgsql;
 INSERT INTO system_settings (id, company_name, company_address, company_phone, company_email, vat_tax_number, default_vat_percent, currency, currency_symbol, valuation_method, negative_stock_allowed, credit_limit_hard_block, max_discount_without_approval, language)
 VALUES ('primary_settings', 'TeleCorp Mobile Distribution & Trade Ltd.', 'Level 8, Motijheel C/A, Dhaka-1000, Bangladesh', '+880 2-9568912 / +880 1711-002233', 'operations@telecorp-bd.com', 'BIN: 002341890-0101 (BTRC Reg: D-88902)', 5.00, 'BDT', '৳', 'FIFO', false, true, 1000.00, 'bn');
 
--- APP USERS (All Roles & Mansur Azad preserved)
-INSERT INTO app_users (id, email, name, role, password, status, phone, department, branch_name, avatar, last_login, created_at) VALUES
-('8d510069-b154-440a-aa3e-0999a9c354e1', 'mansurazad@gmail.com', 'Mansur Azad', 'Super Admin', 'M#112233@a', 'Active', '+880 1711-002233', 'Executive Board / Managing Director', 'Headquarters (Motijheel, Dhaka)', '👨‍💼', NOW(), NOW()),
-('user-admin', 'admin@telecorp.com', 'Aminul Islam', 'Super Admin', 'admin', 'Active', '+880 1711-002233', 'Executive Board / Managing Director', 'Headquarters (Motijheel, Dhaka)', '👨‍💼', NOW(), NOW()),
-('user-owner', 'owner@telecorp.com', 'M. A. Rashid', 'Owner', 'owner', 'Active', '+880 1711-112233', 'Chairman & Principal Investor', 'Headquarters (Motijheel, Dhaka)', '👑', NOW(), NOW()),
-('user-gm', 'gm@telecorp.com', 'Rafiqul Bari', 'General Manager', 'gm', 'Active', '+880 1711-445566', 'General Operations & Supply Chain', 'Headquarters (Motijheel, Dhaka)', '🎩', NOW(), NOW()),
-('user-wh', 'warehouse@telecorp.com', 'Md. Masum Billah', 'Warehouse Manager', 'wh', 'Active', '+880 1819-234567', 'Central Logistics & IMEI Vault', 'Central Warehouse (Motijheel, Dhaka)', '📦', NOW(), NOW()),
-('user-acc', 'accountant@telecorp.com', 'Shabbir Ahmed', 'Accountant', 'acc', 'Active', '+880 1911-223344', 'Accounts & Day Ledgering', 'Headquarters (Motijheel, Dhaka)', '📑', NOW(), NOW()),
-('user-sales', 'sales@telecorp.com', 'Kazi Farhan', 'Sales Manager', 'sales', 'Active', '+880 1711-778899', 'Regional Sales & Dealer Network', 'Headquarters (Motijheel, Dhaka)', '📈', NOW(), NOW()),
-('user-field', 'field@telecorp.com', 'Karim Ullah', 'Salesman', 'field', 'Active', '+880 1611-990011', 'Field Sales & Dealer Route Service', 'Dhaka North Territory', '🛵', NOW(), NOW()),
-('user-cashier', 'cashier@telecorp.com', 'Sumon Mia', 'Cashier', 'cash', 'Active', '+880 1611-332211', 'Retail POS Counter & Daily Vault', 'Gulshan Express Outlet', '💵', NOW(), NOW());
+-- User accounts must be provisioned through Supabase Auth.
 
 -- BRANDS
 INSERT INTO brands (id, name, code, logo, country, description, status) VALUES

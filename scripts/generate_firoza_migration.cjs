@@ -416,18 +416,6 @@ function generateSQL() {
   sqlLines.push(`) ON CONFLICT (id) DO UPDATE SET`);
   sqlLines.push(`  company_name = EXCLUDED.company_name, company_address = EXCLUDED.company_address, company_phone = EXCLUDED.company_phone;\n`);
 
-  // App Users
-  sqlLines.push(`-- 2. USERS`);
-  const appUsers = [
-    { id: 'usr-admin', email: 'firoza1122@firoza.com', name: 'Firoza Enterprise Admin', role: 'Super Admin', password: 'password123', phone: companyMobile, department: 'Management', branch_name: 'Konabari Head Office', avatar: '👑' },
-    { id: 'usr-troyee', email: 'troyee@firoza.com', name: 'Troyee (Accounts Head)', role: 'Accounts Manager', password: 'password123', phone: '+880 1712-996758', department: 'Accounts', branch_name: 'Konabari Head Office', avatar: '💼' }
-  ];
-  appUsers.forEach(u => {
-    sqlLines.push(`INSERT INTO app_users (id, email, name, role, password, status, phone, department, branch_name, avatar, created_at, updated_at) VALUES (`);
-    sqlLines.push(`  '${u.id}', '${u.email}', '${u.name.replace(/'/g, "''")}', '${u.role}', '${u.password}', 'Active', '${u.phone}', '${u.department}', '${u.branch_name}', '${u.avatar}', NOW(), NOW()`);
-    sqlLines.push(`) ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name, role = EXCLUDED.role;\n`);
-  });
-
   // Warehouses
   sqlLines.push(`-- 3. WAREHOUSES`);
   warehousesList.forEach(w => {

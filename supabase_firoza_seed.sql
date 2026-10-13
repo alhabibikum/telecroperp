@@ -10,15 +10,6 @@ INSERT INTO system_settings (id, company_name, company_address, company_phone, c
 ) ON CONFLICT (id) DO UPDATE SET
   company_name = EXCLUDED.company_name, company_address = EXCLUDED.company_address, company_phone = EXCLUDED.company_phone;
 
--- 2. USERS
-INSERT INTO app_users (id, email, name, role, password, status, phone, department, branch_name, avatar, created_at, updated_at) VALUES (
-  'usr-admin', 'firoza1122@firoza.com', 'Firoza Enterprise Admin', 'Super Admin', 'password123', 'Active', '01712996757', 'Management', 'Konabari Head Office', '👑', NOW(), NOW()
-) ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name, role = EXCLUDED.role;
-
-INSERT INTO app_users (id, email, name, role, password, status, phone, department, branch_name, avatar, created_at, updated_at) VALUES (
-  'usr-troyee', 'troyee@firoza.com', 'Troyee (Accounts Head)', 'Accounts Manager', 'password123', 'Active', '+880 1712-996758', 'Accounts', 'Konabari Head Office', '💼', NOW(), NOW()
-) ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name, role = EXCLUDED.role;
-
 -- 3. WAREHOUSES
 INSERT INTO warehouses (id, code, name, type, address, city, manager_name, contact_number, status, created_at) VALUES (
   'wh-1', 'WH-MAIN-KB', 'Main Warehouse (Konabari New Market, Gazipur)', 'Central Warehouse', 'Konabari New Market, Konabari, Gazipur', 'Gazipur', 'Incharge Warehouse', '01712996757', 'Active', NOW()
