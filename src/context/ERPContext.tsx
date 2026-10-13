@@ -722,6 +722,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (isMounted) {
           setCurrentUser(null);
           setUsers([]);
+          setIsAuthLoading(false);
         }
         return;
       }
@@ -811,6 +812,9 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Sync and hydrate all enterprise entities from Supabase Cloud
   const syncAllFromSupabase = useCallback(async () => {
+    if (!currentUser) {
+      return;
+    }
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       return;
     }
@@ -1596,7 +1600,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsSyncing(false);
     }
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     syncAllFromSupabase();
@@ -1619,6 +1623,9 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [syncAllFromSupabase]);
 
   const triggerManualSync = async (): Promise<{ success: boolean; message: string; syncedCount: number }> => {
+    if (!currentUser) {
+      return { success: false, message: 'সিঙ্ক করার আগে Supabase Auth দিয়ে সাইন-ইন করুন।', syncedCount: 0 };
+    }
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       return { success: false, message: 'আপনার ডিভাইস বর্তমানে অফলাইনে রয়েছে। ইন্টারনেট সংযুক্ত হলে সিঙ্ক করা যাবে।', syncedCount: 0 };
     }
