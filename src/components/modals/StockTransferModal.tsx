@@ -81,16 +81,27 @@ export const StockTransferModal: React.FC<StockTransferModalProps> = ({
       return;
     }
 
+    const transferGroups = new Map<string, { productId: string; variantId: string; imeis: string[] }>();
+    for (const imei of selectedImeis) {
+      const record = imeis.find(item => item.imei1 === imei);
+      if (!record || record.status !== 'In Stock' || record.warehouseId !== sourceWarehouseId) {
+        setErrorMsg(`IMEI ${imei} is no longer available at the selected source warehouse.`);
+        return;
+      }
+      const key = `${record.productId}:${record.variantId}`;
+      const group = transferGroups.get(key) || {
+        productId: record.productId,
+        variantId: record.variantId,
+        imeis: []
+      };
+      group.imeis.push(record.imei1);
+      transferGroups.set(key, group);
+    }
+
     const result = transferStock({
       sourceWarehouseId,
       destinationWarehouseId,
-      items: [
-        {
-          productId: selectedProductId,
-          variantId: selectedVariantId,
-          imeis: selectedImeis
-        }
-      ],
+      items: Array.from(transferGroups.values()),
       notes
     });
 

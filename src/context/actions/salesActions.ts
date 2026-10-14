@@ -117,6 +117,9 @@ export const executeCreateSale = (
   saleData.items.forEach(item => {
     requestedImeis.push(...item.imeiList);
   });
+  if (new Set(requestedImeis).size !== requestedImeis.length) {
+    return { success: false, error: 'The same IMEI cannot be sold more than once on an invoice.' };
+  }
 
   for (const imeiNum of requestedImeis) {
     const record = imeis.find(i => i.imei1 === imeiNum);
@@ -198,8 +201,10 @@ export const executeCreateSale = (
     prev.map(p => ({
       ...p,
       variants: p.variants.map(v => {
-        const soldItem = saleData.items.find(item => item.variantId === v.id);
-        return soldItem ? { ...v, currentStock: Math.max(0, v.currentStock - soldItem.quantity) } : v;
+        const soldQuantity = saleData.items
+          .filter(item => item.productId === p.id && item.variantId === v.id)
+          .reduce((total, item) => total + item.quantity, 0);
+        return soldQuantity > 0 ? { ...v, currentStock: Math.max(0, v.currentStock - soldQuantity) } : v;
       })
     }))
   );
@@ -730,6 +735,11 @@ export const executeProcessCustomerReturn = (
   const returnNo = generateDocNumber('RET', customerReturns.length);
   const today = new Date().toISOString().split('T')[0];
   const isDamaged = data.condition === 'Damaged' || data.condition === 'Defective';
+  const imeiCondition = data.condition === 'Sealed'
+    ? 'Brand New'
+    : data.condition === 'Used' || data.condition === 'Missing Accessories'
+      ? 'Refurbished'
+      : 'Open Box';
   const restockStatus = isDamaged ? 'Sent to Damaged' : 'Restocked';
 
   const newReturn: CustomerReturn = {
@@ -758,8 +768,8 @@ export const executeProcessCustomerReturn = (
       i.imei1 === data.imei
         ? {
           ...i,
-          status: isDamaged ? 'Damaged' : 'Returned',
-          condition: isDamaged ? 'Damaged' : 'Open Box',
+          status: isDamaged ? 'Damaged' : 'In Stock',
+          condition: isDamaged ? 'Damaged' : imeiCondition,
           warehouseId: data.restockWarehouseId,
           returnReason: data.returnReason,
           history: [
@@ -831,8 +841,8 @@ export const executeProcessCustomerReturn = (
   enqueueChange('customer_returns', 'INSERT', newReturn.id, newReturn, `কাস্টমার রিটার্ন #${returnNo}`);
   enqueueChange('imeis', 'UPDATE', imeiRecord.id, {
     ...imeiRecord,
-    status: isDamaged ? 'Damaged' : 'Returned',
-    condition: isDamaged ? 'Damaged' : 'Open Box',
+    status: isDamaged ? 'Damaged' : 'In Stock',
+    condition: isDamaged ? 'Damaged' : imeiCondition,
     warehouseId: data.restockWarehouseId,
     returnReason: data.returnReason
   }, `IMEI রিটার্ন স্ট্যাটাস #${data.imei}`);

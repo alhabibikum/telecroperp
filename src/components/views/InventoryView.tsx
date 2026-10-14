@@ -516,7 +516,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       setNotificationMsg(`${res.count || adjustmentImeis.length}টি ডিভাইসের স্ট্যাটাস সফলভাবে '${targetStatus}' এ পরিবর্তন করা হয়েছে।`);
                       setTimeout(() => setNotificationMsg(null), 5000);
                     } else {
-                      alert(res.error || 'অ্যাডজাস্টমেন্ট সম্পন্ন করা সম্ভব হয়নি।');
+                      setNotificationMsg(`অ্যাডজাস্টমেন্ট ব্যর্থ: ${res.error || 'অ্যাডজাস্টমেন্ট সম্পন্ন করা সম্ভব হয়নি।'}`);
+                      setTimeout(() => setNotificationMsg(null), 7000);
                     }
                   }}
                   className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5"

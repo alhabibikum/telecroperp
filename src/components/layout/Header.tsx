@@ -51,7 +51,9 @@ export const Header: React.FC<HeaderProps> = ({
     updateSettings,
     isOnline,
     isSyncing,
-    triggerManualSync
+    triggerManualSync,
+    currentUserRole,
+    hasPermission
   } = useERP();
   const { theme, toggleTheme } = useTheme();
 
@@ -102,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         {/* Quick Purchase Button */}
-        <button
+        {hasPermission(currentUserRole, 'purchases') && <button
           type="button"
           onClick={onOpenNewPurchase}
           className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-[13px] border border-slate-300 dark:border-slate-700 transition cursor-pointer"
@@ -110,7 +112,7 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Truck className="w-3.5 h-3.5 text-slate-500" />
           <span>ক্রয় চালান</span>
-        </button>
+        </button>}
 
         {/* Quick Due Collection */}
         <button

@@ -51,10 +51,12 @@ export const Notifications: React.FC<NotificationsProps> = ({
 
   const [activeTab, setActiveTab] = useState<'all' | 'alerts' | 'stock' | 'approvals'>('all');
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+  const [feedbackIsError, setFeedbackIsError] = useState(false);
 
   if (!isOpen) return null;
 
-  const showFeedback = (msg: string) => {
+  const showFeedback = (msg: string, isError = false) => {
+    setFeedbackIsError(isError);
     setFeedbackMsg(msg);
     setTimeout(() => setFeedbackMsg(null), 3000);
   };
@@ -99,6 +101,8 @@ export const Notifications: React.FC<NotificationsProps> = ({
     const res = updateCustomerReturnStatus(retId, 'Approved', `অনুমোদনকারী: ${currentUserRole}`);
     if (res.success) {
       showFeedback(`রিটার্ন ${returnNo} সফলভাবে অনুমোদিত হয়েছে।`);
+    } else {
+      showFeedback(res.error || `রিটার্ন ${returnNo} অনুমোদন করা যায়নি।`, true);
     }
   };
 
@@ -106,8 +110,11 @@ export const Notifications: React.FC<NotificationsProps> = ({
     const res = deleteCustomerReturn(retId);
     if (res.success) {
       showFeedback(`রিটার্ন ${returnNo} বাতিল করা হয়েছে।`);
+    } else {
+      showFeedback(res.error || `রিটার্ন ${returnNo} বাতিল করা যায়নি।`, true);
     }
   };
+  const canApproveReturns = ['Super Admin', 'Owner', 'General Manager'].includes(currentUserRole);
 
   return (
     <div className="absolute right-0 mt-2 w-[calc(100vw-24px)] max-w-sm sm:max-w-none sm:w-[460px] bg-white/95 dark:bg-slate-900/95 rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800 z-50 overflow-hidden text-xs animate-in fade-in slide-in-from-top-2 duration-150 backdrop-blur-2xl">
@@ -135,8 +142,10 @@ export const Notifications: React.FC<NotificationsProps> = ({
       </div>
 
       {feedbackMsg && (
-        <div className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 text-[11px] font-bold px-4 py-2 border-b border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5 animate-in fade-in">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+        <div className={`${feedbackIsError ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-200 border-rose-200 dark:border-rose-800' : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800'} text-[11px] font-bold px-4 py-2 border-b flex items-center gap-1.5 animate-in fade-in`}>
+          {feedbackIsError
+            ? <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+            : <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />}
           <span>{feedbackMsg}</span>
         </div>
       )}
@@ -331,7 +340,7 @@ export const Notifications: React.FC<NotificationsProps> = ({
                     ক্রেডিট রিফান্ড: {formatBDT(ret.refundOrCreditAmount)}
                   </span>
 
-                  <div className="flex items-center gap-1.5">
+                  {canApproveReturns && <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => handleRejectReturn(ret.id, ret.returnNo)}
                       className="px-2 py-0.5 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-[10px] font-semibold cursor-pointer"
@@ -344,7 +353,7 @@ export const Notifications: React.FC<NotificationsProps> = ({
                     >
                       অনুমোদন করুন
                     </button>
-                  </div>
+                  </div>}
                 </div>
               </div>
             ))}

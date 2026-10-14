@@ -22,6 +22,7 @@ import {
   QrCode
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
+import { csvCell } from '../../utils/csvSafety';
 import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 
 type ReportType = 'brand' | 'customer' | 'profit' | 'salesman' | 'financial' | 'inventory' | 'imei-audit';
@@ -186,9 +187,9 @@ export const ReportsView: React.FC = () => {
 
     // Construct CSV String with UTF-8 BOM
     let csv = '\uFEFF';
-    csv += headers.map(h => `"${h.replace(/"/g, '""')}"`).join(',') + '\n';
+    csv += headers.map(csvCell).join(',') + '\n';
     rows.forEach(row => {
-      csv += row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(',') + '\n';
+      csv += row.map(csvCell).join(',') + '\n';
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

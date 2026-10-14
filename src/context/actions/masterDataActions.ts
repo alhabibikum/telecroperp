@@ -384,10 +384,27 @@ export const executeTransferStock = (
   const src = warehouses.find(w => w.id === data.sourceWarehouseId);
   const dest = warehouses.find(w => w.id === data.destinationWarehouseId);
   if (!src || !dest) return { success: false, error: 'Invalid warehouse selection' };
+  if (src.id === dest.id) return { success: false, error: 'Source and destination warehouses must be different.' };
 
+  const allTransferImeis = data.items.flatMap(i => i.imeis);
+  if (allTransferImeis.length === 0) return { success: false, error: 'Select at least one IMEI to transfer.' };
+  if (new Set(allTransferImeis).size !== allTransferImeis.length) {
+    return { success: false, error: 'An IMEI cannot be listed more than once in a transfer.' };
+  }
+  for (const item of data.items) {
+    const product = products.find(entry => entry.id === item.productId);
+    const variant = product?.variants.find(entry => entry.id === item.variantId);
+    if (!product || !variant) return { success: false, error: 'A selected product or variant no longer exists.' };
+    for (const imei of item.imeis) {
+      const record = imeis.find(entry => entry.imei1 === imei);
+      if (!record || record.status !== 'In Stock' || record.warehouseId !== src.id ||
+          record.productId !== item.productId || record.variantId !== item.variantId) {
+        return { success: false, error: `IMEI ${imei} is not available for this product/variant at the source warehouse.` };
+      }
+    }
+  }
   const transferNo = generateDocNumber('TRF', stockTransfers.length);
   const today = todayStr();
-  const allTransferImeis = data.items.flatMap(i => i.imeis);
 
   // Update each IMEI's current warehouse
   setImeis(prev =>
@@ -789,7 +806,7 @@ export const executeBulkImportData = (
   entityType: 'customers' | 'suppliers' | 'products' | 'imeis',
   rows: any[],
   ctx: MasterDataContextBundle
-): { success: boolean; count: number } => {
+): { success: boolean; count: number; error?: string } => {
   const {
     customers,
     setCustomers,
@@ -883,6 +900,31 @@ export const executeBulkImportData = (
     newProds.forEach(p => enqueueChange('products', 'INSERT', p.id, p, `ইম্পোর্টকৃত পণ্য (${p.model})`));
     count = newProds.length;
   } else if (entityType === 'imeis') {
+    const existingIdentifiers = new Set(
+      ctx.imeis.flatMap(record => [record.imei1, record.imei2, record.serialNumber])
+        .filter((value): value is string => Boolean(value))
+        .map(value => value.trim().toLowerCase())
+    );
+    const importedIdentifiers = new Set<string>();
+    for (let index = 0; index < rows.length; index++) {
+      const row = rows[index] as Record<string, unknown>;
+      const imei1 = String(row.imei1 || '').trim();
+      const imei2 = String(row.imei2 || '').trim();
+      const serialNumber = String(row.serialNumber || '').trim();
+      if (!/^\d{15}$/.test(imei1)) {
+        return { success: false, count: 0, error: `Row ${index + 1}: IMEI 1 must contain exactly 15 digits.` };
+      }
+      const rowIdentifiers = [imei1, imei2, serialNumber].filter(Boolean).map(value => value.toLowerCase());
+      if (new Set(rowIdentifiers).size !== rowIdentifiers.length) {
+        return { success: false, count: 0, error: `Row ${index + 1}: IMEI and serial identifiers must be unique.` };
+      }
+      for (const identifier of rowIdentifiers) {
+        if (existingIdentifiers.has(identifier) || importedIdentifiers.has(identifier)) {
+          return { success: false, count: 0, error: `Row ${index + 1}: duplicate device identifier "${identifier}".` };
+        }
+        importedIdentifiers.add(identifier);
+      }
+    }
     const firstProd = products[0];
     const firstWh = warehouses[0];
     const firstSup = suppliers[0];
@@ -895,9 +937,9 @@ export const executeBulkImportData = (
       const color = r.color || prod?.variants[0]?.color || 'Black';
       return {
         id: `imei-imp-${Date.now()}-${idx}`,
-        imei1: (r.imei1 || `8600000000${idx}`).trim(),
-        imei2: (r.imei2 || '').trim(),
-        serialNumber: r.serialNumber || `SN-${idx}`,
+        imei1: String(r.imei1).trim(),
+        imei2: String(r.imei2 || '').trim(),
+        serialNumber: String(r.serialNumber || '').trim() || undefined,
         productId: prod?.id || 'prod-1',
         productName: model,
         variantId: prod?.variants[0]?.id || 'var-1',
@@ -965,58 +1007,58 @@ export const executeAdjustStockIMEIs = (
   if (!data.imeis || data.imeis.length === 0) return { success: false, error: 'No IMEIs provided' };
 
   const targetWh = data.newWarehouseId ? warehouses.find(w => w.id === data.newWarehouseId) : undefined;
+  if (data.newWarehouseId && !targetWh) return { success: false, error: 'Selected warehouse was not found.' };
+  const tokens = data.imeis.map(value => value.trim());
+  if (tokens.some(token => !token)) return { success: false, error: 'IMEI and serial identifiers cannot be empty.' };
+  if (new Set(tokens).size !== tokens.length) return { success: false, error: 'Duplicate inventory identifiers were provided.' };
+  const records = tokens.map(token => imeis.find(record =>
+    record.imei1 === token ||
+    record.imei2 === token ||
+    record.serialNumber?.toLowerCase() === token.toLowerCase()
+  ));
+  const missing = tokens.filter((_token, index) => !records[index]);
+  if (missing.length > 0) {
+    return { success: false, error: `No inventory record found for: ${missing.join(', ')}` };
+  }
+  const matchedRecords = records.filter((record): record is IMEIRecord => Boolean(record));
   const today = todayStr();
 
-  setImeis(prev =>
-    prev.map(i => {
-      if (data.imeis.includes(i.imei1)) {
-        return {
-          ...i,
-          status: data.newStatus,
-          condition: data.newCondition || i.condition,
-          warehouseId: targetWh ? targetWh.id : i.warehouseId,
-          warehouseName: targetWh ? targetWh.name : i.warehouseName,
-          history: [
-            ...i.history,
-            {
-              date: `${today} 12:00`,
-              action: 'Stock Adjustment',
-              description: `Status changed to ${data.newStatus}${data.newCondition ? ` (${data.newCondition})` : ''}: ${data.reason}`,
-              user: currentUserRole
-            }
-          ]
-        };
+  const updatedRecords = matchedRecords.map(record => ({
+    ...record,
+    status: data.newStatus,
+    condition: data.newCondition || record.condition,
+    warehouseId: targetWh ? targetWh.id : record.warehouseId,
+    warehouseName: targetWh ? targetWh.name : record.warehouseName,
+    history: [
+      ...record.history,
+      {
+        date: `${today} 12:00`,
+        action: 'Stock Adjustment',
+        description: `Status changed to ${data.newStatus}${data.newCondition ? ` (${data.newCondition})` : ''}: ${data.reason}`,
+        user: currentUserRole
       }
-      return i;
-    })
-  );
+    ]
+  }));
+  const updatedById = new Map(updatedRecords.map(record => [record.id, record]));
+  setImeis(prev => prev.map(record => updatedById.get(record.id) || record));
 
-  data.imeis.forEach(im => {
-    const rec = imeis.find(i => i.imei1 === im);
-    if (rec) {
-      enqueueChange(
-        'imeis',
-        'UPDATE',
-        rec.id,
-        {
-          ...rec,
-          status: data.newStatus,
-          condition: data.newCondition || rec.condition,
-          warehouseId: targetWh ? targetWh.id : rec.warehouseId,
-          warehouseName: targetWh ? targetWh.name : rec.warehouseName
-        },
-        `IMEI স্টক সমন্বয় (${im}) -> ${data.newStatus}`
-      );
-    }
+  updatedRecords.forEach(record => {
+    enqueueChange(
+      'imeis',
+      'UPDATE',
+      record.id,
+      record,
+      `IMEI স্টক সমন্বয় (${record.imei1}) -> ${data.newStatus}`
+    );
   });
 
   addAudit(
-    `Stock Adjustment (${data.imeis.length} units)`,
+    `Stock Adjustment (${updatedRecords.length} units)`,
     'Inventory',
     data.newStatus,
     undefined,
     `Status set to ${data.newStatus}. Reason: ${data.reason}`
   );
 
-  return { success: true, count: data.imeis.length };
+  return { success: true, count: updatedRecords.length };
 };

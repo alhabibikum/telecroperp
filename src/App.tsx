@@ -108,7 +108,18 @@ const VIEW_CONFIG: Record<string, { title: string; subtitle: string; icon: strin
 };
 
 const ERPAppContent: React.FC = () => {
-  const { isAuthenticated, isAuthLoading, isPasswordRecovery, currentUserRole, currentUser, hasPermission, salesInvoices, triggerManualSync } = useERP();
+  const {
+    isAuthenticated,
+    isAuthLoading,
+    isPasswordRecovery,
+    isUserDataReady,
+    userDataLoadError,
+    currentUserRole,
+    currentUser,
+    hasPermission,
+    salesInvoices,
+    triggerManualSync
+  } = useERP();
   const { showSuccess, showInfo, showError } = useToast();
   const { zoomLevel, showZoomIndicator, isZoomed, zoomIn, zoomOut, resetZoom } = useAppZoom();
   const {
@@ -355,6 +366,7 @@ const ERPAppContent: React.FC = () => {
 
   const [showNewPurchaseModal, setShowNewPurchaseModal] = useState(false);
   const [showNewProductModal, setShowNewProductModal] = useState(false);
+  const canCreatePurchases = hasPermission(currentUserRole, 'purchases');
 
   const [showDueCollectionModal, setShowDueCollectionModal] = useState(false);
   const [collectionCustomerId, setCollectionCustomerId] = useState<string | undefined>(undefined);
@@ -385,6 +397,14 @@ const ERPAppContent: React.FC = () => {
     setShowNewSaleModal(true);
   };
 
+  const handleOpenNewPurchase = () => {
+    if (canCreatePurchases) {
+      setShowNewPurchaseModal(true);
+    } else {
+      showError('অনুমতি নেই', 'আপনার ক্রয় চালান তৈরির অনুমতি নেই।');
+    }
+  };
+
   const handleOpenDueCollection = (customerId?: string) => {
     setCollectionCustomerId(customerId);
     setShowDueCollectionModal(true);
@@ -400,7 +420,7 @@ const ERPAppContent: React.FC = () => {
     if (currentView === 'wholesale-sales' || currentView === 'retail-pos' || currentView === 'dashboard') {
       handleOpenNewSale(currentView === 'retail-pos' ? 'Retail POS' : 'Wholesale');
     } else if (currentView === 'purchases') {
-      setShowNewPurchaseModal(true);
+      handleOpenNewPurchase();
     } else if (currentView === 'inventory') {
       setShowNewProductModal(true);
     } else if (currentView === 'due-collection' || currentView === 'due-ageing') {
@@ -597,7 +617,7 @@ const ERPAppContent: React.FC = () => {
         if (isCtrl) {
           setShowNewProductModal(true);
         } else {
-          setShowNewPurchaseModal(true);
+          handleOpenNewPurchase();
         }
         return;
       }
@@ -702,7 +722,7 @@ const ERPAppContent: React.FC = () => {
         return (
           <DashboardView
             onOpenNewSale={() => handleOpenNewSale('Wholesale')}
-            onOpenNewPurchase={() => setShowNewPurchaseModal(true)}
+            onOpenNewPurchase={handleOpenNewPurchase}
             onOpenDueCollection={() => handleOpenDueCollection()}
             onOpenIMEILookup={handleOpenIMEILookup}
             onSelectView={handleNavigateView}
@@ -734,7 +754,7 @@ const ERPAppContent: React.FC = () => {
       case 'due-collection':
         return <DueCollectionView onOpenDueCollection={handleOpenDueCollection} />;
       case 'purchases':
-        return <PurchaseView onOpenNewPurchase={() => setShowNewPurchaseModal(true)} />;
+        return <PurchaseView onOpenNewPurchase={handleOpenNewPurchase} />;
       case 'inventory':
         return (
           <InventoryView
@@ -828,6 +848,19 @@ const ERPAppContent: React.FC = () => {
     );
   }
 
+  if (!isUserDataReady) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center gap-3 p-6 text-center" role="status">
+        <span>{userDataLoadError || 'আপনার ব্যবহারকারীর ERP ডেটা লোড হচ্ছে...'}</span>
+        {userDataLoadError && (
+          <button type="button" onClick={() => window.location.reload()} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg">
+            পুনরায় চেষ্টা করুন
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col bg-slate-100 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-100 overflow-hidden relative">
       <OfflineStatusBanner />
@@ -845,7 +878,7 @@ const ERPAppContent: React.FC = () => {
         isSidebarExpanded={isSidebarExpanded}
         onToggleSidebar={() => setIsSidebarExpanded(prev => !prev)}
         onOpenNewSale={() => handleOpenNewSale('Wholesale')}
-        onOpenNewPurchase={() => setShowNewPurchaseModal(true)}
+        onOpenNewPurchase={handleOpenNewPurchase}
         onOpenDueCollection={() => handleOpenDueCollection()}
         onOpenIMEILookup={handleOpenIMEILookup}
         onOpenMultiScanner={handleOpenMultiScanner}
@@ -944,7 +977,7 @@ const ERPAppContent: React.FC = () => {
       />
 
       <NewPurchaseModal
-        isOpen={showNewPurchaseModal}
+        isOpen={showNewPurchaseModal && canCreatePurchases}
         onClose={() => setShowNewPurchaseModal(false)}
         onSuccessPurchase={(purNo) => {
           handleNavigateView('purchases');
@@ -1005,7 +1038,7 @@ const ERPAppContent: React.FC = () => {
         onClose={() => setShowCommandPalette(false)}
         onSelectView={handleNavigateView}
         onOpenNewSale={handleOpenNewSale}
-        onOpenNewPurchase={() => setShowNewPurchaseModal(true)}
+        onOpenNewPurchase={handleOpenNewPurchase}
         onOpenDueCollection={handleOpenDueCollection}
         onOpenIMEILookup={handleOpenIMEILookup}
         onOpenMultiScanner={() => handleOpenMultiScanner()}

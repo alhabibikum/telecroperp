@@ -88,6 +88,7 @@ import {
   getPendingSyncCount,
   getSyncQueue,
   clearSyncQueue,
+  configureSyncQueueUser,
   mapToSupabasePayload,
   SyncQueueItem
 } from '../lib/syncEngine';
@@ -300,6 +301,8 @@ interface ERPContextType {
   // Auth & Session
   currentUser: AuthUser | null;
   isAuthenticated: boolean;
+  isUserDataReady: boolean;
+  userDataLoadError: string | null;
   isAuthLoading: boolean;
   isPasswordRecovery: boolean;
   users: AuthUser[];
@@ -448,7 +451,7 @@ interface ERPContextType {
   updateFollowUpStatus: (id: string, status: CustomerFollowUp['status'], notes?: string, promisedDate?: string) => void;
   performDayClosing: (data: Omit<DayClosingRecord, 'id' | 'closingNo' | 'createdAt'>) => { success: boolean; closingNo: string };
   processPhoneExchange: (data: Omit<PhoneExchangeTransaction, 'id' | 'exchangeNo' | 'createdAt'>) => { success: boolean; exchangeNo?: string; error?: string };
-  bulkImportData: (entityType: 'customers' | 'suppliers' | 'products' | 'imeis', rows: any[]) => { success: boolean; count: number };
+  bulkImportData: (entityType: 'customers' | 'suppliers' | 'products' | 'imeis', rows: any[]) => { success: boolean; count: number; error?: string };
   addWarrantyClaim: (claim: Omit<WarrantyClaim, 'id' | 'rmaNumber'>) => { success: boolean; rmaNumber: string };
   updateWarrantyStatus: (id: string, status: WarrantyClaim['status'], updates?: Partial<WarrantyClaim>) => void;
   addBrandIncentiveScheme: (scheme: Omit<BrandIncentiveScheme, 'id'>) => void;
@@ -540,120 +543,61 @@ interface ERPContextType {
 const ERPContext = createContext<ERPContextType | null>(null);
 
 const STORAGE_KEY = 'TELECORP_MOBILE_ERP_STATE_V1';
+const createDefaultBackupSnapshots = (): BackupSnapshot[] => [
+  {
+    id: 'snap-seed-initial',
+    timestamp: '2026-10-01 10:00:00',
+    name: 'System Initial Baseline Snapshot (Q4 Launch)',
+    sizeBytes: 52400,
+    recordCounts: {
+      products: 5,
+      imeis: 16,
+      customers: 6,
+      invoices: 4,
+      purchases: 3
+    },
+    dataJson: ''
+  }
+];
 
 export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Load state from localStorage or fallback to initial seeded data
-  const loadState = () => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error('Failed to load ERP state from localStorage', e);
-    }
-    return null;
-  };
-
-  const savedState = loadState();
-
-  const [brands, setBrands] = useState<Brand[]>(savedState?.brands || initialBrands);
-  const [products, setProducts] = useState<Product[]>(savedState?.products || initialProducts);
-  const [imeis, setImeis] = useState<IMEIRecord[]>(savedState?.imeis || initialIMEIs);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>(savedState?.warehouses || initialWarehouses);
-  const [suppliers, setSuppliers] = useState<Supplier[]>(savedState?.suppliers || initialSuppliers);
-  const [customers, setCustomers] = useState<Customer[]>(savedState?.customers || initialCustomers);
-  const [salesInvoices, setSalesInvoices] = useState<SalesInvoice[]>(savedState?.salesInvoices || initialSalesInvoices);
-  const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>(savedState?.purchaseInvoices || initialPurchases);
-  const [stockTransfers, setStockTransfers] = useState<StockTransfer[]>(savedState?.stockTransfers || initialStockTransfers);
-  const [customerReturns, setCustomerReturns] = useState<CustomerReturn[]>(savedState?.customerReturns || initialCustomerReturns);
-  const [salesmen, setSalesmen] = useState<Salesman[]>(savedState?.salesmen || initialSalesmen);
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(savedState?.bankAccounts || initialBankAccounts);
-  const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>(savedState?.cashTransactions || initialCashTransactions);
-  const [expenses, setExpenses] = useState<Expense[]>(savedState?.expenses || initialExpenses);
-  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>(savedState?.expenseCategories || initialExpenseCategories);
-  const [chartOfAccounts, setChartOfAccounts] = useState<AccountCOA[]>(savedState?.chartOfAccounts || initialCOA);
-  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>(savedState?.journalEntries || initialJournalEntries);
-  const [alerts, setAlerts] = useState<SystemAlert[]>(savedState?.alerts || initialAlerts);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(savedState?.auditLogs || initialAuditLogs);
-  const [settings, setSettings] = useState<SystemSettings>(savedState?.settings || initialSettings);
+  const [brands, setBrands] = useState<Brand[]>(initialBrands);
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [imeis, setImeis] = useState<IMEIRecord[]>(initialIMEIs);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>(initialWarehouses);
+  const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
+  const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
+  const [salesInvoices, setSalesInvoices] = useState<SalesInvoice[]>(initialSalesInvoices);
+  const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>(initialPurchases);
+  const [stockTransfers, setStockTransfers] = useState<StockTransfer[]>(initialStockTransfers);
+  const [customerReturns, setCustomerReturns] = useState<CustomerReturn[]>(initialCustomerReturns);
+  const [salesmen, setSalesmen] = useState<Salesman[]>(initialSalesmen);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(initialBankAccounts);
+  const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>(initialCashTransactions);
+  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
+  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>(initialExpenseCategories);
+  const [chartOfAccounts, setChartOfAccounts] = useState<AccountCOA[]>(initialCOA);
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>(initialJournalEntries);
+  const [alerts, setAlerts] = useState<SystemAlert[]>(initialAlerts);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(initialAuditLogs);
+  const [settings, setSettings] = useState<SystemSettings>(initialSettings);
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>('Super Admin');
 
   // New modules states
-  const [salesmanVisits, setSalesmanVisits] = useState<SalesmanVisit[]>(savedState?.salesmanVisits || initialSalesmanVisits);
-  const [customerFollowUps, setCustomerFollowUps] = useState<CustomerFollowUp[]>(savedState?.customerFollowUps || initialCustomerFollowUps);
-  const [dayClosings, setDayClosings] = useState<DayClosingRecord[]>(savedState?.dayClosings || initialDayClosings);
-  const [phoneExchanges, setPhoneExchanges] = useState<PhoneExchangeTransaction[]>(savedState?.phoneExchanges || initialPhoneExchanges);
-  const [bankStatements, setBankStatements] = useState<BankStatementEntry[]>(savedState?.bankStatements || initialBankStatements);
-  const [supplierReturns, setSupplierReturns] = useState<SupplierReturn[]>(savedState?.supplierReturns || []);
-  const [warrantyClaims, setWarrantyClaims] = useState<WarrantyClaim[]>(savedState?.warrantyClaims || initialWarrantyClaims);
-  const [brandIncentives, setBrandIncentives] = useState<BrandIncentiveScheme[]>(savedState?.brandIncentives || initialBrandIncentives);
-  const [deliveryChallans, setDeliveryChallans] = useState<DeliveryChallan[]>(savedState?.deliveryChallans || initialDeliveryChallans);
-  const [priceDropClaims, setPriceDropClaims] = useState<PriceDropClaim[]>(savedState?.priceDropClaims || initialPriceDropClaims);
-  const [smsLogs, setSmsLogs] = useState<SmsLog[]>(savedState?.smsLogs || initialSmsLogs);
-  const [commissionDisbursements, setCommissionDisbursements] = useState<CommissionDisbursement[]>(savedState?.commissionDisbursements || initialCommissionDisbursements);
-  const [emiPlans, setEmiPlans] = useState<EMIPlan[]>(savedState?.emiPlans || initialEMIPlans);
-  const [moneyReceipts, setMoneyReceipts] = useState<MoneyReceipt[]>(savedState?.moneyReceipts || initialMoneyReceipts);
-
-  // Hydrate complete ERP state from IndexedDB asynchronously (handles 50MB+ datasets without quota limits)
-  useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      try {
-        const idbState = await erpStorage.getItem<any>(STORAGE_KEY);
-        if (idbState && isMounted) {
-          if (idbState.brands) setBrands(idbState.brands);
-          if (idbState.products) setProducts(idbState.products);
-          if (idbState.imeis) setImeis(idbState.imeis);
-          if (idbState.warehouses) setWarehouses(idbState.warehouses);
-          if (idbState.suppliers) setSuppliers(idbState.suppliers);
-          if (idbState.customers) setCustomers(idbState.customers);
-          if (idbState.salesInvoices) setSalesInvoices(idbState.salesInvoices);
-          if (idbState.purchaseInvoices) setPurchaseInvoices(idbState.purchaseInvoices);
-          if (idbState.stockTransfers) setStockTransfers(idbState.stockTransfers);
-          if (idbState.customerReturns) setCustomerReturns(idbState.customerReturns);
-          if (idbState.salesmen) setSalesmen(idbState.salesmen);
-          if (idbState.bankAccounts) setBankAccounts(idbState.bankAccounts);
-          if (idbState.cashTransactions) setCashTransactions(idbState.cashTransactions);
-          if (idbState.expenses) setExpenses(idbState.expenses);
-          if (idbState.expenseCategories) setExpenseCategories(idbState.expenseCategories);
-          if (idbState.chartOfAccounts) setChartOfAccounts(idbState.chartOfAccounts);
-          if (idbState.journalEntries) setJournalEntries(idbState.journalEntries);
-          if (idbState.alerts) setAlerts(idbState.alerts);
-          if (idbState.auditLogs) setAuditLogs(idbState.auditLogs);
-          if (idbState.settings) setSettings(sanitizeSystemSettings(idbState.settings));
-          if (idbState.salesmanVisits) setSalesmanVisits(idbState.salesmanVisits);
-          if (idbState.customerFollowUps) setCustomerFollowUps(idbState.customerFollowUps);
-          if (idbState.dayClosings) setDayClosings(idbState.dayClosings);
-          if (idbState.phoneExchanges) setPhoneExchanges(idbState.phoneExchanges);
-          if (idbState.bankStatements) setBankStatements(idbState.bankStatements);
-          if (idbState.supplierReturns) setSupplierReturns(idbState.supplierReturns);
-          if (idbState.warrantyClaims) setWarrantyClaims(idbState.warrantyClaims);
-          if (idbState.brandIncentives) setBrandIncentives(idbState.brandIncentives);
-          if (idbState.deliveryChallans) setDeliveryChallans(idbState.deliveryChallans);
-          if (idbState.priceDropClaims) setPriceDropClaims(idbState.priceDropClaims);
-          if (idbState.smsLogs) setSmsLogs(idbState.smsLogs);
-          if (idbState.commissionDisbursements) setCommissionDisbursements(idbState.commissionDisbursements);
-          if (idbState.emiPlans) setEmiPlans(idbState.emiPlans);
-          if (idbState.moneyReceipts) setMoneyReceipts(idbState.moneyReceipts);
-
-          // Once safely stored in IndexedDB, remove bulky payload from localStorage
-          try {
-            if (localStorage.getItem(STORAGE_KEY)) {
-              localStorage.removeItem(STORAGE_KEY);
-            }
-          } catch {
-            // Ignore
-          }
-        }
-      } catch (err) {
-        console.error('Failed to hydrate state from IndexedDB:', err);
-      }
-    })();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const [salesmanVisits, setSalesmanVisits] = useState<SalesmanVisit[]>(initialSalesmanVisits);
+  const [customerFollowUps, setCustomerFollowUps] = useState<CustomerFollowUp[]>(initialCustomerFollowUps);
+  const [dayClosings, setDayClosings] = useState<DayClosingRecord[]>(initialDayClosings);
+  const [phoneExchanges, setPhoneExchanges] = useState<PhoneExchangeTransaction[]>(initialPhoneExchanges);
+  const [bankStatements, setBankStatements] = useState<BankStatementEntry[]>(initialBankStatements);
+  const [supplierReturns, setSupplierReturns] = useState<SupplierReturn[]>([]);
+  const [warrantyClaims, setWarrantyClaims] = useState<WarrantyClaim[]>(initialWarrantyClaims);
+  const [brandIncentives, setBrandIncentives] = useState<BrandIncentiveScheme[]>(initialBrandIncentives);
+  const [deliveryChallans, setDeliveryChallans] = useState<DeliveryChallan[]>(initialDeliveryChallans);
+  const [priceDropClaims, setPriceDropClaims] = useState<PriceDropClaim[]>(initialPriceDropClaims);
+  const [smsLogs, setSmsLogs] = useState<SmsLog[]>(initialSmsLogs);
+  const [commissionDisbursements, setCommissionDisbursements] = useState<CommissionDisbursement[]>(initialCommissionDisbursements);
+  const [emiPlans, setEmiPlans] = useState<EMIPlan[]>(initialEMIPlans);
+  const [moneyReceipts, setMoneyReceipts] = useState<MoneyReceipt[]>(initialMoneyReceipts);
 
   // Users Management State (Real-Time RBAC)
   const [users, setUsers] = useState<AuthUser[]>([]);
@@ -670,34 +614,130 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
     return null;
   });
+  const [hydratedUserId, setHydratedUserId] = useState<string | null>(null);
+  const isUserDataReady = !!currentUser && hydratedUserId === currentUser.id;
+  const [userDataLoadError, setUserDataLoadError] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   // Backup Snapshots State
-  const [backupSnapshots, setBackupSnapshots] = useState<BackupSnapshot[]>(() => {
-    try {
-      const saved = localStorage.getItem('TELECORP_BACKUP_SNAPSHOTS');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error(e);
+  const [backupSnapshots, setBackupSnapshots] = useState<BackupSnapshot[]>(createDefaultBackupSnapshots);
+
+  useEffect(() => {
+    let isMounted = true;
+    setHydratedUserId(null);
+    setUserDataLoadError(null);
+
+    if (!currentUser) {
+      configureSyncQueueUser(null).catch(error => {
+        console.error('Failed to reset the active sync queue:', error);
+      });
+      return () => {
+        isMounted = false;
+      };
     }
-    return [
-      {
-        id: 'snap-seed-initial',
-        timestamp: '2026-10-01 10:00:00',
-        name: 'System Initial Baseline Snapshot (Q4 Launch)',
-        sizeBytes: 52400,
-        recordCounts: {
-          products: 5,
-          imeis: 16,
-          customers: 6,
-          invoices: 4,
-          purchases: 3
-        },
-        dataJson: ''
+
+    const userId = currentUser.id;
+    const userStorageKey = `${STORAGE_KEY}_${encodeURIComponent(userId)}`;
+    const snapshotsKey = `TELECORP_BACKUP_SNAPSHOTS_${encodeURIComponent(userId)}`;
+
+    setBrands(initialBrands);
+    setProducts(initialProducts);
+    setImeis(initialIMEIs);
+    setBackupSnapshots(createDefaultBackupSnapshots());
+    setWarehouses(initialWarehouses);
+    setSuppliers(initialSuppliers);
+    setCustomers(initialCustomers);
+    setSalesInvoices(initialSalesInvoices);
+    setPurchaseInvoices(initialPurchases);
+    setStockTransfers(initialStockTransfers);
+    setCustomerReturns(initialCustomerReturns);
+    setSalesmen(initialSalesmen);
+    setBankAccounts(initialBankAccounts);
+    setCashTransactions(initialCashTransactions);
+    setExpenses(initialExpenses);
+    setExpenseCategories(initialExpenseCategories);
+    setChartOfAccounts(initialCOA);
+    setJournalEntries(initialJournalEntries);
+    setAlerts(initialAlerts);
+    setAuditLogs(initialAuditLogs);
+    setSettings(initialSettings);
+    setSalesmanVisits(initialSalesmanVisits);
+    setCustomerFollowUps(initialCustomerFollowUps);
+    setDayClosings(initialDayClosings);
+    setPhoneExchanges(initialPhoneExchanges);
+    setBankStatements(initialBankStatements);
+    setSupplierReturns([]);
+    setWarrantyClaims(initialWarrantyClaims);
+    setBrandIncentives(initialBrandIncentives);
+    setDeliveryChallans(initialDeliveryChallans);
+    setPriceDropClaims(initialPriceDropClaims);
+    setSmsLogs(initialSmsLogs);
+    setCommissionDisbursements(initialCommissionDisbursements);
+    setEmiPlans(initialEMIPlans);
+    setMoneyReceipts(initialMoneyReceipts);
+
+    (async () => {
+      try {
+        await configureSyncQueueUser(userId);
+        const userState = await erpStorage.getItem<any>(userStorageKey);
+        if (!isMounted) return;
+
+        if (userState) {
+          if (userState.brands) setBrands(userState.brands);
+          if (userState.products) setProducts(userState.products);
+          if (userState.imeis) setImeis(userState.imeis);
+          if (userState.warehouses) setWarehouses(userState.warehouses);
+          if (userState.suppliers) setSuppliers(userState.suppliers);
+          if (userState.customers) setCustomers(userState.customers);
+          if (userState.salesInvoices) setSalesInvoices(userState.salesInvoices);
+          if (userState.purchaseInvoices) setPurchaseInvoices(userState.purchaseInvoices);
+          if (userState.stockTransfers) setStockTransfers(userState.stockTransfers);
+          if (userState.customerReturns) setCustomerReturns(userState.customerReturns);
+          if (userState.salesmen) setSalesmen(userState.salesmen);
+          if (userState.bankAccounts) setBankAccounts(userState.bankAccounts);
+          if (userState.cashTransactions) setCashTransactions(userState.cashTransactions);
+          if (userState.expenses) setExpenses(userState.expenses);
+          if (userState.expenseCategories) setExpenseCategories(userState.expenseCategories);
+          if (userState.chartOfAccounts) setChartOfAccounts(userState.chartOfAccounts);
+          if (userState.journalEntries) setJournalEntries(userState.journalEntries);
+          if (userState.alerts) setAlerts(userState.alerts);
+          if (userState.auditLogs) setAuditLogs(userState.auditLogs);
+          if (userState.settings) setSettings(sanitizeSystemSettings(userState.settings));
+          if (userState.salesmanVisits) setSalesmanVisits(userState.salesmanVisits);
+          if (userState.customerFollowUps) setCustomerFollowUps(userState.customerFollowUps);
+          if (userState.dayClosings) setDayClosings(userState.dayClosings);
+          if (userState.phoneExchanges) setPhoneExchanges(userState.phoneExchanges);
+          if (userState.bankStatements) setBankStatements(userState.bankStatements);
+          if (userState.supplierReturns) setSupplierReturns(userState.supplierReturns);
+          if (userState.warrantyClaims) setWarrantyClaims(userState.warrantyClaims);
+          if (userState.brandIncentives) setBrandIncentives(userState.brandIncentives);
+          if (userState.deliveryChallans) setDeliveryChallans(userState.deliveryChallans);
+          if (userState.priceDropClaims) setPriceDropClaims(userState.priceDropClaims);
+          if (userState.smsLogs) setSmsLogs(userState.smsLogs);
+          if (userState.commissionDisbursements) setCommissionDisbursements(userState.commissionDisbursements);
+          if (userState.emiPlans) setEmiPlans(userState.emiPlans);
+          if (userState.moneyReceipts) setMoneyReceipts(userState.moneyReceipts);
+        }
+
+        try {
+          const snapshots = localStorage.getItem(snapshotsKey);
+          if (snapshots && isMounted) setBackupSnapshots(JSON.parse(snapshots));
+        } catch (error) {
+          console.error('Failed to load this user’s backup snapshots:', error);
+        }
+
+        if (isMounted) setHydratedUserId(userId);
+      } catch (error) {
+        console.error('Failed to load user-scoped ERP data:', error);
+        if (isMounted) setUserDataLoadError('এই ব্যবহারকারীর অফলাইন ডেটা লোড করা যায়নি। পুনরায় চেষ্টা করতে পৃষ্ঠা রিফ্রেশ করুন।');
       }
-    ];
-  });
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.id]);
 
   useEffect(() => {
     if (currentUser) {
@@ -812,7 +852,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Sync and hydrate all enterprise entities from Supabase Cloud
   const syncAllFromSupabase = useCallback(async () => {
-    if (!currentUser) {
+    if (!currentUser || !isUserDataReady) {
       return;
     }
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -1600,7 +1640,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsSyncing(false);
     }
-  }, [currentUser]);
+  }, [currentUser, isUserDataReady]);
 
   useEffect(() => {
     syncAllFromSupabase();
@@ -1625,6 +1665,9 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const triggerManualSync = async (): Promise<{ success: boolean; message: string; syncedCount: number }> => {
     if (!currentUser) {
       return { success: false, message: 'সিঙ্ক করার আগে Supabase Auth দিয়ে সাইন-ইন করুন।', syncedCount: 0 };
+    }
+    if (!isUserDataReady) {
+      return { success: false, message: 'আপনার ব্যবহারকারীর অফলাইন ডেটা এখনও লোড হচ্ছে।', syncedCount: 0 };
     }
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       return { success: false, message: 'আপনার ডিভাইস বর্তমানে অফলাইনে রয়েছে। ইন্টারনেট সংযুক্ত হলে সিঙ্ক করা যাবে।', syncedCount: 0 };
@@ -1656,20 +1699,18 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   useEffect(() => {
+    if (!isUserDataReady || !currentUser) return;
     try {
-      localStorage.setItem('TELECORP_BACKUP_SNAPSHOTS', JSON.stringify(backupSnapshots));
+      const snapshotsKey = `TELECORP_BACKUP_SNAPSHOTS_${encodeURIComponent(currentUser.id)}`;
+      localStorage.setItem(snapshotsKey, JSON.stringify(backupSnapshots));
     } catch (e) {
-      console.error(e);
+      console.error('Failed to save user-scoped backup snapshots:', e);
     }
-  }, [backupSnapshots]);
+  }, [backupSnapshots, currentUser?.id, isUserDataReady]);
 
   // Sync to IndexedDB with 300ms debounce (replaces localStorage 5MB limit)
-  const isInitialMount = useRef(true);
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
+    if (!isUserDataReady || !currentUser) return;
 
     const timer = setTimeout(() => {
       const stateToSave = {
@@ -1709,13 +1750,15 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         moneyReceipts
       };
 
-      erpStorage.setItem(STORAGE_KEY, stateToSave).catch(e => {
+      const userStorageKey = `${STORAGE_KEY}_${encodeURIComponent(currentUser.id)}`;
+      erpStorage.setItem(userStorageKey, stateToSave).catch(e => {
         console.error('Error saving ERP state to IndexedDB', e);
       });
     }, 300);
 
     return () => clearTimeout(timer);
   }, [
+    currentUser?.id, isUserDataReady,
     brands, products, imeis, warehouses, suppliers, customers,
     salesInvoices, purchaseInvoices, stockTransfers, customerReturns,
     salesmen, bankAccounts, cashTransactions, expenses, expenseCategories,
@@ -1809,8 +1852,10 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 2. Clear and set local state
     try {
-      await erpStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(STORAGE_KEY);
+      if (currentUser) {
+        await erpStorage.removeItem(`${STORAGE_KEY}_${encodeURIComponent(currentUser.id)}`);
+        localStorage.removeItem(`TELECORP_BACKUP_SNAPSHOTS_${encodeURIComponent(currentUser.id)}`);
+      }
       localStorage.removeItem('TELECORP_USERS_LIST');
     } catch (e) {
       console.error(e);
@@ -2148,7 +2193,12 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const createPurchase = (
     purchase: Omit<PurchaseInvoice, 'id' | 'invoiceNo' | 'createdAt'>,
     imeisToRegister: Array<{ imei1: string; imei2?: string; serialNumber?: string; variantId: string; productId: string }>
-  ) => executeCreatePurchase(purchase, imeisToRegister, purchaseBundle);
+  ) => {
+    if (!hasPermission(currentUserRole, 'purchases')) {
+      return { success: false, error: 'আপনার ক্রয় চালান তৈরির অনুমতি নেই।' };
+    }
+    return executeCreatePurchase(purchase, imeisToRegister, purchaseBundle);
+  };
 
   const updatePurchaseInvoiceMeta = (
     id: string,
@@ -3020,8 +3070,15 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateCustomerReturnStatus = (id: string, status: CustomerReturn['status'], notes?: string) => {
+    if (!['Super Admin', 'Owner', 'General Manager'].includes(currentUserRole)) {
+      return { success: false, error: 'কাস্টমার রিটার্ন অনুমোদনের অনুমতি নেই।' };
+    }
+    if (status !== 'Approved') {
+      return { success: false, error: 'এই অপারেশনে শুধু Pending রিটার্ন অনুমোদন করা যাবে।' };
+    }
     const ret = customerReturns.find(r => r.id === id);
     if (!ret) return { success: false, error: 'কাস্টমার রিটার্ন রেকর্ড পাওয়া যায়নি।' };
+    if (ret.status !== 'Pending') return { success: false, error: 'শুধু Pending রিটার্ন অনুমোদন করা যাবে।' };
     setCustomerReturns(prev => prev.map(r => r.id === id ? { ...r, status, notes: notes || r.notes } : r));
     enqueueChange('customer_returns', 'UPDATE', id, { ...ret, status, notes: notes || ret.notes }, `কাস্টমার রিটার্ন স্ট্যাটাস পরিবর্তন: ${status}`);
     addAudit('RETURNS', `কাস্টমার রিটার্ন ${ret.returnNo} স্ট্যাটাস ${status} এ পরিবর্তিত হয়েছে`, ret.returnNo);
@@ -3029,56 +3086,16 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteCustomerReturn = (id: string) => {
+    if (!['Super Admin', 'Owner', 'General Manager'].includes(currentUserRole)) {
+      return { success: false, error: 'কাস্টমার রিটার্ন বাতিল করার অনুমতি নেই।' };
+    }
     const ret = customerReturns.find(r => r.id === id);
     if (!ret) return { success: false, error: 'কাস্টমার রিটার্ন রেকর্ড পাওয়া যায়নি।' };
-
-    // 1. Revert Customer credit/due
-    if (ret.customerId && ret.refundOrCreditAmount > 0) {
-      setCustomers(prev => prev.map(c => {
-        if (c.id === ret.customerId) {
-          const revertedCust = { ...c, currentDue: c.currentDue + ret.refundOrCreditAmount };
-          enqueueChange('customers', 'UPDATE', c.id, revertedCust, `কাস্টমার রিটার্ন ডিলিট: বকেয়া রিভার্সাল (${c.shopName})`);
-          return revertedCust;
-        }
-        return c;
-      }));
-    }
-
-    // 2. Revert restocked IMEI back to Sold
-    if (ret.imei) {
-      setImeis(prev => prev.map(im => {
-        if (im.imei1 === ret.imei) {
-          const revertedIm: IMEIRecord = {
-            ...im,
-            status: 'Sold',
-            customerId: ret.customerId,
-            customerName: ret.customerName,
-            salesInvoiceNo: ret.originalInvoiceNo
-          };
-          enqueueChange('imeis', 'UPDATE', im.id, revertedIm, `কাস্টমার রিটার্ন ডিলিট: আইএমইআই রিভার্সাল (#${im.imei1})`);
-          return revertedIm;
-        }
-        return im;
-      }));
-    }
-
-    // 3. Revert stock count if unit was restocked
-    if (ret.restockStatus === 'Restocked' && ret.imei) {
-      const imeiRec = imeis.find(i => i.imei1 === ret.imei);
-      if (imeiRec?.productId && imeiRec?.variantId) {
-        setProducts(prev => prev.map(p => {
-          if (p.id !== imeiRec.productId) return p;
-          return {
-            ...p,
-            variants: p.variants.map(v => v.id === imeiRec.variantId ? { ...v, currentStock: Math.max(0, v.currentStock - 1) } : v)
-          };
-        }));
-      }
-    }
+    if (ret.status !== 'Pending') return { success: false, error: 'অনুমোদিত রিটার্ন মুছে ফেলা যাবে না।' };
 
     setCustomerReturns(prev => prev.filter(r => r.id !== id));
-    enqueueChange('customer_returns', 'DELETE', id, null, `কাস্টমার রিটার্ন মুছে ফেলা হয়েছে (${ret.returnNo})`);
-    addAudit('RETURNS', `কাস্টমার রিটার্ন ডিলিট ও রিভার্স করা হয়েছে: ${ret.returnNo}`, ret.returnNo);
+    enqueueChange('customer_returns', 'DELETE', id, null, `Pending কাস্টমার রিটার্ন বাতিল করা হয়েছে (${ret.returnNo})`);
+    addAudit('RETURNS', `Pending কাস্টমার রিটার্ন বাতিল করা হয়েছে: ${ret.returnNo}`, ret.returnNo);
     return { success: true };
   };
 
@@ -3269,6 +3286,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         importJSON,
         currentUser,
         isAuthenticated: !!currentUser,
+        isUserDataReady,
+        userDataLoadError,
         isAuthLoading,
         isPasswordRecovery,
         users,
