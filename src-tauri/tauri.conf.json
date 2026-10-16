@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "TeleCorp ERP",
-  "version": "1.0.1",
+  "version": "1.0.5",
   "identifier": "com.telecorp.erp",
   "build": {
     "frontendDist": "../dist",
@@ -19,8 +19,8 @@
         "minWidth": 1024,
         "minHeight": 700,
         "resizable": true,
-        "fullscreen": false,
-        "maximized": true
+        "fullscreen": true,
+        "maximized": false
       }
     ],
     "security": {

@@ -19,6 +19,8 @@ export const PhoneExchangeView: React.FC = () => {
     customers,
     products,
     imeis,
+    warehouses,
+    bankAccounts,
     processPhoneExchange
   } = useERP();
 
@@ -26,6 +28,7 @@ export const PhoneExchangeView: React.FC = () => {
   const [customerId, setCustomerId] = useState(customers[0]?.id || '');
 
   // Old phone appraisal
+  const [exchangeWarehouseId, setExchangeWarehouseId] = useState(warehouses[0]?.id || '');
   const [oldBrand, setOldBrand] = useState('Samsung');
   const [oldModel, setOldModel] = useState('Galaxy S22 Ultra 5G');
   const [oldIMEI, setOldIMEI] = useState('');
@@ -38,6 +41,7 @@ export const PhoneExchangeView: React.FC = () => {
   const [selectedNewIMEI, setSelectedNewIMEI] = useState('');
   const [amountPaidNow, setAmountPaidNow] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('Cash');
+  const [exchangeBankAccountId, setExchangeBankAccountId] = useState(bankAccounts[0]?.id || '');
   const [notes, setNotes] = useState('');
   const [message, setMessage] = useState<string | null>(null);
 
@@ -69,11 +73,15 @@ export const PhoneExchangeView: React.FC = () => {
       return;
     }
 
+    const selectedWh = warehouses.find(w => w.id === exchangeWarehouseId) || warehouses[0];
+
     const res = processPhoneExchange({
       date: new Date().toISOString().split('T')[0],
       customerId: cust.id,
       customerName: cust.shopName,
       customerPhone: cust.mobile,
+      warehouseId: selectedWh?.id,
+      warehouseName: selectedWh?.name,
       oldBrand,
       oldModel,
       oldIMEI,
@@ -88,8 +96,9 @@ export const PhoneExchangeView: React.FC = () => {
       amountPaidNow,
       dueAmount,
       paymentMethod,
+      bankAccountId: paymentMethod !== 'Cash' ? exchangeBankAccountId : undefined,
       notes
-    });
+    } as any);
 
     if (res.success) {
       setMessage(`Exchange #${res.exchangeNo} successfully processed! Pre-owned stock updated.`);
@@ -235,7 +244,7 @@ export const PhoneExchangeView: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">Device Physical Condition</label>
                     <select
@@ -257,6 +266,18 @@ export const PhoneExchangeView: React.FC = () => {
                       className="w-full p-2 bg-white border border-slate-300 rounded-lg font-bold text-rose-700"
                       required
                     />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">ইনটেক ওয়্যারহাউজ / ব্রাঞ্চ *</label>
+                    <select
+                      value={exchangeWarehouseId}
+                      onChange={(e) => setExchangeWarehouseId(e.target.value)}
+                      className="w-full p-2 bg-white border border-slate-300 rounded-lg font-bold text-slate-800"
+                    >
+                      {warehouses.map(w => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
@@ -329,7 +350,7 @@ export const PhoneExchangeView: React.FC = () => {
                   <div>Net Differential: <b className="text-base text-blue-900 font-black">{formatBDT(netPayable)}</b></div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-slate-200">
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">Amount Paid Now (৳)</label>
                     <input
@@ -342,12 +363,42 @@ export const PhoneExchangeView: React.FC = () => {
                     />
                   </div>
                   <div>
+                    <label className="block font-semibold text-slate-700 mb-1">পেমেন্ট মেথড</label>
+                    <select
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value as PaymentMethodType)}
+                      className="w-full p-2 bg-white border border-slate-300 rounded-lg font-bold"
+                    >
+                      <option value="Cash">নগদ (Cash)</option>
+                      <option value="bKash">বিকাশ (bKash)</option>
+                      <option value="POS Card">কার্ড (POS Card)</option>
+                      <option value="Bank Transfer">ব্যাংক ট্রান্সফার</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block font-semibold text-slate-700 mb-1">Differential Due Balance (৳)</label>
                     <div className="p-2 font-bold text-amber-700 text-sm">
                       {formatBDT(dueAmount)}
                     </div>
                   </div>
                 </div>
+
+                {amountPaidNow > 0 && paymentMethod !== 'Cash' && (
+                  <div className="pt-2">
+                    <label className="block font-semibold text-slate-700 mb-1">জমা করার ব্যাংক / MFS অ্যাকাউন্ট *</label>
+                    <select
+                      value={exchangeBankAccountId}
+                      onChange={(e) => setExchangeBankAccountId(e.target.value)}
+                      className="w-full p-2 bg-white border border-slate-300 rounded-lg font-bold text-slate-800"
+                    >
+                      {bankAccounts.map(b => (
+                        <option key={b.id} value={b.id}>
+                          {b.bankName} - {b.accountNumber} ({formatBDT(b.currentBalance)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">

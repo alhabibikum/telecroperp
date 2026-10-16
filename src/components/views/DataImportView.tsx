@@ -79,7 +79,7 @@ Realme,Realme 12 Plus 5G,8GB,256GB,Pioneer Green,863241050000014,863241050000022
     } else {
       setMessage({
         type: 'error',
-        text: 'Failed to import data. Please check CSV column headers.'
+        text: res.error || 'Failed to import data. Please check CSV column headers.'
       });
     }
   };

@@ -1,3 +1,4 @@
+import React from 'react';
 import { Minus, Square, Copy, X, Columns2 } from 'lucide-react';
 import { useWindowManager } from '../../context/WindowManagerContext';
 
@@ -39,10 +40,9 @@ export const WindowsWindowFrame: React.FC<WindowsWindowFrameProps> = ({
     else closeWindow(id);
   };
 
-  // On non-desktop devices (mobile/tablet), render directly in standard responsive mode
   if (!isDesktop) {
     return (
-      <div className={`h-full w-full overflow-y-auto ${className}`}>
+      <div className={`h-full w-full overflow-y-auto bg-[#f0f0f0] dark:bg-[#1e1e1e] text-[#000000] dark:text-[#ffffff] ${className}`}>
         {children}
       </div>
     );
@@ -54,93 +54,75 @@ export const WindowsWindowFrame: React.FC<WindowsWindowFrameProps> = ({
 
   return (
     <div
-      className={`h-full flex flex-col transition-all duration-150 transform-gpu ${
-        isMaximized
-          ? 'w-full'
-          : 'p-0.5 sm:p-1 bg-slate-900/10'
+      className={`h-full flex flex-col transition-all duration-150 ${
+        isMaximized ? 'w-full p-0' : 'p-2'
       }`}
     >
       <div
-        className={`flex-1 flex flex-col bg-slate-100 dark:bg-slate-950 overflow-hidden shadow-xl border border-slate-300/80 dark:border-slate-800 will-change-transform ${
-          isMaximized ? 'rounded-none' : 'rounded-xl shadow-xl'
-        } ${className}`}
+        className={`flex-1 flex flex-col bg-white dark:bg-[#131c2e] text-slate-800 dark:text-slate-100 overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xl ${className}`}
       >
-        {/* Windows OS Titlebar */}
-        <div className="h-9 sm:h-10 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-between px-3 sm:px-4 border-b border-slate-700/80 shrink-0 select-none">
-          {/* Title & Icon */}
-          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 pr-2">
-            <div className="w-5 h-5 rounded bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-300 text-xs shrink-0">
-              {icon || <span className="text-[10px]">🖥️</span>}
-            </div>
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="font-bold text-xs sm:text-sm text-slate-100 truncate">
-                {title}
-              </span>
-              {subtitle && (
-                <span className="hidden lg:inline text-[11px] text-slate-400 truncate">
-                  • {subtitle}
-                </span>
-              )}
-              <span className="hidden sm:inline-block px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider rounded bg-blue-500/20 text-blue-300 border border-blue-400/30">
-                প্রধান উইন্ডো
-              </span>
-            </div>
-          </div>
-
-          {/* Windows Titlebar Controls */}
-          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            {/* Minimize Button */}
-            <button
-              type="button"
-              onClick={() => minimizeWindow(id)}
-              className="w-7 h-7 rounded hover:bg-slate-700/80 flex items-center justify-center text-slate-300 hover:text-white transition cursor-pointer"
-              title="টাস্কবারে মিনিমাইজ করুন (Minimize to Taskbar)"
-            >
-              <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
-            </button>
-
-            {/* Maximize / Restore Button */}
-            <button
-              type="button"
-              onClick={() => toggleMaximizeWindow(id)}
-              className="w-7 h-7 rounded hover:bg-slate-700/80 flex items-center justify-center text-slate-300 hover:text-white transition cursor-pointer"
-              title={isMaximized ? "রিস্টোর করুন (Restore Window)" : "ম্যাক্সিমাইজ করুন (Maximize Window)"}
-            >
-              {isMaximized ? (
-                <Copy className="w-3 h-3 stroke-[2.5]" />
-              ) : (
-                <Square className="w-3 h-3 stroke-[2.5]" />
-              )}
-            </button>
-
-            {/* Snap Assist / Split View 50-50 Button */}
-            <button
-              type="button"
-              onClick={() => toggleSplitView()}
-              className={`w-7 h-7 rounded flex items-center justify-center transition cursor-pointer ${
-                isSplitView
-                  ? 'bg-blue-600 text-white'
-                  : 'hover:bg-slate-700/80 text-slate-300 hover:text-white'
-              }`}
-              title={isSplitView ? "একক ভিউতে ফিরে যান (Exit Split View)" : "স্প্লিট ভিউ (Side-by-Side 50/50 Snap Assist)"}
-            >
-              <Columns2 className="w-3.5 h-3.5 stroke-[2.2]" />
-            </button>
-
-            {/* Close Button */}
+        {/* Apple macOS Frosted Window Header */}
+        <div className="h-10 px-4 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0 select-none">
+          {/* Left: macOS Traffic Light Dots */}
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleClose}
-              className="w-7 h-7 rounded hover:bg-rose-600 flex items-center justify-center text-slate-300 hover:text-white transition cursor-pointer group"
-              title="উইন্ডোটি বন্ধ করুন (Close Window)"
+              className="traffic-light-close group"
+              title="Close Window (Ctrl+W / Esc)"
             >
-              <X className="w-4 h-4 stroke-[2.5] group-hover:scale-110 transition-transform" />
+              <span className="opacity-0 group-hover:opacity-100 font-bold leading-none">✕</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => minimizeWindow(id)}
+              className="traffic-light-min group"
+              title="Minimize Window"
+            >
+              <span className="opacity-0 group-hover:opacity-100 font-bold leading-none">−</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleMaximizeWindow(id)}
+              className="traffic-light-zoom group"
+              title={isMaximized ? 'Restore Window' : 'Zoom Window'}
+            >
+              <span className="opacity-0 group-hover:opacity-100 font-bold leading-none">⤢</span>
+            </button>
+          </div>
+
+          {/* Center: Title & Subtitle */}
+          <div className="flex items-center gap-2 min-w-0 px-2">
+            {icon && <span className="text-sm shrink-0">{icon}</span>}
+            <span className="font-semibold text-xs tracking-tight text-slate-800 dark:text-slate-200 truncate">
+              {title}
+            </span>
+            {subtitle && (
+              <span className="hidden md:inline text-[11px] font-normal text-slate-400 dark:text-slate-500 truncate">
+                • {subtitle}
+              </span>
+            )}
+          </div>
+
+          {/* Right: Window Layout Actions */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => toggleSplitView()}
+              className={`p-1.5 rounded-lg text-xs transition cursor-pointer ${
+                isSplitView
+                  ? 'bg-sky-100 text-sky-700 dark:bg-sky-950/70 dark:text-sky-300'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+              title="Split 50/50 View"
+            >
+              <Columns2 className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* View Content Viewport */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden bg-[#f8fafc]/60 dark:bg-[#0b0f19]/60 p-2 sm:p-4">
           {children}
         </div>
       </div>

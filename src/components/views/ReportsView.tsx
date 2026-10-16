@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
+import { calculateRecordedCOGS } from '../../utils/financialMetrics';
 import {
   FileSpreadsheet,
   Printer,
@@ -21,6 +22,7 @@ import {
   QrCode
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
+import { csvCell } from '../../utils/csvSafety';
 import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 
 type ReportType = 'brand' | 'customer' | 'profit' | 'salesman' | 'financial' | 'inventory' | 'imei-audit';
@@ -68,13 +70,12 @@ export const ReportsView: React.FC = () => {
   const totalDiscounts = salesInvoices.reduce((s, i) => s + i.discountTotal, 0);
   const totalReturns = customerReturns.reduce((s, r) => s + r.refundOrCreditAmount, 0);
   const netSalesRevenue = totalGrossSales - totalDiscounts - totalReturns;
-  const actualCOGS = salesInvoices.reduce((acc, inv) => {
-    return acc + inv.items.reduce((sum, item) => sum + ((item.unitCost || 0) * (item.quantity || 1)), 0);
-  }, 0);
-  const estimatedCOGS = actualCOGS > 0 ? actualCOGS : Math.round(netSalesRevenue * 0.88);
-  const grossProfit = netSalesRevenue - estimatedCOGS;
+  const cogs = calculateRecordedCOGS(salesInvoices.map(inv => inv.items));
+  const grossProfit = cogs.amount === null ? null : netSalesRevenue - cogs.amount;
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
-  const netOperatingProfit = grossProfit - totalExpenses;
+  const netOperatingProfit = grossProfit === null ? null : grossProfit - totalExpenses;
+  const formatMargin = (profit: number | null) =>
+    profit === null || netSalesRevenue === 0 ? 'N/A' : `${((profit / netSalesRevenue) * 100).toFixed(1)}%`;
   const totalReceivables = customers.reduce((s, c) => s + c.currentDue, 0);
   const totalBankBalance = bankAccounts.reduce((s, b) => s + b.currentBalance, 0);
   const openingVaultCash = chartOfAccounts.find(a => a.code === '1000')?.balance ?? 0;
@@ -99,10 +100,10 @@ export const ReportsView: React.FC = () => {
         ['Dealer Special Discounts', 'Deduction', totalDiscounts, 'Approved volume deductions'],
         ['Customer Returns & Credits', 'Deduction', totalReturns, 'DOA and customer restocks'],
         ['Net Sales Revenue', 'Net Revenue', netSalesRevenue, 'Base taxable turnover'],
-        ['Cost of Goods Sold (COGS)', 'Cost', estimatedCOGS, 'Handset procurement cost basis'],
-        ['Gross Trading Profit', 'Gross Margin', grossProfit, `${((grossProfit / netSalesRevenue) * 100).toFixed(1)}% Gross Margin`],
+        ['Cost of Goods Sold (COGS)', 'Cost', cogs.amount ?? 'Unavailable', cogs.complete ? 'Recorded handset procurement cost' : 'Missing item cost data; profit not calculated'],
+        ['Gross Trading Profit', 'Gross Margin', grossProfit ?? 'Unavailable', `${formatMargin(grossProfit)} Gross Margin`],
         ['Operating & Administrative Expenses', 'Opex', totalExpenses, 'Office, salaries, fuel, bank charges'],
-        ['Net Operating Profit', 'Net Income', netOperatingProfit, `${((netOperatingProfit / netSalesRevenue) * 100).toFixed(1)}% Net Margin`],
+        ['Net Operating Profit', 'Net Income', netOperatingProfit ?? 'Unavailable', `${formatMargin(netOperatingProfit)} Net Margin`],
         ['Current Dealer Receivables (Due)', 'Asset', totalReceivables, 'Outstanding customer market credit'],
         ['Liquid Cash & Multi-Bank Balances', 'Asset', totalLiquidFunds, 'Available operating capital (Vault + Multi-Bank)']
       ];
@@ -186,9 +187,9 @@ export const ReportsView: React.FC = () => {
 
     // Construct CSV String with UTF-8 BOM
     let csv = '\uFEFF';
-    csv += headers.map(h => `"${h.replace(/"/g, '""')}"`).join(',') + '\n';
+    csv += headers.map(csvCell).join(',') + '\n';
     rows.forEach(row => {
-      csv += row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(',') + '\n';
+      csv += row.map(csvCell).join(',') + '\n';
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -346,13 +347,13 @@ export const ReportsView: React.FC = () => {
 
             <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs">
               <div className="text-[10px] uppercase font-bold text-slate-400">Gross Margin</div>
-              <div className="text-xl font-black text-emerald-700 mt-1">{formatBDT(grossProfit)}</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">{((grossProfit / netSalesRevenue) * 100).toFixed(1)}% Gross Margin</div>
+              <div className="text-xl font-black text-emerald-700 mt-1">{grossProfit === null ? 'N/A' : formatBDT(grossProfit)}</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">{formatMargin(grossProfit)} Gross Margin</div>
             </div>
 
             <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs">
               <div className="text-[10px] uppercase font-bold text-slate-400">Net Operating Income</div>
-              <div className="text-xl font-black text-blue-700 mt-1">{formatBDT(netOperatingProfit)}</div>
+              <div className="text-xl font-black text-blue-700 mt-1">{netOperatingProfit === null ? 'N/A' : formatBDT(netOperatingProfit)}</div>
               <div className="text-[10px] text-slate-500 mt-0.5">After OPEX deduction</div>
             </div>
 
@@ -405,13 +406,13 @@ export const ReportsView: React.FC = () => {
                   <td className="p-3 text-slate-800">Cost of Goods Sold (Procurement FIFO Cost)</td>
                   <td className="p-3 text-slate-500">COGS</td>
                   <td className="p-3 text-[11px] text-slate-400">Actual cost of handset inventory dispatched</td>
-                  <td className="p-3 text-right text-slate-700">({formatBDT(estimatedCOGS)})</td>
+                  <td className="p-3 text-right text-slate-700">{cogs.amount === null ? 'Unavailable' : `(${formatBDT(cogs.amount)})`}</td>
                 </tr>
                 <tr className="bg-emerald-50/40 font-bold">
                   <td className="p-3 text-emerald-900">Gross Profit (Margin Contribution)</td>
                   <td className="p-3 text-emerald-700">Gross Margin</td>
-                  <td className="p-3 text-[11px] text-emerald-600">Net Sales - COGS ({((grossProfit / netSalesRevenue) * 100).toFixed(1)}%)</td>
-                  <td className="p-3 text-right font-black text-emerald-700">{formatBDT(grossProfit)}</td>
+                  <td className="p-3 text-[11px] text-emerald-600">Net Sales - COGS ({formatMargin(grossProfit)})</td>
+                  <td className="p-3 text-right font-black text-emerald-700">{grossProfit === null ? 'Unavailable' : formatBDT(grossProfit)}</td>
                 </tr>
                 <tr>
                   <td className="p-3 text-slate-800">Operating Expenses (Admin, Salaries, Utility)</td>
@@ -423,7 +424,7 @@ export const ReportsView: React.FC = () => {
                   <td className="p-3">Net Operating Profit Before Taxes</td>
                   <td className="p-3 text-slate-300">Net Profit</td>
                   <td className="p-3 text-[11px] text-slate-400">Final operational net margin</td>
-                  <td className="p-3 text-right font-black text-emerald-400">{formatBDT(netOperatingProfit)}</td>
+                  <td className="p-3 text-right font-black text-emerald-400">{netOperatingProfit === null ? 'Unavailable' : formatBDT(netOperatingProfit)}</td>
                 </tr>
               </tbody>
             </table>
@@ -937,10 +938,10 @@ export const ReportsView: React.FC = () => {
                         <tr><td className="p-2">Less: Discounts & Promos</td><td className="p-2">Deduction</td><td className="p-2 text-right text-rose-600">({formatBDT(totalDiscounts)})</td></tr>
                         <tr><td className="p-2">Less: Customer DOA & Returns</td><td className="p-2">Deduction</td><td className="p-2 text-right text-rose-600">({formatBDT(totalReturns)})</td></tr>
                         <tr className="bg-slate-50 font-bold"><td className="p-2">Net Sales Turnover</td><td className="p-2">Revenue</td><td className="p-2 text-right text-blue-700 font-black">{formatBDT(netSalesRevenue)}</td></tr>
-                        <tr><td className="p-2">Cost of Goods Sold (COGS)</td><td className="p-2">Direct Cost</td><td className="p-2 text-right text-slate-700">({formatBDT(estimatedCOGS)})</td></tr>
-                        <tr className="bg-emerald-50/50 font-bold"><td className="p-2">Gross Trading Profit</td><td className="p-2">Margin</td><td className="p-2 text-right text-emerald-700">{formatBDT(grossProfit)}</td></tr>
+                        <tr><td className="p-2">Cost of Goods Sold (COGS)</td><td className="p-2">Direct Cost</td><td className="p-2 text-right text-slate-700">{cogs.amount === null ? 'Unavailable' : `(${formatBDT(cogs.amount)})`}</td></tr>
+                        <tr className="bg-emerald-50/50 font-bold"><td className="p-2">Gross Trading Profit</td><td className="p-2">Margin</td><td className="p-2 text-right text-emerald-700">{grossProfit === null ? 'Unavailable' : formatBDT(grossProfit)}</td></tr>
                         <tr><td className="p-2">Operating & Admin Expenses</td><td className="p-2">OPEX</td><td className="p-2 text-right text-rose-600">({formatBDT(totalExpenses)})</td></tr>
-                        <tr className="bg-slate-900 text-white font-bold"><td className="p-2">Net Operating Income</td><td className="p-2">Net Profit</td><td className="p-2 text-right text-emerald-400 font-black">{formatBDT(netOperatingProfit)}</td></tr>
+                        <tr className="bg-slate-900 text-white font-bold"><td className="p-2">Net Operating Income</td><td className="p-2">Net Profit</td><td className="p-2 text-right text-emerald-400 font-black">{netOperatingProfit === null ? 'Unavailable' : formatBDT(netOperatingProfit)}</td></tr>
                       </tbody>
                     </>
                   )}

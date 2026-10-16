@@ -1,8 +1,8 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Default Supabase project credentials for TeleCorp ERP
-export const DEFAULT_SUPABASE_URL = 'https://pghjefdamuzlishnidac.supabase.co';
-export const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnaGplZmRhbXV6bGlzaG5pZGFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTExMjI2OTMsImV4cCI6MjEwNjY5ODY5M30.902pBXobWEi51vPDP7BQg6VxLM24nuiPBIxk8UQoHMM';
+/** Cloud URL/key come from env or Settings — never ship project secrets in source. */
+export const DEFAULT_SUPABASE_URL = '';
+export const DEFAULT_SUPABASE_ANON_KEY = '';
 
 // Local storage keys for runtime configuration overrides
 const SUPABASE_URL_KEY = 'telecorp_supabase_url';

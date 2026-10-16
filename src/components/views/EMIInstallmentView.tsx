@@ -42,6 +42,7 @@ export const EMIInstallmentView: React.FC = () => {
     products,
     imeis,
     warehouses,
+    bankAccounts,
     settings,
     createEMIPlan,
     collectInstallmentPayment,
@@ -92,6 +93,7 @@ export const EMIInstallmentView: React.FC = () => {
   const [collectAmount, setCollectAmount] = useState<number>(0);
   const [collectLateFee, setCollectLateFee] = useState<number>(0);
   const [collectMethod, setCollectMethod] = useState<PaymentMethodType>('Cash');
+  const [collectBankAccountId, setCollectBankAccountId] = useState<string>('');
   const [collectRef, setCollectRef] = useState('');
 
   const showToast = (type: 'success' | 'error' | 'info', text: string) => {
@@ -239,6 +241,7 @@ export const EMIInstallmentView: React.FC = () => {
     setCollectAmount(amount);
     setCollectLateFee(lateFee);
     setCollectMethod('Cash');
+    setCollectBankAccountId(bankAccounts[0]?.id || '');
     setCollectRef('');
   };
 
@@ -254,6 +257,7 @@ export const EMIInstallmentView: React.FC = () => {
         paidAmount: collectAmount,
         lateFee: collectLateFee,
         paymentMethod: collectMethod,
+        bankAccountId: collectMethod !== 'Cash' ? collectBankAccountId : undefined,
         transactionRef: collectRef || undefined
       }
     );
@@ -1201,6 +1205,24 @@ export const EMIInstallmentView: React.FC = () => {
                 </div>
               </div>
 
+              {collectMethod !== 'Cash' && (
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">জমা করার ব্যাংক অ্যাকাউন্ট *</label>
+                  <select
+                    value={collectBankAccountId}
+                    onChange={e => setCollectBankAccountId(e.target.value)}
+                    required
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800"
+                  >
+                    {bankAccounts.map(b => (
+                      <option key={b.id} value={b.id}>
+                        {b.bankName} - {b.accountNumber} ({formatBDT(b.currentBalance)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">ট্রানজেকশন আইডি / রেফারেন্স</label>
                 <input
@@ -1257,13 +1279,13 @@ export const EMIInstallmentView: React.FC = () => {
             {/* Printable Agreement Content */}
             <div className="p-4 border border-slate-300 rounded-xl font-serif text-xs space-y-3 bg-white text-slate-900 print:border-none print:p-0">
               <div className="text-center pb-2 border-b border-slate-200">
-                <h2 className="text-lg font-black uppercase tracking-wider">TeleCorp Mobile Distribution & Trade Ltd.</h2>
+                <h2 className="text-lg font-black uppercase tracking-wider">{settings.companyName || 'TeleCorp Mobile Distribution & Trade Ltd.'}</h2>
                 <p className="text-[10px] text-slate-500">স্মার্টফোন কিস্তি বিক্রয় ও জামিনদার দ্বিপাক্ষিক আইনি চুক্তিপত্র</p>
                 <div className="font-mono text-xs font-bold mt-1">চুক্তি নং: #{selectedPlanForPrint.planNo}</div>
               </div>
 
               <div className="space-y-1.5">
-                <p><b>১. প্রথম পক্ষ (বিক্রেতা):</b> টেলিকর্প মোবাইল ডিস্ট্রিবিউশন, ঢাকা, বাংলাদেশ।</p>
+                <p><b>১. প্রথম পক্ষ (বিক্রেতা):</b> {settings.companyName || 'টেলিকর্প মোবাইল ডিস্ট্রিবিউশন'}, {settings.companyAddress || 'ঢাকা, বাংলাদেশ'}।</p>
                 <p><b>২. দ্বিতীয় পক্ষ (ক্রেতা):</b> {selectedPlanForPrint.customerName}, মোবাইল: {selectedPlanForPrint.customerMobile}, ঠিকানা: {selectedPlanForPrint.customerAddress}।</p>
                 <p><b>৩. তৃতীয় পক্ষ (জামিনদার):</b> {selectedPlanForPrint.guarantor.name} ({selectedPlanForPrint.guarantor.relation}), মোবাইল: {selectedPlanForPrint.guarantor.mobile}, এনআইডি: {selectedPlanForPrint.guarantor.nidNo}।</p>
               </div>
@@ -1277,7 +1299,7 @@ export const EMIInstallmentView: React.FC = () => {
               </div>
 
               <div className="text-[10px] text-slate-600 space-y-1">
-                <p><b>শর্তাবলী:</b> সম্পূর্ণ কিস্তি পরিশোধ না হওয়া পর্যন্ত ডিভাইসের মূল মালিকানা টেলিকর্প-এর অধীনে থাকবে। পরপর ২টি কিস্তি বকেয়া হলে জামিনদারের ব্যাংক চেক ক্যাশ করার ও আইনি ব্যবস্থা গ্রহণের সম্পূর্ণ অধিকার কর্তৃপক্ষের থাকবে।</p>
+                <p><b>শর্তাবলী:</b> সম্পূর্ণ কিস্তি পরিশোধ না হওয়া পর্যন্ত ডিভাইসের মূল মালিকানা {settings.companyName || 'টেলিকর্প'}-এর অধীনে থাকবে। পরপর ২টি কিস্তি বকেয়া হলে জামিনদারের ব্যাংক চেক ক্যাশ করার ও আইনি ব্যবস্থা গ্রহণের সম্পূর্ণ অধিকার কর্তৃপক্ষের থাকবে।</p>
               </div>
 
               <div className="pt-8 flex justify-between text-center text-xs">
@@ -1319,7 +1341,7 @@ export const EMIInstallmentView: React.FC = () => {
 
             <div className="p-3 border border-slate-300 rounded-xl font-mono text-[11px] space-y-2 bg-white text-slate-900 print:border-none">
               <div className="text-center border-b pb-1">
-                <div className="font-bold text-sm">TELECORP MOBILE ERP</div>
+                <div className="font-bold text-sm">{settings.companyName || 'TELECORP MOBILE ERP'}</div>
                 <div className="text-[10px]">EMI Installment Payment Slip</div>
                 <div className="text-[9px] text-slate-500">রসিদ নং: {selectedReceipt.installment.receiptNo || 'RCP-001'}</div>
               </div>

@@ -16,6 +16,7 @@ import { WindowsModalFrame } from '../common/WindowsModalFrame';
 import { HistoryInput } from '../common/HistoryInput';
 import { recordFieldHistory } from '../../services/formHistoryService';
 import { useToast } from '../common/ToastNotificationSystem';
+import { useQuickCreateMasterData } from '../common/QuickCreateMasterDataModal';
 
 interface NewProductModalProps {
   isOpen: boolean;
@@ -23,12 +24,13 @@ interface NewProductModalProps {
 }
 
 export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClose }) => {
-  const { brands, addProduct } = useERP();
+  const { brands, products, addProduct } = useERP();
   const { showSuccess } = useToast();
+  const { onQuickCreateKeyDown, quickCreateModal } = useQuickCreateMasterData();
 
   const [brandId, setBrandId] = useState(brands[0]?.id || '');
   const [model, setModel] = useState('');
-  const [category, setCategory] = useState<any>('Smartphone');
+  const [category, setCategory] = useState('Smartphone');
   const [networkRegion, setNetworkRegion] = useState('Official BD (BTRC Approved)');
   const [warrantyMonths, setWarrantyMonths] = useState<number>(12);
   const [description, setDescription] = useState('');
@@ -191,10 +193,12 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
               <select
                 value={brandId}
                 onChange={(e) => setBrandId(e.target.value)}
+                onKeyDown={onQuickCreateKeyDown('brand', setBrandId)}
                 className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 font-bold"
               >
                 {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
+              <p className="mt-1 text-[10px] text-slate-500">নতুন ব্র্যান্ড যোগ করতে ড্রপডাউনে ফোকাস করে Ctrl+C চাপুন।</p>
             </div>
 
             <div>
@@ -219,6 +223,23 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
                 onChange={(e) => setNetworkRegion(e.target.value)}
                 className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100"
               />
+            </div>
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Product Category *</label>
+              <input
+                list="product-category-options"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                onKeyDown={onQuickCreateKeyDown('category', setCategory)}
+                className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 font-bold"
+                required
+              />
+              <datalist id="product-category-options">
+                {[...new Set(['Smartphone', 'Feature Phone', 'Tablet', 'Accessories', ...products.map(product => product.category)])]
+                  .filter(Boolean)
+                  .map(option => <option key={option} value={option} />)}
+              </datalist>
+              <p className="mt-1 text-[10px] text-slate-500">তালিকা থেকে বাছুন অথবা নতুন ক্যাটাগরির নাম লিখুন।</p>
             </div>
           </div>
 
@@ -406,6 +427,7 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({ isOpen, onClos
         title="নতুন প্রোডাক্ট এন্ট্রি বাতিল করবেন? (Discard Product Entry?)"
         message="আপনি ইতিমধ্যে মডেল বা বিবরণ লিখেছেন। এখন বাতিল করলে কোনো নতুন প্রোডাক্ট সংরক্ষিত হবে না।"
       />
+      {quickCreateModal}
     </>
   );
 };

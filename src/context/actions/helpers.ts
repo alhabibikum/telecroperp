@@ -38,7 +38,13 @@ export const pushCashHelper = (
   amount: number,
   referenceNo: string,
   description: string,
-  currentUserRole: string
+  currentUserRole: string,
+  extra?: {
+    warehouseId?: string;
+    customerId?: string;
+    supplierId?: string;
+    bankAccountId?: string;
+  }
 ) => {
   setCashTransactions(prev => [
     {
@@ -49,7 +55,11 @@ export const pushCashHelper = (
       amount,
       referenceNo,
       description,
-      performedBy: currentUserRole
+      performedBy: currentUserRole,
+      warehouseId: extra?.warehouseId,
+      customerId: extra?.customerId,
+      supplierId: extra?.supplierId,
+      bankAccountId: extra?.bankAccountId
     },
     ...prev
   ]);

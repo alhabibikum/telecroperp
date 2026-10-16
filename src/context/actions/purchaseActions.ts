@@ -53,6 +53,7 @@ export const executeCreatePurchase = (
     setProducts,
     suppliers,
     setSuppliers,
+    bankAccounts,
     setBankAccounts,
     setCashTransactions,
     journalEntries,
@@ -143,18 +144,23 @@ export const executeCreatePurchase = (
           amount: purchaseData.paidAmount,
           referenceNo: invoiceNo,
           description: `Advance/Cash paid for purchase ${invoiceNo} to ${purchaseData.supplierName}`,
-          performedBy: currentUserRole
+          performedBy: currentUserRole,
+          warehouseId: purchaseData.warehouseId,
+          supplierId: purchaseData.supplierId
         },
         ...prev
       ]);
-    } else if (purchaseData.bankAccountId) {
-      setBankAccounts(prev =>
-        prev.map(b =>
-          b.id === purchaseData.bankAccountId
-            ? { ...b, currentBalance: b.currentBalance - purchaseData.paidAmount }
-            : b
-        )
-      );
+    } else {
+      const targetBankId = purchaseData.bankAccountId || bankAccounts[0]?.id;
+      if (targetBankId) {
+        setBankAccounts(prev =>
+          prev.map(b =>
+            b.id === targetBankId
+              ? { ...b, currentBalance: b.currentBalance - purchaseData.paidAmount }
+              : b
+          )
+        );
+      }
     }
   }
 
@@ -254,6 +260,7 @@ export const executeCancelPurchase = (
     setSuppliers,
     supplierReturns,
     setCashTransactions,
+    bankAccounts,
     setBankAccounts,
     journalEntries,
     setJournalEntries,
@@ -303,9 +310,21 @@ export const executeCancelPurchase = (
   }
   if (pur.paidAmount > 0) {
     if (pur.paymentMethod === 'Cash') {
-      pushCashHelper(setCashTransactions, 'Cash In', 'Supplier Payment', pur.paidAmount, pur.invoiceNo, `Refund/reversal for cancelled purchase ${pur.invoiceNo}`, currentUserRole);
+      pushCashHelper(
+        setCashTransactions,
+        'Cash In',
+        'Supplier Payment',
+        pur.paidAmount,
+        pur.invoiceNo,
+        `Refund/reversal for cancelled purchase ${pur.invoiceNo}`,
+        currentUserRole,
+        {
+          warehouseId: pur.warehouseId,
+          supplierId: pur.supplierId
+        }
+      );
     } else {
-      adjustBankHelper(setBankAccounts, pur.bankAccountId, pur.paidAmount);
+      adjustBankHelper(setBankAccounts, pur.bankAccountId || bankAccounts[0]?.id, pur.paidAmount);
     }
   }
   reverseJournalsHelper(journalEntries, setJournalEntries, pur.invoiceNo, `Cancelled purchase ${pur.invoiceNo}`, currentUserRole);
@@ -356,16 +375,19 @@ export const executePaySupplier = (
       amount: data.amount,
       referenceNo: payNo,
       description: `Payment to supplier ${supplier.name}`,
-      performedBy: currentUserRole
+      performedBy: currentUserRole,
+      supplierId: supplier.id,
+      warehouseId: (data as any).warehouseId
     };
     setCashTransactions(prev => [cashEntry, ...prev]);
     enqueueChange('cash_transactions', 'INSERT', cashEntry.id, cashEntry, `সাপ্লায়ার ক্যাশ পরিশোধ #${payNo}`);
-  } else if (data.bankAccountId) {
-    const targetBank = bankAccounts.find(b => b.id === data.bankAccountId);
+  } else {
+    const targetBankId = data.bankAccountId || bankAccounts[0]?.id;
+    const targetBank = targetBankId ? bankAccounts.find(b => b.id === targetBankId) : undefined;
     if (targetBank) {
       const updatedBank = { ...targetBank, currentBalance: targetBank.currentBalance - data.amount };
       setBankAccounts(prev =>
-        prev.map(b => (b.id === data.bankAccountId ? updatedBank : b))
+        prev.map(b => (b.id === targetBank.id ? updatedBank : b))
       );
       enqueueChange('bank_accounts', 'UPDATE', targetBank.id, updatedBank, `ব্যাংক ব্যালেন্স হ্রাস (${targetBank.bankName})`);
     }

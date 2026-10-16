@@ -18,10 +18,10 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS app_users (
     id TEXT PRIMARY KEY,
+    auth_user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'Salesman',
-    password TEXT NOT NULL DEFAULT '123456',
     status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Suspended')),
     phone TEXT,
     department TEXT,
@@ -727,46 +727,13 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     details TEXT
 );
 
--- =========================================================================
--- 25. OPEN ACCESS POLICIES (Allow All Operations for Connected ERP Clients)
--- =========================================================================
-ALTER TABLE brands DISABLE ROW LEVEL SECURITY;
-ALTER TABLE warehouses DISABLE ROW LEVEL SECURITY;
-ALTER TABLE suppliers DISABLE ROW LEVEL SECURITY;
-ALTER TABLE customers DISABLE ROW LEVEL SECURITY;
-ALTER TABLE salesmen DISABLE ROW LEVEL SECURITY;
-ALTER TABLE products DISABLE ROW LEVEL SECURITY;
-ALTER TABLE product_variants DISABLE ROW LEVEL SECURITY;
-ALTER TABLE imeis DISABLE ROW LEVEL SECURITY;
-ALTER TABLE sales_invoices DISABLE ROW LEVEL SECURITY;
-ALTER TABLE purchase_invoices DISABLE ROW LEVEL SECURITY;
-ALTER TABLE stock_transfers DISABLE ROW LEVEL SECURITY;
-ALTER TABLE customer_returns DISABLE ROW LEVEL SECURITY;
-ALTER TABLE supplier_returns DISABLE ROW LEVEL SECURITY;
-ALTER TABLE money_receipts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE bank_accounts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE bank_transactions DISABLE ROW LEVEL SECURITY;
-ALTER TABLE bank_statements DISABLE ROW LEVEL SECURITY;
-ALTER TABLE cash_transactions DISABLE ROW LEVEL SECURITY;
-ALTER TABLE expense_categories DISABLE ROW LEVEL SECURITY;
-ALTER TABLE expenses DISABLE ROW LEVEL SECURITY;
-ALTER TABLE day_closings DISABLE ROW LEVEL SECURITY;
-ALTER TABLE chart_of_accounts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE journal_entries DISABLE ROW LEVEL SECURITY;
-ALTER TABLE warranty_claims DISABLE ROW LEVEL SECURITY;
-ALTER TABLE brand_incentive_schemes DISABLE ROW LEVEL SECURITY;
-ALTER TABLE delivery_challans DISABLE ROW LEVEL SECURITY;
-ALTER TABLE price_drop_claims DISABLE ROW LEVEL SECURITY;
-ALTER TABLE phone_exchange_records DISABLE ROW LEVEL SECURITY;
-ALTER TABLE customer_follow_ups DISABLE ROW LEVEL SECURITY;
-ALTER TABLE salesman_visits DISABLE ROW LEVEL SECURITY;
-ALTER TABLE sms_logs DISABLE ROW LEVEL SECURITY;
-ALTER TABLE system_alerts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE gateway_configs DISABLE ROW LEVEL SECURITY;
-ALTER TABLE backup_snapshots DISABLE ROW LEVEL SECURITY;
-ALTER TABLE system_settings DISABLE ROW LEVEL SECURITY;
-ALTER TABLE audit_logs DISABLE ROW LEVEL SECURITY;
-ALTER TABLE app_users DISABLE ROW LEVEL SECURITY;
+-- API roles stay locked down until the Auth-linked RLS migration is applied.
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL ON ALL ROUTINES IN SCHEMA public FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON ROUTINES FROM anon, authenticated;
 
 -- =========================================================================
 -- 26. STORED PROCEDURES & ATOMIC FUNCTIONS

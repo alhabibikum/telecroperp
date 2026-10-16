@@ -3,48 +3,33 @@ import { useERP } from '../../context/ERPContext';
 import {
   LayoutDashboard,
   Smartphone,
-  Layers,
-  ShoppingBag,
-  Store,
-  Warehouse,
-  Truck,
-  Users,
-  CreditCard,
-  Building2,
-  Undo2,
-  UserCheck,
-  Wallet,
-  Receipt,
-  BookOpen,
-  FileSpreadsheet,
-  AlertOctagon,
-  History,
-  Settings,
-  ShieldCheck,
-  ArrowRightLeft,
-  DollarSign,
-  RotateCcw,
-  Barcode,
-  Award,
   ShieldAlert,
-  MapPin,
-  RefreshCw,
+  BadgeDollarSign,
+  ShoppingCart,
+  Boxes,
+  Truck,
+  Building2,
+  Users2,
+  Wallet,
   Clock,
-  SlidersHorizontal,
-  Upload,
-  TrendingDown,
-  MessageSquare,
+  FileSpreadsheet,
+  Settings2,
   Search,
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
-  ChevronUp,
-  Link,
-  LogOut,
+  ChevronRight,
+  ChevronLeft,
+  ArrowLeftRight,
+  Receipt,
+  RotateCcw,
   Sparkles,
-  Zap,
-  Sliders,
-  CheckCircle2
+  QrCode,
+  DollarSign,
+  RefreshCw,
+  Wrench,
+  CheckCircle2,
+  PackageCheck,
+  X,
+  LogOut
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -57,7 +42,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   currentView,
   onSelectView,
-  isExpanded = false,
+  isExpanded = true,
   onToggleExpand
 }) => {
   const {
@@ -67,493 +52,251 @@ export const Sidebar: React.FC<SidebarProps> = ({
     customers,
     warrantyClaims,
     emiPlans,
-    currentUser,
     currentUserRole,
+    currentUser,
     hasPermission,
-    logout,
-    users,
-    demoUsers,
-    loginAsDemoUser
+    logout
   } = useERP();
 
   const isBn = settings.language === 'bn';
+  const [search, setSearch] = useState('');
+  const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
 
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [filterSearch, setFilterSearch] = useState('');
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
-
-  const toggleSection = (title: string) => {
-    setCollapsedSections(prev => ({
+  const toggleCategory = (id: string) => {
+    setCollapsedCategories(prev => ({
       ...prev,
-      [title]: !prev[title]
+      [id]: !prev[id]
     }));
   };
 
   const unreadAlerts = alerts.filter(a => !a.read).length;
   const overdueCustomersCount = customers.filter(c => c.currentDue > 0).length;
-  const activeWarrantyCount = warrantyClaims.filter(w => w.status !== 'Delivered to Customer' && w.status !== 'Rejected').length;
 
-  const navSections = [
+  const menuSections = [
     {
-      id: 'overview',
-      title: isBn ? 'মূল ড্যাশবোর্ড' : 'Overview & Cockpit',
+      id: 'core',
+      title: isBn ? 'ড্যাশবোর্ড ও ককপিট' : 'Overview & Cockpit',
       items: [
-        {
-          id: 'dashboard',
-          label: isBn ? 'অপারেশনাল ড্যাশবোর্ড' : 'Operations Cockpit',
-          icon: LayoutDashboard,
-          accent: 'from-blue-500 via-indigo-600 to-violet-600',
-          badge: null
-        },
-        {
-          id: 'imei-trace',
-          label: isBn ? 'আইএমইআই ৩৬০° লাইফসাইকেল' : 'IMEI 360° Tracker',
-          icon: Smartphone,
-          accent: 'from-sky-500 via-cyan-600 to-blue-600',
-          badge: `${imeis.length}`
-        },
-        {
-          id: 'alert-center',
-          label: isBn ? 'অ্যালার্ট ও রিয়েলটাইম মনিটর' : 'Alerts & Real-time Monitor',
-          icon: AlertOctagon,
-          accent: 'from-rose-500 via-pink-600 to-red-600',
-          badge: unreadAlerts > 0 ? `${unreadAlerts}` : null,
-          badgeColor: 'bg-rose-500 text-white'
-        }
+        { id: 'dashboard', label: isBn ? 'ড্যাশবোর্ড (Dashboard)' : 'Dashboard', icon: LayoutDashboard },
+        { id: 'imei-trace', label: isBn ? 'আইএমইআই ট্রেস' : 'IMEI Trace', icon: Smartphone, badge: imeis.length ? `${imeis.length}` : undefined },
+        { id: 'alert-center', label: isBn ? 'অ্যালার্ট ও নোটিফিকেশন' : 'Alert Center', icon: ShieldAlert, badge: unreadAlerts ? `${unreadAlerts}` : undefined, badgeColor: 'bg-rose-600 text-white' }
+      ]
+    },
+    {
+      id: 'rma_doa',
+      title: isBn ? 'ডিওএ ও কোয়ালিটি কন্ট্রোল' : 'DOA & Quality Control',
+      items: [
+        { id: 'warranty-service', label: isBn ? 'DOA / Defective ম্যানেজমেন্ট' : 'DOA & Defective Management', icon: Wrench, badge: warrantyClaims.length ? `${warrantyClaims.length}` : undefined },
+        { id: 'returns', label: isBn ? 'ভেন্ডর ও কাস্টমার রিটার্ন' : 'Vendor & Customer Returns', icon: RotateCcw }
+      ]
+    },
+    {
+      id: 'logistics',
+      title: isBn ? 'ডিসপ্যাচ ও ওয়্যারহাউজ' : 'Warehouse & Logistics',
+      items: [
+        { id: 'delivery-dispatch', label: isBn ? 'ওয়্যারহাউজ ডিসপ্যাচ ও ট্র্যাকিং' : 'Warehouse Dispatch Bay', icon: Truck },
+        { id: 'stock-transfers', label: isBn ? 'স্টক ট্রান্সফার চালান' : 'Stock Transfers', icon: ArrowLeftRight },
+        { id: 'warehouses', label: isBn ? 'ওয়্যারহাউজ ও গোডাউন' : 'Warehouses & Godowns', icon: Building2 },
+        { id: 'barcode-labels', label: isBn ? 'বারকোড ও লেবেল প্রিন্ট' : 'Barcode & Labels', icon: QrCode }
       ]
     },
     {
       id: 'sales',
-      title: isBn ? 'বিক্রয় ও ডিস্ট্রিবিউশন' : 'Sales & Distribution',
+      title: isBn ? 'বিক্রয় ও বিতরণ' : 'Sales & Distribution',
       items: [
-        {
-          id: 'wholesale-sales',
-          label: isBn ? 'পাইকারি সেলস ও ইনভয়েস' : 'Wholesale Sales Invoicing',
-          icon: ShoppingBag,
-          accent: 'from-emerald-500 via-teal-600 to-green-600'
-        },
-        {
-          id: 'retail-pos',
-          label: isBn ? 'রিটেইল পিওএস কাউন্টার' : 'Retail POS Express Counter',
-          icon: Store,
-          accent: 'from-teal-500 via-emerald-600 to-cyan-600'
-        },
-        {
-          id: 'delivery-dispatch',
-          label: isBn ? 'ডেলিভারি চালান ও কুরিয়ার' : 'Delivery Challan & Logistics',
-          icon: Truck,
-          accent: 'from-cyan-500 via-blue-600 to-indigo-600'
-        },
-        {
-          id: 'phone-exchange',
-          label: isBn ? 'ফোন এক্সচেঞ্জ ও ট্রেড-ইন' : 'Phone Exchange & Trade-In',
-          icon: RotateCcw,
-          accent: 'from-amber-500 via-orange-600 to-red-500'
-        },
-        {
-          id: 'emi-installment',
-          label: isBn ? 'কিস্তি ও ইএমআই হায়ার-পারচেজ' : 'EMI & Hire-Purchase Hub',
-          icon: CreditCard,
-          accent: 'from-violet-500 via-purple-600 to-indigo-600',
-          badge: emiPlans.filter(p => p.status === 'Active').length > 0 ? `${emiPlans.filter(p => p.status === 'Active').length}` : null,
-          badgeColor: 'bg-indigo-100 text-indigo-900 border border-indigo-300'
-        },
-        {
-          id: 'due-ageing',
-          label: isBn ? 'বকেয়া ও এইজিং অ্যানালাইসিস' : 'Due Ageing & Credit Control',
-          icon: CreditCard,
-          accent: 'from-amber-500 via-yellow-600 to-amber-600',
-          badge: overdueCustomersCount > 0 ? `${overdueCustomersCount}` : null,
-          badgeColor: 'bg-amber-100 text-amber-900 border border-amber-300'
-        },
-        {
-          id: 'due-collection',
-          label: isBn ? 'বকেয়া কালেকশন ও রসিদ' : 'Due Collection & Receipts',
-          icon: Receipt,
-          accent: 'from-emerald-600 via-teal-700 to-green-700'
-        },
-        {
-          id: 'sms-marketing',
-          label: isBn ? 'বাল্ক এসএমএস ও অটোমেশন' : 'SMS Marketing & Automation',
-          icon: MessageSquare,
-          accent: 'from-indigo-500 via-purple-600 to-violet-600'
-        }
+        { id: 'wholesale-sales', label: isBn ? 'পাইকারি বিক্রয় (B2B)' : 'Wholesale Sales', icon: BadgeDollarSign },
+        { id: 'retail-pos', label: isBn ? 'কাউন্টার পিওএস' : 'Retail POS', icon: ShoppingCart },
+        { id: 'due-collection', label: isBn ? 'বকেয়া কালেকশন' : 'Due Collection', icon: Wallet },
+        { id: 'due-ageing', label: isBn ? 'বকেয়া এইজিং রিপোর্ট' : 'Due Ageing', icon: Clock, badge: overdueCustomersCount ? `${overdueCustomersCount}` : undefined },
+        { id: 'emi-installment', label: isBn ? 'কিস্তি ও ইএমআই' : 'EMI Financing', icon: Receipt },
+        { id: 'phone-exchange', label: isBn ? 'ফোন এক্সচেঞ্জ' : 'Phone Trade-in', icon: ArrowLeftRight }
       ]
     },
     {
       id: 'inventory',
-      title: isBn ? 'ইনভেন্টরি ও গুদাম' : 'Inventory & Warehousing',
+      title: isBn ? 'ইনভেন্টরি ও সাপ্লাই' : 'Inventory & Supply',
       items: [
-        {
-          id: 'inventory',
-          label: isBn ? 'স্টক ব্যালেন্স ও ভ্যালুয়েশন' : 'Stock & Serial Valuation',
-          icon: Layers,
-          accent: 'from-blue-600 via-indigo-600 to-cyan-600'
-        },
-        {
-          id: 'barcode-labels',
-          label: isBn ? 'বারকোড ও বক্স স্টিকার' : 'Barcode & Box Stickers',
-          icon: Barcode,
-          accent: 'from-slate-700 via-slate-800 to-zinc-900'
-        },
-        {
-          id: 'brands',
-          label: isBn ? 'ব্র্যান্ড ও অথরাইজেশন' : 'Brand Master & OEM',
-          icon: ShieldCheck,
-          accent: 'from-teal-500 via-emerald-600 to-teal-700'
-        },
-        {
-          id: 'warehouses',
-          label: isBn ? 'মাল্টি-ওয়্যারহাউজ ও শোরুম' : 'Multi-Hub & Outlets',
-          icon: Warehouse,
-          accent: 'from-purple-500 via-indigo-600 to-blue-600'
-        },
-        {
-          id: 'stock-transfers',
-          label: isBn ? 'ইন্টার-ওয়্যারহাউজ ট্রান্সফার' : 'Inter-Branch Transfers',
-          icon: ArrowRightLeft,
-          accent: 'from-sky-500 via-blue-600 to-teal-600'
-        }
+        { id: 'inventory', label: isBn ? 'পণ্য ও লাইভ স্টক' : 'Inventory & IMEIs', icon: Boxes },
+        { id: 'purchases', label: isBn ? 'পারচেজ ও চালান' : 'Purchases & Inward', icon: Truck }
       ]
     },
     {
-      id: 'procurement',
-      title: isBn ? 'পারচেজ ও সাপ্লায়ার' : 'Purchasing & Suppliers',
+      id: 'partners',
+      title: isBn ? 'পার্টনার্স ও সিআরএম' : 'Partners & CRM',
       items: [
-        {
-          id: 'purchases',
-          label: isBn ? 'সাপ্লায়ার পারচেজ বিল' : 'Purchase Orders & Bills',
-          icon: Truck,
-          accent: 'from-blue-600 via-indigo-700 to-violet-700'
-        },
-        {
-          id: 'suppliers',
-          label: isBn ? 'সাপ্লায়ার লেজার ও পেয়াবল' : 'Suppliers & Payables Ledger',
-          icon: Building2,
-          accent: 'from-slate-700 via-slate-800 to-zinc-800'
-        },
-        {
-          id: 'brand-incentives',
-          label: isBn ? 'ব্র্যান্ড টার্গেট ও ইনসেন্টিভ' : 'Brand Volume Incentive Scheme',
-          icon: Award,
-          accent: 'from-amber-500 via-yellow-600 to-orange-500'
-        },
-        {
-          id: 'price-drop',
-          label: isBn ? 'প্রাইস ড্রপ প্রটেকশন ক্লেইম' : 'Price Protection Rebate Claims',
-          icon: TrendingDown,
-          accent: 'from-rose-500 via-red-600 to-pink-600'
-        }
-      ]
-    },
-    {
-      id: 'service',
-      title: isBn ? 'রিটার্নস ও সার্ভিস' : 'Returns & Service RMA',
-      items: [
-        {
-          id: 'returns',
-          label: isBn ? 'কাস্টমার ও ভেন্ডর রিটার্ন' : 'Returns Management',
-          icon: Undo2,
-          accent: 'from-amber-600 via-rose-600 to-red-600'
-        },
-        {
-          id: 'warranty-service',
-          label: isBn ? 'ওয়ারেন্টি ও সার্ভিস কেয়ার' : 'Warranty & Service Care RMA',
-          icon: ShieldAlert,
-          accent: 'from-indigo-600 via-blue-700 to-violet-700',
-          badge: activeWarrantyCount > 0 ? `${activeWarrantyCount}` : null,
-          badgeColor: 'bg-indigo-600 text-white'
-        }
-      ]
-    },
-    {
-      id: 'parties',
-      title: isBn ? 'ডিলার পার্টি ও সেলস টিম' : 'Dealers & CRM Team',
-      items: [
-        {
-          id: 'customers',
-          label: isBn ? 'ডিলার ও রিটেইলার লেজার' : 'Dealer Management & Limits',
-          icon: Users,
-          accent: 'from-emerald-500 via-teal-600 to-cyan-600'
-        },
-        {
-          id: 'salesmen',
-          label: isBn ? 'সেলসম্যান ও সেলস কমিশন' : 'Sales Officers & Commission',
-          icon: UserCheck,
-          accent: 'from-blue-500 via-indigo-600 to-sky-600'
-        },
-        {
-          id: 'salesman-app',
-          label: isBn ? 'সেলসম্যান ফিল্ড অ্যাপ (Live)' : 'Field Officer Mobile App',
-          icon: Smartphone,
-          accent: 'from-purple-500 via-pink-600 to-rose-500'
-        },
-        {
-          id: 'field-visits',
-          label: isBn ? 'ফিল্ড ভিজিট ও সিআরএম ট্র্যাকার' : 'Field Visits & CRM Logs',
-          icon: MapPin,
-          accent: 'from-rose-500 via-orange-500 to-amber-600'
-        }
+        { id: 'customers', label: isBn ? 'কাস্টমার ও ডিলার' : 'Customers', icon: Users2 },
+        { id: 'suppliers', label: isBn ? 'সাপ্লায়ার তালিকা' : 'Suppliers', icon: Building2 }
       ]
     },
     {
       id: 'finance',
-      title: isBn ? 'ফাইন্যান্স ও অ্যাকাউন্টিং' : 'Finance & Multi-Bank',
+      title: isBn ? 'হিসাবরক্ষণ ও ফাইন্যান্স' : 'Finance & Accounting',
       items: [
-        {
-          id: 'cash-bank',
-          label: isBn ? 'ক্যাশ বুক ও ব্যাংক ব্যালেন্স' : 'Cash Book & Multi-Bank',
-          icon: Wallet,
-          accent: 'from-emerald-600 via-green-600 to-teal-700'
-        },
-        {
-          id: 'bank-reconciliation',
-          label: isBn ? 'ব্যাংক রিকনসিলিয়েশন' : 'Automated Bank Reconcile',
-          icon: RefreshCw,
-          accent: 'from-sky-500 via-blue-600 to-indigo-600'
-        },
-        {
-          id: 'day-closing',
-          label: isBn ? 'দৈনিক ডে ক্লোজিং ও ভল্ট' : 'Daily Cash Vault Closing',
-          icon: Clock,
-          accent: 'from-amber-500 via-orange-600 to-yellow-600'
-        },
-        {
-          id: 'expenses',
-          label: isBn ? 'অফিস ও অপারেশন খরচ' : 'Expense Vouchers & Petty Cash',
-          icon: DollarSign,
-          accent: 'from-rose-500 via-red-600 to-pink-600'
-        },
-        {
-          id: 'accounting',
-          label: isBn ? 'জেনারেল লেজার ও ট্রায়াল ব্যালেন্স' : 'General Ledger & COA',
-          icon: BookOpen,
-          accent: 'from-blue-700 via-indigo-800 to-violet-800'
-        }
+        { id: 'day-closing', label: isBn ? 'দিন সমাপ্তি (Day Closing)' : 'Day Closing', icon: Clock },
+        { id: 'cash-bank', label: isBn ? 'ক্যাশ ও ব্যাংক লেজার' : 'Cash & Bank', icon: Wallet },
+        { id: 'bank-reconciliation', label: isBn ? 'ব্যাংক রিকনসিলিয়েশন' : 'Bank Reconciliation', icon: RefreshCw },
+        { id: 'expenses', label: isBn ? 'দৈনিক খরচ ও ব্যয়' : 'Daily Expenses', icon: DollarSign },
+        { id: 'accounting', label: isBn ? 'জেনারেল লেজার (GL)' : 'Accounting Ledger', icon: FileSpreadsheet }
       ]
     },
     {
-      id: 'system',
-      title: isBn ? 'রিপোর্ট ও কনফিগারেশন' : 'Analytics & Configuration',
+      id: 'reports',
+      title: isBn ? 'রিপোর্ট ও বিশ্লেষণ' : 'Reports & Analytics',
       items: [
-        {
-          id: 'reports',
-          label: isBn ? 'ডাইনামিক বিজনেস রিপোর্ট ও ম্যানেজমেন্ট' : 'Dynamic Business Report & Management',
-          icon: FileSpreadsheet,
-          accent: 'from-indigo-600 via-purple-600 to-violet-700'
-        },
-        {
-          id: 'custom-reports',
-          label: isBn ? 'কাস্টম রিপোর্ট বিল্ডার' : 'Custom Report Builder',
-          icon: SlidersHorizontal,
-          accent: 'from-teal-600 via-emerald-700 to-green-700'
-        },
-        {
-          id: 'data-import',
-          label: isBn ? 'বাল্ক এক্সেল ডাটা ইমপোর্ট' : 'Excel Bulk Data Import',
-          icon: Upload,
-          accent: 'from-blue-600 via-cyan-600 to-indigo-600'
-        },
-        {
-          id: 'api-integrations',
-          label: isBn ? 'এপিআই ও পেমেন্ট গেটওয়ে' : 'API & SMS Integrations',
-          icon: Link,
-          accent: 'from-cyan-600 via-blue-600 to-purple-600'
-        },
-        {
-          id: 'audit-logs',
-          label: isBn ? 'অডিট ট্রেইল ও সিকিউরিটি' : 'Audit Logs & User Trace',
-          icon: History,
-          accent: 'from-slate-700 via-slate-800 to-zinc-900'
-        },
-        {
-          id: 'settings',
-          label: isBn ? 'সিস্টেম ব্যাকআপ ও রিসেট হাব' : 'Settings & Backup Hub',
-          icon: Settings,
-          accent: 'from-slate-600 via-slate-700 to-slate-900'
-        }
+        { id: 'dynamic-business-report', label: isBn ? 'বিজনেস রিপোর্ট' : 'Business Reports', icon: FileSpreadsheet },
+        { id: 'classic-reports', label: isBn ? 'ফাইন্যান্সিয়াল অডিট' : 'Financial Reports', icon: FileSpreadsheet }
+      ]
+    },
+    {
+      id: 'settings',
+      title: isBn ? 'সিস্টেম ও কনফিগারেশন' : 'System Configuration',
+      items: [
+        { id: 'settings', label: isBn ? 'সিস্টেম সেটিংস' : 'System Settings', icon: Settings2 }
       ]
     }
   ];
 
-  const filteredSections = navSections.map(sec => ({
-    ...sec,
-    items: sec.items.filter(it => {
-      const allowed = hasPermission(currentUserRole, it.id);
-      if (!allowed) return false;
-      if (!filterSearch) return true;
-      return (
-        it.label.toLowerCase().includes(filterSearch.toLowerCase()) ||
-        it.id.toLowerCase().includes(filterSearch.toLowerCase())
-      );
+  const filteredSections = menuSections.map(section => ({
+    ...section,
+    items: section.items.filter(item => {
+      if (!hasPermission(currentUserRole, item.id)) return false;
+      if (!search.trim()) return true;
+      return item.label.toLowerCase().includes(search.toLowerCase());
     })
-  })).filter(sec => sec.items.length > 0);
+  })).filter(section => section.items.length > 0);
 
   return (
     <aside
-      className={`relative z-20 shrink-0 h-full flex flex-col transition-all duration-300 ease-in-out select-none ${
-        isExpanded
-          ? 'w-76 md:w-84 opacity-100 border-r border-slate-200/80 dark:border-slate-800/80 shadow-[4px_0_35px_rgba(15,23,42,0.06)] dark:shadow-[4px_0_40px_rgba(0,0,0,0.5)]'
-          : 'w-0 opacity-0 overflow-hidden border-r-0 pointer-events-none'
-      } bg-white/85 dark:bg-slate-900/90 backdrop-blur-3xl`}
+      className={`h-full bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200 border-r border-slate-200/90 dark:border-slate-800 flex flex-col shrink-0 select-none transition-all duration-200 z-20 shadow-xs ${
+        isExpanded ? 'w-64' : 'w-16'
+      }`}
     >
-      {/* Top Glossy Highlight Sheen */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500/40 via-indigo-500/50 to-teal-500/40 dark:from-blue-400/30 dark:via-indigo-400/40 dark:to-teal-400/30 pointer-events-none z-10" />
+      {/* Top Sidebar Header */}
+      {isExpanded ? (
+        <div className="p-3.5 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-900/60">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-700 to-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-sm shadow-blue-500/20">
+                {settings?.companyName ? settings.companyName.trim().substring(0, 2).toUpperCase() : 'TC'}
+              </div>
+              <div className="truncate">
+                <div className="text-[14px] font-black tracking-tight text-slate-900 dark:text-slate-100 leading-tight truncate">
+                  {settings?.companyName || 'TeleCorp ERP'}
+                </div>
+                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  Enterprise Portal
+                </div>
+              </div>
+            </div>
+          </div>
 
-      {/* Top Header: Search & Collapse Button */}
-      <div className="p-3.5 border-b border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between gap-2 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder={isBn ? 'মেন্যু সার্চ করুন...' : 'Search menu...'}
-            value={filterSearch}
-            onChange={(e) => setFilterSearch(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/70 dark:border-slate-700/80 rounded-2xl focus:outline-hidden focus:ring-2 focus:ring-blue-600/40 focus:bg-white dark:focus:bg-slate-900 transition-all shadow-inner"
-          />
-          {filterSearch && (
-            <button
-              onClick={() => setFilterSearch('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-300 dark:bg-slate-600 hover:bg-slate-400 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 flex items-center justify-center text-[10px] font-bold cursor-pointer"
-            >
-              ✕
-            </button>
-          )}
+          {/* Quick Filter Search */}
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="মেনু খুঁজুন..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-7 py-2 bg-white dark:bg-slate-800/90 hover:bg-slate-50 dark:hover:bg-slate-800 focus:bg-white dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded cursor-pointer"
+                title="মুছে ফেলুন"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
-
-        {onToggleExpand && (
-          <button
-            type="button"
-            onClick={onToggleExpand}
-            className="p-2 rounded-2xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 active:scale-95 transition-all cursor-pointer shadow-2xs border border-slate-200/60 dark:border-slate-700/60 shrink-0"
-            title="সাইডবার লুকান (Collapse Sidebar - <)"
-          >
-            <ChevronLeft className="w-5 h-5 text-slate-700 dark:text-slate-300 stroke-[2.5]" />
-          </button>
-        )}
-      </div>
-
-      {/* Quick Launch Action Bar (Widget Dock) when not collapsed */}
-      {!isCollapsed && !filterSearch && (
-        <div className="px-3 pt-3 pb-1">
-          <div className="p-2 rounded-2xl bg-gradient-to-r from-slate-100/80 via-blue-50/50 to-indigo-50/50 dark:from-slate-800/60 dark:via-blue-950/40 dark:to-indigo-950/40 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-around shadow-2xs">
-            <button
-              onClick={() => onSelectView('imei-trace')}
-              className="flex flex-col items-center gap-1 group cursor-pointer"
-              title="Quick IMEI Scan"
-            >
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                <Smartphone className="w-4 h-4" />
-              </div>
-              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-blue-700 dark:group-hover:text-blue-400">আইএমইআই</span>
-            </button>
-
-            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
-
-            <button
-              onClick={() => onSelectView('wholesale-sales')}
-              className="flex flex-col items-center gap-1 group cursor-pointer"
-              title="Quick Wholesale Sale"
-            >
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                <ShoppingBag className="w-4 h-4" />
-              </div>
-              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-emerald-700 dark:group-hover:text-emerald-400">নতুন সেলস</span>
-            </button>
-
-            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700" />
-
-            <button
-              onClick={() => onSelectView('due-collection')}
-              className="flex flex-col items-center gap-1 group cursor-pointer"
-              title="Quick Due Receipt"
-            >
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                <Receipt className="w-4 h-4" />
-              </div>
-              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-indigo-700 dark:group-hover:text-indigo-400">বকেয়া জমা</span>
-            </button>
+      ) : (
+        <div className="p-3 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-center bg-slate-50/70 dark:bg-slate-900/60">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-blue-700 to-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-sm shadow-blue-500/20" title={settings?.companyName || 'TeleCorp ERP'}>
+            {settings?.companyName ? settings.companyName.trim().substring(0, 2).toUpperCase() : 'TC'}
           </div>
         </div>
       )}
 
-      {/* Main Navigation Scroll Area */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-5 scrollbar-thin">
-        {filteredSections.map((sec) => {
-          const isSectionCollapsed = collapsedSections[sec.title] && !filterSearch;
-
+      {/* Navigation List */}
+      <div className="flex-1 overflow-y-auto p-2 space-y-3">
+        {filteredSections.map(section => {
+          const isCollapsed = collapsedCategories[section.id];
           return (
-            <div key={sec.id} className="space-y-1.5">
-              {/* Category Header with Accordion Toggle */}
-              {!isCollapsed && (
+            <div key={section.id} className="space-y-1">
+              {isExpanded && (
                 <div
-                  onClick={() => toggleSection(sec.title)}
-                  className="px-2.5 py-1 flex items-center justify-between cursor-pointer group select-none"
+                  onClick={() => toggleCategory(section.id)}
+                  className="px-2.5 py-1 text-[11.5px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 flex items-center justify-between cursor-pointer transition select-none"
                 >
-                  <span className="text-[11px] font-black uppercase text-slate-400 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 tracking-wider transition-colors">
-                    {sec.title}
-                  </span>
-                  <span className="p-0.5 rounded-md text-slate-400 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
-                    {isSectionCollapsed ? (
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    ) : (
-                      <ChevronUp className="w-3.5 h-3.5 opacity-60" />
-                    )}
-                  </span>
+                  <span>{section.title}</span>
+                  {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                 </div>
               )}
 
-              {/* Grouped Inset Card (iOS Style Grouped Table) */}
-              {!isSectionCollapsed && (
-                <div className="space-y-1 bg-slate-50/60 dark:bg-slate-950/40 rounded-3xl p-1 border border-slate-200/60 dark:border-slate-800/60 shadow-2xs">
-                  {sec.items.map(item => {
-                    const IconComponent = item.icon;
+              {!isCollapsed && (
+                <div className="space-y-0.5">
+                  {section.items.map(item => {
                     const isActive = currentView === item.id;
+                    const Icon = item.icon;
+
+                    if (!isExpanded) {
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => onSelectView(item.id)}
+                          title={item.label}
+                          className={`w-10 h-10 mx-auto flex items-center justify-center rounded-lg transition cursor-pointer relative ${
+                            isActive
+                              ? 'bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 shadow-xs'
+                              : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                          }`}
+                        >
+                          <Icon className="w-5 h-5" />
+                          {item.badge && (
+                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
+                          )}
+                        </button>
+                      );
+                    }
 
                     return (
                       <button
                         key={item.id}
+                        type="button"
                         onClick={() => onSelectView(item.id)}
-                        className={`w-full flex items-center gap-3.5 px-3 py-2.5 rounded-2xl text-left transition-all duration-200 group cursor-pointer ${
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-semibold transition cursor-pointer text-left border relative ${
                           isActive
-                            ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white font-black shadow-[0_6px_20px_rgba(79,70,229,0.35)] dark:shadow-[0_6px_24px_rgba(99,102,241,0.45)] scale-[1.01]'
-                            : 'text-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-white/90 dark:hover:bg-slate-800/90 font-bold hover:translate-x-1 hover:shadow-xs'
+                            ? 'bg-blue-50/90 dark:bg-blue-600/15 text-blue-700 dark:text-blue-400 border-l-4 border-l-blue-600 dark:border-l-blue-500 border-t-transparent border-r-transparent border-b-transparent shadow-2xs font-bold'
+                            : 'text-slate-600 dark:text-slate-300 border-transparent hover:bg-slate-100/80 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white'
                         }`}
-                        title={isCollapsed ? item.label : undefined}
                       >
-                        {/* iOS App Squircle Icon */}
-                        <div
-                          className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 shadow-sm ${
+                        <Icon
+                          className={`w-4.5 h-4.5 shrink-0 transition ${
                             isActive
-                              ? 'bg-white/25 text-white shadow-inner scale-105 backdrop-blur-md border border-white/30'
-                              : `bg-gradient-to-br ${item.accent} text-white group-hover:scale-105 group-hover:shadow-md border border-white/20 dark:border-white/10`
+                              ? 'text-blue-600 dark:text-blue-400'
+                              : 'text-slate-400 dark:text-slate-400'
                           }`}
-                        >
-                          <IconComponent className="w-5 h-5 stroke-[2.2]" />
-                        </div>
-
-                        {/* Bold & Big Label */}
-                        {!isCollapsed && (
-                          <div className="flex-1 flex items-center justify-between min-w-0">
-                            <span className={`text-[15px] font-black truncate tracking-tight ${
-                              isActive ? 'text-white' : 'text-slate-800 dark:text-slate-100 group-hover:text-blue-900 dark:group-hover:text-white'
-                            }`}>
-                              {item.label}
+                        />
+                        <div className="flex-1 flex items-center justify-between truncate">
+                          <span className="truncate">{item.label}</span>
+                          {item.badge && (
+                            <span
+                              className={`text-[11.5px] font-mono px-2 py-0.5 rounded-full font-bold shadow-2xs ${
+                                item.badgeColor
+                                  ? item.badgeColor
+                                  : isActive
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-200'
+                              }`}
+                            >
+                              {item.badge}
                             </span>
-
-                            {item.badge && (
-                              <span
-                                className={`text-[11px] font-black px-2.5 py-0.5 rounded-full ml-2 shadow-2xs shrink-0 ${
-                                  isActive
-                                    ? 'bg-white text-blue-700 shadow-sm'
-                                    : (item.badgeColor || 'bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60')
-                                }`}
-                              >
-                                {item.badge}
-                              </span>
-                            )}
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </button>
                     );
                   })}
@@ -564,85 +307,57 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </div>
 
-      {/* Bottom iOS Profile & Direct Logout Dock */}
-      {!isCollapsed && currentUser && (
-        <div className="p-3 border-t border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl">
-          <div className="p-3 rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50/40 dark:from-slate-800/60 dark:to-blue-950/30 border border-slate-200/70 dark:border-slate-700/70 shadow-xs space-y-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-900 dark:from-blue-600 dark:to-indigo-700 text-white flex items-center justify-center font-bold text-base shadow-sm shrink-0 border border-white/40 dark:border-white/20">
-                  {currentUser.avatar || '👨‍💼'}
+      {/* Account and navigation controls stay at the bottom of the sidebar. */}
+      <div className="shrink-0 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-900/60">
+        <div className={`p-2.5 flex items-center gap-2 ${isExpanded ? 'justify-between' : 'justify-center'}`}>
+          {isExpanded && (
+            <div className="min-w-0 flex items-center gap-2.5">
+              <div className="w-8 h-8 shrink-0 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-bold text-xs flex items-center justify-center border border-blue-300 dark:border-blue-700">
+                {currentUser?.name?.charAt(0) || 'A'}
+              </div>
+              <div className="min-w-0">
+                <div className="truncate text-xs font-bold text-slate-800 dark:text-slate-100">
+                  {currentUser?.name || 'Administrator'}
                 </div>
-                <div className="min-w-0">
-                  <div className="font-black text-xs text-slate-900 dark:text-white truncate">
-                    {currentUser.name}
-                  </div>
-                  <div className="text-[10px] text-blue-600 dark:text-blue-400 font-extrabold truncate">
-                    {currentUser.role}
-                  </div>
+                <div className="truncate text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  {currentUserRole}
                 </div>
               </div>
-
-              <div className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" title="সিস্টেম সচল (Active Live)" />
-              </div>
             </div>
-
-            {/* Quick Role Switcher (Admin/Owner) or Role Badge (Staff) + Direct Logout Row */}
-            <div className="flex items-center gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
-              {['Super Admin', 'Owner', 'General Manager'].includes(currentUserRole) ? (
-                <select
-                  value={currentUser.id}
-                  onChange={(e) => loginAsDemoUser(e.target.value)}
-                  className="flex-1 py-1.5 px-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] font-bold text-slate-700 dark:text-slate-200 focus:outline-hidden cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition"
-                  title="রোল পরিবর্তন করুন (Switch Role)"
-                >
-                  {(users.length > 0 ? users : demoUsers).map(u => (
-                    <option key={u.id} value={u.id}>
-                      {u.avatar} {u.name.split(' ')[0]} ({u.role})
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <div className="flex-1 py-1 px-2.5 bg-slate-100/90 dark:bg-slate-800/90 rounded-xl text-[10px] font-extrabold text-slate-600 dark:text-slate-300 truncate border border-slate-200 dark:border-slate-700">
-                  📍 {currentUser.branchName ? currentUser.branchName.split('(')[0] : currentUser.role}
-                </div>
-              )}
-
-              {/* Direct Instant Logout Button */}
-              <button
-                type="button"
-                onClick={() => logout()}
-                className="px-3 py-1.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 active:scale-95 text-white rounded-xl text-xs font-black shadow-xs transition-all flex items-center gap-1 cursor-pointer shrink-0"
-                title="সিস্টেম থেকে লগআউট করুন (Sign Out)"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>লগআউট</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Collapsed State Quick User Avatar with Logout on Click */}
-      {isCollapsed && currentUser && (
-        <div className="p-3 border-t border-slate-200/80 dark:border-slate-800/80 flex flex-col items-center gap-2 bg-white/70 dark:bg-slate-900/70">
-          <div
-            className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-900 dark:from-blue-600 dark:to-indigo-700 text-white flex items-center justify-center font-bold text-base shadow-sm shrink-0 border border-white/40 dark:border-white/20 cursor-pointer"
-            title={`${currentUser.name} (${currentUser.role})`}
-          >
-            {currentUser.avatar || '👨‍💼'}
-          </div>
+          )}
           <button
             type="button"
             onClick={() => logout()}
-            className="p-2 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-600 hover:text-white text-rose-600 dark:text-rose-400 rounded-xl transition cursor-pointer"
+            className="shrink-0 p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-300 dark:hover:border-rose-900 rounded-lg transition cursor-pointer"
             title="লগআউট (Logout)"
+            aria-label="লগআউট (Logout)"
           >
             <LogOut className="w-4 h-4" />
           </button>
         </div>
-      )}
+        {onToggleExpand && (
+          <div className={`px-2.5 pb-2.5 flex items-center gap-2 ${isExpanded ? 'justify-between' : 'justify-center'}`}>
+            {isExpanded && (
+              <div className="flex min-w-0 items-center gap-2 pl-1 truncate">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                <span className="truncate text-[12px] font-semibold text-slate-500 dark:text-slate-400">
+                  {currentUserRole} • Online
+                </span>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={onToggleExpand}
+              className={`p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer ${
+                !isExpanded ? 'w-full flex items-center justify-center' : ''
+              }`}
+              title={isExpanded ? 'সাইডবার গুটিয়ে নিন (Collapse)' : 'সাইডবার প্রসারিত করুন (Expand)'}
+            >
+              {isExpanded ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </button>
+          </div>
+        )}
+      </div>
     </aside>
   );
 };

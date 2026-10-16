@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
   Wallet,
@@ -15,9 +15,13 @@ import {
   Check,
   X,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Search,
+  Filter,
+  FileSpreadsheet,
+  ArrowRight
 } from 'lucide-react';
-import { formatBDT, formatDateTime } from '../../utils/formatters';
+import { formatBDT, formatDateTime, formatDate } from '../../utils/formatters';
 import { RowActions, EditModal, FieldDef } from '../common/CrudKit';
 import type { BankAccount, CashTransaction } from '../../types/erp';
 import { useToast } from '../common/ToastNotificationSystem';
@@ -48,6 +52,9 @@ export const CashBankView: React.FC = () => {
     bankAccounts,
     cashTransactions,
     chartOfAccounts,
+    customers,
+    suppliers,
+    bankStatements,
     reconcileBankTransaction,
     addBankAccount,
     updateBankAccount,
@@ -55,10 +62,11 @@ export const CashBankView: React.FC = () => {
     resetCashAndBankBalances,
     setVaultOpeningCash,
     addCashTransaction,
+    updateCashTransaction,
     deleteCashTransaction,
     currentUserRole
   } = useERP();
-  const { showSuccess } = useToast();
+  const { showSuccess, showError } = useToast();
 
   const [activeTab, setActiveTab] = useState<'bank' | 'cash'>('bank');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -70,13 +78,25 @@ export const CashBankView: React.FC = () => {
 
   // Cash Transaction CRUD State
   const [showAddCashModal, setShowAddCashModal] = useState(false);
+  const [editingCashTx, setEditingCashTx] = useState<CashTransaction | null>(null);
   const [cashType, setCashType] = useState<'Cash In' | 'Cash Out'>('Cash In');
   const [cashCategory, setCashCategory] = useState<CashTransaction['category']>('Expense');
   const [cashAmount, setCashAmount] = useState<string>('');
   const [cashDesc, setCashDesc] = useState('');
   const [cashRef, setCashRef] = useState('');
+  const [selectedBankId, setSelectedBankId] = useState<string>(bankAccounts[0]?.id || '');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string>('');
   const [cashError, setCashError] = useState<string | null>(null);
   const [addCashSuccessMsg, setAddCashSuccessMsg] = useState<string | null>(null);
+
+  // Quick Bank Statements Viewer Modal
+  const [viewingBankStatements, setViewingBankStatements] = useState<BankAccount | null>(null);
+
+  // Cash Book Filters
+  const [cashSearch, setCashSearch] = useState('');
+  const [cashFilterCategory, setCashFilterCategory] = useState<string>('all');
+  const [cashFilterPeriod, setCashFilterPeriod] = useState<string>('all');
 
   const totalBankFunds = bankAccounts.reduce((acc, b) => acc + b.currentBalance, 0);
   const totalCashIn = cashTransactions.filter(c => c.type === 'Cash In').reduce((acc, c) => acc + c.amount, 0);
@@ -121,6 +141,12 @@ export const CashBankView: React.FC = () => {
       setCashError(`অপর্যাপ্ত ক্যাশ ব্যালেন্স! বর্তমান ভল্ট ও টিল ক্যাশ ৳${currentCashInHand.toLocaleString('en-IN')} কিন্তু আপনি খরচ করতে চেয়েছেন ৳${amt.toLocaleString('en-IN')}।`);
       return;
     }
+
+    if (cashCategory === 'Cash To Bank' && cashType === 'Cash Out' && !selectedBankId) {
+      setCashError('অনুগ্রহ করে টাকা জমা দেওয়ার ব্যাংক অ্যাকাউন্ট নির্বাচন করুন।');
+      return;
+    }
+
     const finalRef = cashRef.trim() || `CSH-${Date.now().toString().slice(-6)}`;
     const finalDesc = cashDesc.trim() || `${cashType} Entry`;
     const res = addCashTransaction({
@@ -130,8 +156,12 @@ export const CashBankView: React.FC = () => {
       amount: amt,
       referenceNo: finalRef,
       description: finalDesc,
-      performedBy: currentUserRole
+      performedBy: currentUserRole,
+      bankAccountId: cashCategory === 'Cash To Bank' ? selectedBankId : undefined,
+      customerId: (cashCategory === 'Due Collection' || cashCategory === 'Customer Sale') && selectedCustomerId ? selectedCustomerId : undefined,
+      supplierId: cashCategory === 'Supplier Payment' && selectedSupplierId ? selectedSupplierId : undefined
     });
+
     if (res.success) {
       if (cashRef.trim()) recordFieldHistory('referenceNo', cashRef.trim());
       if (cashDesc.trim()) recordFieldHistory('description', cashDesc.trim());
@@ -140,7 +170,6 @@ export const CashBankView: React.FC = () => {
       showSuccess(msg, { title: 'ক্যাশ ট্রানজেকশন সফল' });
       setAddCashSuccessMsg(msg);
       setStatusMsg(msg);
-      // Keep modal open and reset inputs for consecutive entries
       setCashAmount('');
       setCashDesc('');
       setCashRef('');
@@ -159,6 +188,38 @@ export const CashBankView: React.FC = () => {
     }
   };
 
+  // Filtered Cash Transactions
+  const filteredCashTransactions = useMemo(() => {
+    return cashTransactions.filter(tx => {
+      // Period filter
+      if (cashFilterPeriod !== 'all') {
+        const today = new Date().toISOString().split('T')[0];
+        if (cashFilterPeriod === 'today' && !tx.date.startsWith(today)) return false;
+        if (cashFilterPeriod === 'this_month') {
+          const currentMonth = today.slice(0, 7);
+          if (!tx.date.startsWith(currentMonth)) return false;
+        }
+      }
+
+      // Category filter
+      if (cashFilterCategory !== 'all' && tx.category !== cashFilterCategory) {
+        return false;
+      }
+
+      // Search filter
+      if (cashSearch.trim()) {
+        const q = cashSearch.toLowerCase();
+        const matchRef = tx.referenceNo.toLowerCase().includes(q);
+        const matchDesc = tx.description.toLowerCase().includes(q);
+        const matchUser = tx.performedBy.toLowerCase().includes(q);
+        const matchCat = tx.category.toLowerCase().includes(q);
+        return matchRef || matchDesc || matchUser || matchCat;
+      }
+
+      return true;
+    });
+  }, [cashTransactions, cashSearch, cashFilterCategory, cashFilterPeriod]);
+
   return (
     <div className="p-2 sm:p-2.5 md:p-3 space-y-2.5 sm:space-y-3 w-full">
       {/* Top Banner */}
@@ -167,11 +228,11 @@ export const CashBankView: React.FC = () => {
           <div className="flex items-center gap-2">
             <Wallet className="w-5 h-5 text-emerald-600" />
             <h2 className="text-base font-bold text-slate-900">
-              Cash Book & Multi-Bank Management
+              Cash Book & Multi-Bank Management (ক্যাশ ও ব্যাংক লেজার)
             </h2>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Vault cash book, commercial current accounts (DBBL, City, BRAC) and MFS merchant gateways (bKash/Nagad)
+            ভল্ট ও ড্রয়ার ক্যাশ বুক, বাণিজ্যিক ব্যাংক অ্যাকাউন্টস (DBBL, City, BRAC) ও এমএফএস মার্চেন্ট ওয়ালেট
           </p>
         </div>
 
@@ -200,7 +261,7 @@ export const CashBankView: React.FC = () => {
               className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              <span>+ Add Account</span>
+              <span>+ Add Bank Account</span>
             </button>
           )}
 
@@ -208,6 +269,7 @@ export const CashBankView: React.FC = () => {
             <button
               onClick={() => {
                 setCashError(null);
+                setAddCashSuccessMsg(null);
                 setShowAddCashModal(true);
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
@@ -216,6 +278,7 @@ export const CashBankView: React.FC = () => {
               <span>+ ক্যাশ লেনদেন এন্ট্রি</span>
             </button>
           )}
+
           <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
             <button
               onClick={() => setActiveTab('bank')}
@@ -274,59 +337,70 @@ export const CashBankView: React.FC = () => {
       {activeTab === 'bank' ? (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {bankAccounts.map(b => (
-              <div key={b.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-extrabold text-sm text-slate-900">{b.bankName}</h3>
-                    <div className="text-xs text-slate-500">{b.branch}</div>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                    {b.accountType}
-                  </span>
-                </div>
+            {bankAccounts.map(b => {
+              const matchedStatements = bankStatements.filter(st => st.bankAccountId === b.id);
+              const unmatchedCount = matchedStatements.filter(st => st.status === 'Unmatched').length;
 
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Account Number:</span>
-                    <span className="font-mono font-bold text-slate-800">{b.accountNumber}</span>
+              return (
+                <div key={b.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-extrabold text-sm text-slate-900">{b.bankName}</h3>
+                      <div className="text-xs text-slate-500">{b.branch}</div>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                      {b.accountType}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Account Name:</span>
-                    <span className="font-medium text-slate-700">{b.accountName}</span>
-                  </div>
-                  <div className="flex justify-between pt-1 border-t border-slate-200">
-                    <span className="text-slate-500">Current Ledger Balance:</span>
-                    <span className="font-extrabold text-sm text-emerald-700">{formatBDT(b.currentBalance)}</span>
-                  </div>
-                </div>
 
-                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
-                  <span>Reconciliation: <b className="text-emerald-700">Reconciled</b></span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => reconcileBankTransaction(b.id, `REC-${Date.now()}`)}
-                      className="flex items-center gap-1 text-blue-600 hover:underline font-semibold"
-                    >
-                      <RefreshCw className="w-3 h-3" />
-                      <span>Match</span>
-                    </button>
-                    <RowActions
-                      onEdit={() => setEditing(b)}
-                      onDelete={() => deleteBankAccount(b.id)}
-                      deleteTitle={`Delete bank account ${b.bankName}?`}
-                      deleteMessage="Bank accounts with recorded transactions or non-zero balances cannot be deleted; mark them Inactive instead."
-                    />
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Account Number:</span>
+                      <span className="font-mono font-bold text-slate-800">{b.accountNumber}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Account Name:</span>
+                      <span className="font-medium text-slate-700">{b.accountName}</span>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t border-slate-200">
+                      <span className="text-slate-500">Current Ledger Balance:</span>
+                      <span className="font-extrabold text-sm text-emerald-700">{formatBDT(b.currentBalance)}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                    <span>
+                      Reconciliation:{' '}
+                      <b className={unmatchedCount > 0 ? 'text-amber-600' : 'text-emerald-700'}>
+                        {unmatchedCount > 0 ? `${unmatchedCount} Unmatched Items` : 'Reconciled'}
+                      </b>
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setViewingBankStatements(b)}
+                        className="flex items-center gap-1 text-blue-600 hover:underline font-semibold cursor-pointer"
+                        title="এই অ্যাকাউন্টের স্টেটমেন্ট এন্ট্রি দেখুন"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>View Statement</span>
+                      </button>
+                      <RowActions
+                        onEdit={() => setEditing(b)}
+                        onDelete={() => deleteBankAccount(b.id)}
+                        deleteTitle={`Delete bank account ${b.bankName}?`}
+                        deleteMessage="Bank accounts with recorded transactions or non-zero balances cannot be deleted; mark them Inactive instead."
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ) : (
         /* Daily Cash Book Table */
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden space-y-4">
-          <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+          <div className="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50">
             <div>
               <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700">
                 Daily Cash Book Log & Movement Statement
@@ -338,6 +412,52 @@ export const CashBankView: React.FC = () => {
             <div className="text-right">
               <div className="text-[10px] text-slate-400">Closing Cash in Vault</div>
               <div className="text-base font-extrabold text-emerald-700">{formatBDT(currentCashInHand)}</div>
+            </div>
+          </div>
+
+          {/* Cash Book Filtering Toolbar */}
+          <div className="px-4 py-2 bg-slate-50/60 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 flex-1 max-w-sm">
+              <Search className="w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="রেফারেন্স, বিবরণ বা ক্যাটাগরি খুঁজুন..."
+                value={cashSearch}
+                onChange={e => setCashSearch(e.target.value)}
+                className="w-full p-1.5 bg-white border border-slate-200 rounded-lg text-xs"
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-500 text-[11px]">ক্যাটাগরি:</span>
+                <select
+                  value={cashFilterCategory}
+                  onChange={e => setCashFilterCategory(e.target.value)}
+                  className="p-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium"
+                >
+                  <option value="all">সকল ক্যাটাগরি</option>
+                  <option value="Expense">Expense</option>
+                  <option value="Customer Sale">Customer Sale</option>
+                  <option value="Due Collection">Due Collection</option>
+                  <option value="Supplier Payment">Supplier Payment</option>
+                  <option value="Cash To Bank">Cash To Bank</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-500 text-[11px]">সময়কাল:</span>
+                <select
+                  value={cashFilterPeriod}
+                  onChange={e => setCashFilterPeriod(e.target.value)}
+                  className="p-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium"
+                >
+                  <option value="all">সব সময়</option>
+                  <option value="today">আজকের দিন</option>
+                  <option value="this_month">চলতি মাস</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -356,58 +476,67 @@ export const CashBankView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {cashTransactions.length === 0 ? (
+                {filteredCashTransactions.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="p-8 text-center text-slate-400 font-medium">
                       কোনো ক্যাশ লেনদেন রেকর্ড পাওয়া যায়নি।
                     </td>
                   </tr>
                 ) : (
-                  cashTransactions.map(tx => (
-                  <tr key={tx.id} className="hover:bg-slate-50/70 transition">
-                    <td className="p-3 text-slate-600 font-mono text-[11px]">
-                      {tx.date}
-                    </td>
-                    <td className="p-3 text-center">
-                      <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        tx.type === 'Cash In' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                      }`}>
-                        {tx.type}
-                      </span>
-                    </td>
-                    <td className="p-3 font-semibold text-slate-800">
-                      {tx.category}
-                    </td>
-                    <td className="p-3 text-slate-600">
-                      <div>{tx.description}</div>
-                      <div className="font-mono text-[10px] text-blue-600 font-semibold">{tx.referenceNo}</div>
-                    </td>
-                    <td className="p-3 text-slate-700 font-medium">
-                      {tx.performedBy}
-                    </td>
-                    <td className="p-3 text-right font-extrabold text-emerald-700">
-                      {tx.type === 'Cash In' ? formatBDT(tx.amount) : '-'}
-                    </td>
-                    <td className="p-3 text-right font-extrabold text-rose-700">
-                      {tx.type === 'Cash Out' ? formatBDT(tx.amount) : '-'}
-                    </td>
-                    <td className="p-3 text-center">
-                      <button
-                        onClick={() => handleDeleteCash(tx.id, tx.referenceNo, tx.amount)}
-                        className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition cursor-pointer"
-                        title="ক্যাশ লেনদেন রেকর্ড ডিলিট করুন"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                )))}
+                  filteredCashTransactions.map(tx => (
+                    <tr key={tx.id} className="hover:bg-slate-50/70 transition">
+                      <td className="p-3 text-slate-600 font-mono text-[11px]">
+                        {tx.date}
+                      </td>
+                      <td className="p-3 text-center">
+                        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          tx.type === 'Cash In' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {tx.type}
+                        </span>
+                      </td>
+                      <td className="p-3 font-semibold text-slate-800">
+                        {tx.category}
+                      </td>
+                      <td className="p-3 text-slate-600">
+                        <div>{tx.description}</div>
+                        <div className="font-mono text-[10px] text-blue-600 font-semibold">{tx.referenceNo}</div>
+                      </td>
+                      <td className="p-3 text-slate-700 font-medium">
+                        {tx.performedBy}
+                      </td>
+                      <td className="p-3 text-right font-extrabold text-emerald-700">
+                        {tx.type === 'Cash In' ? formatBDT(tx.amount) : '-'}
+                      </td>
+                      <td className="p-3 text-right font-extrabold text-rose-700">
+                        {tx.type === 'Cash Out' ? formatBDT(tx.amount) : '-'}
+                      </td>
+                      <td className="p-3 text-center space-x-1">
+                        <button
+                          onClick={() => setEditingCashTx(tx)}
+                          className="p-1.5 hover:bg-slate-100 text-slate-400 hover:text-blue-600 rounded-lg transition cursor-pointer"
+                          title="বিবরণ ও রেফারেন্স এডিট করুন"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCash(tx.id, tx.referenceNo, tx.amount)}
+                          className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition cursor-pointer"
+                          title="ক্যাশ লেনদেন রেকর্ড ডিলিট করুন"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </div>
       )}
 
+      {/* Add Bank Account Modal */}
       {showAddModal && (
         <EditModal
           title="Add New Commercial Bank / Gateway Account"
@@ -427,6 +556,7 @@ export const CashBankView: React.FC = () => {
         />
       )}
 
+      {/* Edit Bank Account Modal */}
       {editing && (
         <EditModal
           title={`Edit Account - ${editing.bankName}`}
@@ -500,7 +630,7 @@ export const CashBankView: React.FC = () => {
                   />
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
-                  এটি হিসাব নম্বর ১০০০ (Cash in Hand / Main Vault)-এর ব্যালেন্স হিসেবে সেট হবে। রিসেট করার পর বা ড্রয়ারের প্রারম্ভিক ক্যাশ পরিবর্তনের জন্য এটি ব্যবহার করুন।
+                  এটি হিসাব নম্বর ১০০০ (Cash in Hand / Main Vault)-এর ব্যালেন্স হিসেবে সেট হবে।
                 </p>
               </div>
 
@@ -658,6 +788,77 @@ export const CashBankView: React.FC = () => {
                 </select>
               </div>
 
+              {/* Bank Account dropdown when Cash To Bank is selected */}
+              {cashCategory === 'Cash To Bank' && (
+                <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 space-y-1">
+                  <label className="block text-xs font-bold text-blue-900 mb-1">
+                    ডিপোজিট করার ব্যাংক অ্যাকাউন্ট নির্বাচন করুন *
+                  </label>
+                  <select
+                    value={selectedBankId}
+                    onChange={e => setSelectedBankId(e.target.value)}
+                    className="w-full p-2 bg-white border border-blue-300 rounded-lg text-xs font-bold text-slate-800"
+                    required
+                  >
+                    {bankAccounts.map(b => (
+                      <option key={b.id} value={b.id}>
+                        {b.bankName} - {b.accountNumber} (ব্যালেন্স: {formatBDT(b.currentBalance)})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-blue-700 mt-1">
+                    ✓ ক্যাশ আউট সম্পন্ন হলে স্বয়ংক্রিয়ভাবে নির্বাচিত ব্যাংকের ব্যালেন্স বৃদ্ধি পাবে।
+                  </p>
+                </div>
+              )}
+
+              {/* Customer dropdown when Customer Due Collection is selected */}
+              {(cashCategory === 'Due Collection' || cashCategory === 'Customer Sale') && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 space-y-1">
+                  <label className="block text-xs font-bold text-emerald-900 mb-1">
+                    সংশ্লিষ্ট কাস্টমার / ডিলার (ঐচ্ছিক)
+                  </label>
+                  <select
+                    value={selectedCustomerId}
+                    onChange={e => setSelectedCustomerId(e.target.value)}
+                    className="w-full p-2 bg-white border border-emerald-300 rounded-lg text-xs font-medium text-slate-800"
+                  >
+                    <option value="">-- কোনো নির্দিষ্ট কাস্টমার নয় --</option>
+                    {customers.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.shopName} ({c.ownerName}) - {c.mobile} (বর্তমান বকেয়া: {formatBDT(c.currentDue)})
+                      </option>
+                    ))}
+                  </select>
+                  {selectedCustomerId && (
+                    <p className="text-[10px] text-emerald-700 mt-1">
+                      ✓ কাস্টমার বকেয়া কালেকশন রেকর্ড হলে কাস্টমারের ডিউ কমে যাবে।
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Supplier dropdown when Supplier Payment is selected */}
+              {cashCategory === 'Supplier Payment' && (
+                <div className="p-3 rounded-xl bg-purple-50 border border-purple-200 space-y-1">
+                  <label className="block text-xs font-bold text-purple-900 mb-1">
+                    সংশ্লিষ্ট সাপ্লায়ার (ঐচ্ছিক)
+                  </label>
+                  <select
+                    value={selectedSupplierId}
+                    onChange={e => setSelectedSupplierId(e.target.value)}
+                    className="w-full p-2 bg-white border border-purple-300 rounded-lg text-xs font-medium text-slate-800"
+                  >
+                    <option value="">-- কোনো নির্দিষ্ট সাপ্লায়ার নয় --</option>
+                    {suppliers.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} (প্রদেয় বকেয়া: {formatBDT(s.currentDue)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Reference */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -711,6 +912,105 @@ export const CashBankView: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Cash Transaction Modal */}
+      {editingCashTx && (
+        <EditModal
+          title={`Edit Cash Entry - ${editingCashTx.referenceNo}`}
+          initial={editingCashTx}
+          fields={[
+            { key: 'description', label: 'Description', type: 'textarea', required: true },
+            { key: 'referenceNo', label: 'Reference No', required: true }
+          ]}
+          onSave={v => {
+            const res = updateCashTransaction(editingCashTx.id, v as Partial<CashTransaction>);
+            if (res.success) {
+              showSuccess('ক্যাশ ট্রানজেকশন সফলভাবে আপডেট করা হয়েছে।');
+            }
+            return res;
+          }}
+          onClose={() => setEditingCashTx(null)}
+        />
+      )}
+
+      {/* View Bank Statement Entries Modal */}
+      {viewingBankStatements && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900">
+                  Bank Statement Details: {viewingBankStatements.bankName}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Account #{viewingBankStatements.accountNumber} • Current Balance: <b className="text-emerald-700">{formatBDT(viewingBankStatements.currentBalance)}</b>
+                </p>
+              </div>
+              <button
+                onClick={() => setViewingBankStatements(null)}
+                className="p-1 hover:bg-slate-100 rounded-lg text-slate-400"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 my-3">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 text-[10px] uppercase font-bold sticky top-0">
+                  <tr>
+                    <th className="p-2">Date</th>
+                    <th className="p-2">Description</th>
+                    <th className="p-2">Reference</th>
+                    <th className="p-2 text-right">Debit (Out)</th>
+                    <th className="p-2 text-right">Credit (In)</th>
+                    <th className="p-2 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {bankStatements.filter(s => s.bankAccountId === viewingBankStatements.id).length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-6 text-center text-slate-400 font-medium">
+                        এই ব্যাংকে কোনো স্টেটমেন্ট এন্ট্রি রেকর্ড পাওয়া যায়নি।
+                      </td>
+                    </tr>
+                  ) : (
+                    bankStatements
+                      .filter(s => s.bankAccountId === viewingBankStatements.id)
+                      .map(st => (
+                        <tr key={st.id} className="hover:bg-slate-50">
+                          <td className="p-2 font-mono text-slate-600">{formatDate(st.date)}</td>
+                          <td className="p-2 font-medium text-slate-800">{st.description}</td>
+                          <td className="p-2 font-mono text-blue-600">{st.referenceNo}</td>
+                          <td className="p-2 text-right font-bold text-rose-700">
+                            {st.debit > 0 ? formatBDT(st.debit) : '-'}
+                          </td>
+                          <td className="p-2 text-right font-bold text-emerald-700">
+                            {st.credit > 0 ? formatBDT(st.credit) : '-'}
+                          </td>
+                          <td className="p-2 text-center">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                              {st.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="pt-2 border-t border-slate-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setViewingBankStatements(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+              >
+                উইন্ডো বন্ধ করুন
+              </button>
+            </div>
           </div>
         </div>
       )}

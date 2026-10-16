@@ -37,6 +37,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const { products, imeis, warehouses, brands, settings, updateProduct, deleteProduct, adjustStockIMEIs } = useERP();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [showNewProductModal, setShowNewProductModal] = useState(false);
   const [editing, setEditing] = useState<{ product: Product; variant: ProductVariant } | null>(null);
 
@@ -74,8 +75,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       row.variant.color.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesBrand = selectedBrand === 'All' || row.product.brandName.toLowerCase() === selectedBrand.toLowerCase();
+    const matchesCategory = selectedCategory === 'All' || row.product.category.toLowerCase() === selectedCategory.toLowerCase();
 
-    return matchesSearch && matchesBrand;
+    return matchesSearch && matchesBrand && matchesCategory;
   });
 
   return (
@@ -90,7 +92,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </h2>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Valuation Method: <b className="text-blue-700 dark:text-blue-400">{settings.valuationMethod}</b> • Reorder level alerts & Serialized IMEI tracking
+            Inventory totals use recorded IMEI purchase costs; FIFO/weighted-average costing is not implemented.
           </p>
         </div>
 
@@ -158,7 +160,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       {/* Financial KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
         <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs">
-          <div className="text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px]">Net Stock Valuation ({settings.valuationMethod})</div>
+          <div className="text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px]">Recorded Cost of In-Stock IMEIs</div>
           <div className="text-lg font-black text-slate-900 dark:text-white mt-1">{formatBDT(totalValuation)}</div>
         </div>
         <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs">
@@ -209,7 +211,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </button>
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
           <label className="text-slate-500 dark:text-slate-400 font-semibold">Filter Brand:</label>
           <select
             value={selectedBrand}
@@ -219,6 +221,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <option value="All">All Brands</option>
             {brands.map(b => (
               <option key={b.id} value={b.name}>{b.name}</option>
+            ))}
+          </select>
+          <label className="text-slate-500 dark:text-slate-400 font-semibold">Category:</label>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="p-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg font-semibold text-slate-700 dark:text-slate-200"
+          >
+            <option value="All">All Categories</option>
+            {[...new Set(products.map(product => product.category).filter(Boolean))].sort().map(category => (
+              <option key={category} value={category}>{category}</option>
             ))}
           </select>
         </div>
@@ -252,6 +265,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       </span>
                       <span>{product.model}</span>
                     </div>
+                    <span className="mt-1 inline-block text-[10px] text-slate-500 dark:text-slate-400">{product.category}</span>
                   </td>
                   <td className="p-3">
                     <div className="font-mono text-slate-800 dark:text-slate-200 font-semibold">{variant.sku}</div>
@@ -331,7 +345,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           }}
           fields={[
             { key: 'model', label: 'Model Name', required: true },
-            { key: 'category', label: 'Category', type: 'select', options: ['Smartphone', 'Feature Phone', 'Tablet', 'Accessories'] },
+            { key: 'category', label: 'Category', type: 'select', options: [...new Set(['Smartphone', 'Feature Phone', 'Tablet', 'Accessories', ...products.map(product => product.category)])], quickCreate: 'category', hint: 'তালিকায় না থাকলে ড্রপডাউনে ফোকাস করে Ctrl+C চাপুন।' },
             { key: 'networkRegion', label: 'Network / Region' },
             { key: 'warrantyPeriodMonths', label: 'Warranty (months)', type: 'number' },
             { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Discontinued'] },
@@ -502,7 +516,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       setNotificationMsg(`${res.count || adjustmentImeis.length}টি ডিভাইসের স্ট্যাটাস সফলভাবে '${targetStatus}' এ পরিবর্তন করা হয়েছে।`);
                       setTimeout(() => setNotificationMsg(null), 5000);
                     } else {
-                      alert(res.error || 'অ্যাডজাস্টমেন্ট সম্পন্ন করা সম্ভব হয়নি।');
+                      setNotificationMsg(`অ্যাডজাস্টমেন্ট ব্যর্থ: ${res.error || 'অ্যাডজাস্টমেন্ট সম্পন্ন করা সম্ভব হয়নি।'}`);
+                      setTimeout(() => setNotificationMsg(null), 7000);
                     }
                   }}
                   className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5"

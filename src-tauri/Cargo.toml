@@ -1,6 +1,6 @@
 [package]
 name = "telecorp_erp"
-version = "1.0.1"
+version = "1.0.5"
 description = "TeleCorp ERP Desktop Application"
 authors = ["TeleCorp ERP"]
 license = ""
@@ -22,5 +22,8 @@ serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
 tauri = { version = "2.12.1" }
 tauri-plugin-log = "2"
-tauri-plugin-updater = "2"
+tauri-plugin-updater = "=2.7.1"
 tauri-plugin-process = "2"
+
+[patch.crates-io]
+zip = { git = "https://github.com/zip-rs/zip2", tag = "v2.6.1" }

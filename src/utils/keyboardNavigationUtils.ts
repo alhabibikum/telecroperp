@@ -231,6 +231,69 @@ export function setupGlobalAutoSelect() {
 }
 
 /**
+ * Initializes global Enter-Key Navigation for Tally / Visual Studio style rapid data entry.
+ * When inside any form or dialog, pressing Enter advances to the next field;
+ * Shift + Enter returns to the previous field.
+ */
+let globalEnterNavInitialized = false;
+export function setupGlobalEnterKeyNavigation() {
+  if (typeof window === 'undefined' || globalEnterNavInitialized) return;
+  globalEnterNavInitialized = true;
+
+  document.addEventListener(
+    'keydown',
+    (e: KeyboardEvent) => {
+      // Leave Ctrl / Alt / Meta combinations for global shortcuts
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      // Only activate inside forms, dialogs, or data entry windows
+      const container =
+        target.closest('form') ||
+        target.closest('[role="dialog"]') ||
+        target.closest('[data-form-container="true"]') ||
+        target.closest('.win-modal-dialog') ||
+        target.closest('.win-window');
+
+      if (!container) return;
+
+      const isInput = target instanceof HTMLInputElement;
+      const isSelect = target instanceof HTMLSelectElement;
+      const isTextarea = target instanceof HTMLTextAreaElement;
+      const isButton = target instanceof HTMLButtonElement;
+
+      // 1. Shift + Enter -> Previous field
+      if (e.shiftKey && e.key === 'Enter') {
+        if (isTextarea && !target.hasAttribute('data-single-line')) return;
+        if (isInput || isSelect) {
+          e.preventDefault();
+          focusPrevFormField(target);
+        }
+        return;
+      }
+
+      // 2. Enter -> Next field
+      if (!e.shiftKey && e.key === 'Enter') {
+        // Multi-line textareas without single-line override should allow newline
+        if (isTextarea && !target.hasAttribute('data-enter-nav')) return;
+
+        // In buttons, allow default click behavior
+        if (isButton) return;
+
+        // Inside inputs and selects, move to next field
+        if (isInput || isSelect || (isTextarea && target.hasAttribute('data-enter-nav'))) {
+          e.preventDefault();
+          focusNextFormField(target, { allowSubmitOnLast: true });
+        }
+      }
+    },
+    true
+  );
+}
+
+/**
  * Keyboard Shortcuts Definition for Help modal, Command palette and Tooltips
  */
 export interface ShortcutItem {
@@ -300,13 +363,118 @@ export const ERP_SHORTCUTS: ShortcutItem[] = [
     category: 'Global',
     actionId: 'refresh-data'
   },
+  // Tally & Visual Studio Classic Function Keys (F1-F12)
   {
-    keyCombo: 'Ctrl + /',
-    keys: ['Ctrl', '/'],
-    labelEn: 'Keyboard Shortcuts Help & Operational Guide',
-    labelBn: 'কীবোর্ড শর্টকাট সহায়িকা ও গাইড',
+    keyCombo: 'F1',
+    keys: ['F1'],
+    labelEn: 'Help & Operational Training Guide',
+    labelBn: 'সাহায্য ও কীবোর্ড শর্টকাট সহায়িকা',
     category: 'Global',
-    actionId: 'shortcut-help'
+    actionId: 'f1-help'
+  },
+  {
+    keyCombo: 'F2',
+    keys: ['F2'],
+    labelEn: 'Day Closing & Daily Cash Reconciliation',
+    labelBn: 'তারিখ ও দৈনিক হিসাব সমাপ্তি (Day Closing)',
+    category: 'Global',
+    actionId: 'f2-closing'
+  },
+  {
+    keyCombo: 'F3',
+    keys: ['F3'],
+    labelEn: 'Branch / Outlet / Warehouse Selector',
+    labelBn: 'শাখা ও ওয়্যারহাউজ গোডাউন নির্বাচন',
+    category: 'Navigation',
+    actionId: 'f3-branch'
+  },
+  {
+    keyCombo: 'F4',
+    keys: ['F4'],
+    labelEn: 'Contra & Stock Transfer Voucher',
+    labelBn: 'স্টক ট্রান্সফার ও স্থানান্তর চালান',
+    category: 'Forms & Modals',
+    actionId: 'f4-transfer'
+  },
+  {
+    keyCombo: 'F5',
+    keys: ['F5'],
+    labelEn: 'Payment Voucher / Due Payment',
+    labelBn: 'পেমেন্ট ও খরচ পরিশোধ ভাউচার',
+    category: 'Forms & Modals',
+    actionId: 'f5-payment'
+  },
+  {
+    keyCombo: 'F6',
+    keys: ['F6'],
+    labelEn: 'Receipt Voucher / Customer Due Collection',
+    labelBn: 'কাস্টমার বকেয়া কালেকশন মানি রসিদ',
+    category: 'Forms & Modals',
+    actionId: 'f6-receipt'
+  },
+  {
+    keyCombo: 'F7',
+    keys: ['F7'],
+    labelEn: 'Accounting Ledger & Double-Entry Journals',
+    labelBn: 'হিসাবরক্ষণ লেজার ও জার্নাল ভাউচার',
+    category: 'Navigation',
+    actionId: 'f7-ledger'
+  },
+  {
+    keyCombo: 'F8',
+    keys: ['F8'],
+    labelEn: 'Wholesale Sales Invoice Voucher',
+    labelBn: 'পাইকারি বিক্রয় ইনভয়েস ভাউচার',
+    category: 'POS & Sales',
+    actionId: 'f8-sales'
+  },
+  {
+    keyCombo: 'Ctrl + F8',
+    keys: ['Ctrl', 'F8'],
+    labelEn: 'Retail POS Fast Counter Sale',
+    labelBn: 'রিটেইল পিওএস ক্যাশ কাউন্টার বিক্রয়',
+    category: 'POS & Sales',
+    actionId: 'ctrl-f8-pos'
+  },
+  {
+    keyCombo: 'F9',
+    keys: ['F9'],
+    labelEn: 'Purchase Voucher & Supplier Inward',
+    labelBn: 'ক্রয় চালান ও পারচেজ ভাউচার',
+    category: 'Forms & Modals',
+    actionId: 'f9-purchase'
+  },
+  {
+    keyCombo: 'Ctrl + F9',
+    keys: ['Ctrl', 'F9'],
+    labelEn: 'Create New Product / Handset Item',
+    labelBn: 'নতুন পণ্য ও হ্যান্ডসেট মডেল যুক্তকরণ',
+    category: 'Forms & Modals',
+    actionId: 'ctrl-f9-product'
+  },
+  {
+    keyCombo: 'F10',
+    keys: ['F10'],
+    labelEn: 'Stock Ledger & IMEI Inventory Master',
+    labelBn: 'লাইভ স্টক ও আইএমইআই ইনভেন্টরি',
+    category: 'Inventory & Audit',
+    actionId: 'f10-inventory'
+  },
+  {
+    keyCombo: 'F11',
+    keys: ['F11'],
+    labelEn: 'Toggle Desktop Fullscreen View',
+    labelBn: 'ফুলস্ক্রিন ও উইন্ডোড ভিউ টগল',
+    category: 'Global',
+    actionId: 'f11-fullscreen'
+  },
+  {
+    keyCombo: 'F12',
+    keys: ['F12'],
+    labelEn: 'System Configuration & Settings',
+    labelBn: 'সিস্টেম কনফিগারেশন ও সেটিংস',
+    category: 'Global',
+    actionId: 'f12-settings'
   },
 
   // Navigation

@@ -27,7 +27,8 @@ export const PriceDropClaimView: React.FC = () => {
     suppliers,
     imeis,
     createPriceDropClaim,
-    updatePriceDropStatus
+    updatePriceDropStatus,
+    settings
   } = useERP();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -408,7 +409,7 @@ export const PriceDropClaimView: React.FC = () => {
 
             <div className="p-5 border border-slate-300 rounded-xl space-y-3 font-sans text-xs bg-slate-50">
               <div className="text-center pb-2 border-b">
-                <div className="font-black text-sm">TELECORP MOBILE DISTRIBUTION & TRADE LTD</div>
+                <div className="font-black text-sm">{settings?.companyName || 'TeleCorp Mobile Distribution & Trade Ltd.'}</div>
                 <div className="text-[10px] text-slate-500">Official Brand Price Protection Claim Voucher</div>
                 <div className="font-mono text-rose-700 font-bold mt-0.5">{selectedClaimForPrint.claimNo}</div>
               </div>

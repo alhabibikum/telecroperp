@@ -35,7 +35,6 @@ import {
   initialEMIPlans,
   initialCommissionDisbursements
 } from '../data/initialData';
-import { demoUsers } from '../context/ERPContext';
 import { AuthUser } from '../types/erp';
 
 // Transaction tables in foreign-key safe deletion order (children first)
@@ -77,6 +76,7 @@ export const MASTER_TABLES = [
   'suppliers',
   'salesmen',
   'warehouses',
+  'system_settings',
   'system_alerts',
   'backup_snapshots',
   'audit_logs'
@@ -146,12 +146,9 @@ export const wipeAllCloudData = async (): Promise<{ success: boolean; message: s
       await supabase.from(table).delete().neq('id', '_never_matches_dummy_');
     }
 
-    // 3. Wipe non-admin users from app_users
-    await supabase.from('app_users').delete().not('id', 'in', '("user-admin","8d510069-b154-440a-aa3e-0999a9c354e1")');
-
     return {
       success: true,
-      message: 'সুপাবেস ক্লাউড সম্পূর্ণ পরিষ্কার (Wipe) করা হয়েছে।'
+      message: 'সুপাবেস ক্লাউডের ERP ডেটা পরিষ্কার করা হয়েছে। Auth ইউজার অ্যাকাউন্ট অক্ষত রাখা হয়েছে।'
     };
   } catch (err: any) {
     console.error('Failed to wipe all cloud data:', err);
@@ -187,20 +184,11 @@ export const seedCloudDemoData = async (): Promise<{ success: boolean; message: 
       { onConflict: 'id' }
     );
 
-    const userPayloads = demoUsers.map(u => ({
-      id: u.id,
-      email: u.email,
-      name: u.name,
-      role: u.role,
-      password: u.password,
-      password_hash: u.password,
-      phone: u.phone,
-      department: u.department,
-      branch_name: u.branchName,
-      avatar: u.avatar,
-      status: u.status
-    }));
-    await supabase.from('app_users').upsert(userPayloads, { onConflict: 'id' });
+    // 1b. Seed System Settings & Company Profile
+    await supabase.from('system_settings').upsert(
+      mapToSupabasePayload('system_settings', initialSettings),
+      { onConflict: 'id' }
+    );
 
     // 2. Masters (Brands, Warehouses, Suppliers, Customers, Salesmen, Accounts)
     await insertBatch('brands', initialBrands);
@@ -276,6 +264,9 @@ export const seedCloudDemoData = async (): Promise<{ success: boolean; message: 
  * Clean Fresh Start (Zero-data production slate) in Supabase cloud database
  */
 export const seedCloudCleanSlate = async (adminUser?: AuthUser): Promise<{ success: boolean; message: string }> => {
+  if (!adminUser) {
+    return { success: false, message: 'ফ্যাক্টরি রিসেটের জন্য অনুমোদিত Auth অ্যাকাউন্ট প্রয়োজন।' };
+  }
   const supabase = getSupabaseClient();
   if (!supabase) {
     return { success: false, message: 'Supabase ক্লাউড ডেটাবেস কনফিগার করা নেই বা অফলাইন।' };
@@ -291,22 +282,6 @@ export const seedCloudCleanSlate = async (adminUser?: AuthUser): Promise<{ succe
       { onConflict: 'id' }
     );
 
-    // 3. Seed Super Admin user
-    const admin = adminUser || demoUsers[0];
-    await supabase.from('app_users').upsert({
-      id: admin.id,
-      email: admin.email,
-      name: admin.name,
-      role: 'Super Admin',
-      password: admin.password || 'M#112233@a',
-      password_hash: admin.password || 'admin',
-      phone: admin.phone || '+880 1711-002233',
-      department: 'Executive Board',
-      branch_name: 'Headquarters (Main)',
-      avatar: admin.avatar || '👨‍💼',
-      status: 'Active'
-    }, { onConflict: 'id' });
-
     // 4. Seed 1 Primary Central Warehouse
     const mainWh = initialWarehouses[0];
     await supabase.from('warehouses').upsert({
@@ -316,8 +291,8 @@ export const seedCloudCleanSlate = async (adminUser?: AuthUser): Promise<{ succe
       type: 'Central Warehouse',
       address: mainWh.address,
       city: mainWh.city,
-      manager_name: admin.name,
-      contact_number: admin.phone || mainWh.contactNumber,
+      manager_name: adminUser.name,
+      contact_number: adminUser.phone || mainWh.contactNumber,
       status: 'Active'
     }, { onConflict: 'id' });
 

@@ -61,9 +61,6 @@ import { ShieldAlert, ArrowRight } from 'lucide-react';
 import { WindowManagerProvider, useWindowManager } from './context/WindowManagerContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { WindowsWindowFrame } from './components/common/WindowsWindowFrame';
-import { WindowsTaskbar } from './components/layout/WindowsTaskbar';
-import { DesktopView } from './components/views/DesktopView';
 import { useAppZoom } from './hooks/useAppZoom';
 import { useAppUpdater } from './hooks/useAppUpdater';
 import { AppUpdaterModal } from './components/common/AppUpdaterModal';
@@ -75,7 +72,7 @@ const VIEW_CONFIG: Record<string, { title: string; subtitle: string; icon: strin
   'retail-pos': { title: 'রিটেইল পিওএস (Retail POS)', subtitle: 'কাউন্টার ক্যাশ বিক্রয়', icon: '🛒' },
   'phone-exchange': { title: 'ফোন এক্সচেঞ্জ (Phone Exchange)', subtitle: 'হ্যান্ডসেট ট্রেড-ইন ও এক্সচেঞ্জ', icon: '🔄' },
   'emi-installment': { title: 'কিস্তি ও ইএমআই (EMI Installment)', subtitle: 'মাসিক কিস্তি শিডিউল ও আদায়', icon: '📅' },
-  'delivery-dispatch': { title: 'ডেলিভারি ও কুরিয়ার (Delivery)', subtitle: 'কুরিয়ার চালান ও পার্সেল ট্র্যাকিং', icon: '🚚' },
+  'delivery-dispatch': { title: 'ওয়্যারহাউজ ডিসপ্যাচ (Warehouse Dispatch & Packaging Bay)', subtitle: 'প্যাকিং বে, শিপমেন্ট ট্র্যাকিং ও কুরিয়ার চালান', icon: '🚚' },
   'sms-marketing': { title: 'এসএমএস মার্কেটিং (SMS Marketing)', subtitle: 'বাল্ক মেসেজ ও অ্যালার্ট গেটওয়ে', icon: '💬' },
   'due-ageing': { title: 'বকেয়া এইজিং রিপোর্ট (Due Ageing)', subtitle: 'বকেয়া বয়স বিশ্লেষণ ও রিকভারি', icon: '⏳' },
   'due-collection': { title: 'বকেয়া কালেকশন (Due Collection)', subtitle: 'ডিলার পেমেন্ট জমা ও রসিদ', icon: '💰' },
@@ -90,7 +87,7 @@ const VIEW_CONFIG: Record<string, { title: string; subtitle: string; icon: strin
   'customers': { title: 'কাস্টমার ও ডিলার (Customers)', subtitle: 'ডিলার নেটওয়ার্ক প্রোফাইল', icon: '👥' },
   'suppliers': { title: 'সাপ্লায়ার তালিকা (Suppliers)', subtitle: 'ভেন্ডর ও ডিস্ট্রিবিউটর ডিরেক্টরি', icon: '🏭' },
   'returns': { title: 'রিটার্ন ব্যবস্থাপনা (Returns)', subtitle: 'কাস্টমার ও সাপ্লায়ার রিটার্ন ইঞ্জিন', icon: '↩️' },
-  'warranty-service': { title: 'ওয়ারেন্টি সার্ভিস (Warranty & RMA)', subtitle: 'সার্ভিসিং জব ও রিপেয়ার ট্র্যাকিং', icon: '🛠️' },
+  'warranty-service': { title: 'DOA ও ডিফেক্টিভ ডিভাইস (DOA & Defective Management)', subtitle: 'ডিভাইস ইনটেক, রিপ্লেসমেন্ট অলটমেন্ট ও কিউসি ওয়ার্কফ্লো', icon: '🛠️' },
   'salesmen': { title: 'সেলসম্যান ও ফিল্ড স্টাফ (Salesmen)', subtitle: 'মার্কেট অফিসার ও প্রতিনিধি তালিকা', icon: '👔' },
   'salesman-app': { title: 'মোবাইল সেলসম্যান পোর্টাল (Salesman App)', subtitle: 'ফিল্ড অর্ডার গ্রহণ ইন্টারফেস', icon: '📱' },
   'field-visits': { title: 'ফিল্ড ভিজিট ও রুট প্ল্যান (Field Visits)', subtitle: 'জিপিএস ট্র্যাকিং ও আউটলেট লগ', icon: '📍' },
@@ -111,7 +108,18 @@ const VIEW_CONFIG: Record<string, { title: string; subtitle: string; icon: strin
 };
 
 const ERPAppContent: React.FC = () => {
-  const { isAuthenticated, currentUserRole, currentUser, hasPermission, salesInvoices, triggerManualSync } = useERP();
+  const {
+    isAuthenticated,
+    isAuthLoading,
+    isPasswordRecovery,
+    isUserDataReady,
+    userDataLoadError,
+    currentUserRole,
+    currentUser,
+    hasPermission,
+    salesInvoices,
+    triggerManualSync
+  } = useERP();
   const { showSuccess, showInfo, showError } = useToast();
   const { zoomLevel, showZoomIndicator, isZoomed, zoomIn, zoomOut, resetZoom } = useAppZoom();
   const {
@@ -254,29 +262,6 @@ const ERPAppContent: React.FC = () => {
     };
   }, []);
 
-  // Automatic Fullscreen on Launch and First User Gesture
-  useEffect(() => {
-    // 1. Instant fullscreen attempt on launch
-    enterFullScreenMode();
-
-    // 2. High-priority capture-phase listeners on any first user interaction (touch, click, key, pointer)
-    const gestureEvents = ['pointerdown', 'mousedown', 'keydown', 'touchstart', 'click'];
-    const onUserInteraction = () => {
-      if (!userManuallySkippedRef.current && !getIsFullscreen()) {
-        enterFullScreenMode();
-      }
-    };
-
-    gestureEvents.forEach(evt => {
-      window.addEventListener(evt, onUserInteraction, { capture: true, passive: true });
-    });
-
-    return () => {
-      gestureEvents.forEach(evt => {
-        window.removeEventListener(evt, onUserInteraction, { capture: true });
-      });
-    };
-  }, []);
 
 
   const handleOpenViewWindow = (view: string) => {
@@ -381,6 +366,7 @@ const ERPAppContent: React.FC = () => {
 
   const [showNewPurchaseModal, setShowNewPurchaseModal] = useState(false);
   const [showNewProductModal, setShowNewProductModal] = useState(false);
+  const canCreatePurchases = hasPermission(currentUserRole, 'purchases');
 
   const [showDueCollectionModal, setShowDueCollectionModal] = useState(false);
   const [collectionCustomerId, setCollectionCustomerId] = useState<string | undefined>(undefined);
@@ -411,6 +397,14 @@ const ERPAppContent: React.FC = () => {
     setShowNewSaleModal(true);
   };
 
+  const handleOpenNewPurchase = () => {
+    if (canCreatePurchases) {
+      setShowNewPurchaseModal(true);
+    } else {
+      showError('অনুমতি নেই', 'আপনার ক্রয় চালান তৈরির অনুমতি নেই।');
+    }
+  };
+
   const handleOpenDueCollection = (customerId?: string) => {
     setCollectionCustomerId(customerId);
     setShowDueCollectionModal(true);
@@ -426,7 +420,7 @@ const ERPAppContent: React.FC = () => {
     if (currentView === 'wholesale-sales' || currentView === 'retail-pos' || currentView === 'dashboard') {
       handleOpenNewSale(currentView === 'retail-pos' ? 'Retail POS' : 'Wholesale');
     } else if (currentView === 'purchases') {
-      setShowNewPurchaseModal(true);
+      handleOpenNewPurchase();
     } else if (currentView === 'inventory') {
       setShowNewProductModal(true);
     } else if (currentView === 'due-collection' || currentView === 'due-ageing') {
@@ -557,35 +551,113 @@ const ERPAppContent: React.FC = () => {
         return;
       }
 
-      // 9. Ctrl + / or F1: Keyboard Shortcuts Help
-      if ((isCtrl && e.key === '/') || e.key === 'F1') {
+      // 9. F1 or Ctrl + /: Keyboard Shortcuts Help
+      if (e.key === 'F1' || (isCtrl && e.key === '/')) {
         e.preventDefault();
         setShowShortcutHelp(prev => !prev);
         return;
       }
 
-      // 10. F11: Toggle Desktop Fullscreen
+      // 10. F2: Day Closing / Date
+      if (e.key === 'F2') {
+        e.preventDefault();
+        handleNavigateView('day-closing');
+        return;
+      }
+
+      // 11. F3: Branch & Outlets
+      if (e.key === 'F3') {
+        e.preventDefault();
+        handleNavigateView('warehouses');
+        return;
+      }
+
+      // 12. F4: Stock Transfer / Contra
+      if (e.key === 'F4') {
+        e.preventDefault();
+        setShowStockTransferModal(true);
+        return;
+      }
+
+      // 13. F5: Payment / Expenses
+      if (e.key === 'F5') {
+        e.preventDefault();
+        handleOpenDueCollection();
+        return;
+      }
+
+      // 14. F6: Customer Due Collection Receipt
+      if (e.key === 'F6') {
+        e.preventDefault();
+        handleOpenDueCollection();
+        return;
+      }
+
+      // 15. F7: Accounting Ledger & Journals
+      if (e.key === 'F7') {
+        e.preventDefault();
+        handleNavigateView('accounting');
+        return;
+      }
+
+      // 16. F8: Wholesale Sales (Ctrl + F8 for Retail POS)
+      if (e.key === 'F8') {
+        e.preventDefault();
+        if (isCtrl) {
+          handleNavigateView('retail-pos');
+        } else {
+          handleOpenNewSale('Wholesale');
+        }
+        return;
+      }
+
+      // 17. F9: New Purchase (Ctrl + F9 for New Product)
+      if (e.key === 'F9') {
+        e.preventDefault();
+        if (isCtrl) {
+          setShowNewProductModal(true);
+        } else {
+          handleOpenNewPurchase();
+        }
+        return;
+      }
+
+      // 18. F10: Stock & Inventory Ledger
+      if (e.key === 'F10') {
+        e.preventDefault();
+        handleNavigateView('inventory');
+        return;
+      }
+
+      // 19. F11: Toggle Desktop Fullscreen
       if (e.key === 'F11') {
         e.preventDefault();
         handleToggleFullscreen();
         return;
       }
 
-      // 11. Ctrl + B: Multi-Barcode Scanner
+      // 20. F12: System Settings
+      if (e.key === 'F12') {
+        e.preventDefault();
+        handleNavigateView('settings');
+        return;
+      }
+
+      // 21. Ctrl + B: Multi-Barcode Scanner
       if (isCtrl && key === 'b') {
         e.preventDefault();
         handleOpenMultiScanner();
         return;
       }
 
-      // 12. Ctrl + [: Toggle Desktop Sidebar
+      // 22. Ctrl + [: Toggle Desktop Sidebar
       if (isCtrl && e.key === '[') {
         e.preventDefault();
         setIsSidebarExpanded(prev => !prev);
         return;
       }
 
-      // 12. Escape: Top Modal Dismiss
+      // 23. Escape: Top Modal Dismiss in Reverse Hierarchy
       if (e.key === 'Escape') {
         if (showShortcutHelp) {
           e.preventDefault();
@@ -596,6 +668,21 @@ const ERPAppContent: React.FC = () => {
         } else if (showMultiScanner) {
           e.preventDefault();
           setShowMultiScanner(false);
+        } else if (showNewSaleModal) {
+          e.preventDefault();
+          setShowNewSaleModal(false);
+        } else if (showNewPurchaseModal) {
+          e.preventDefault();
+          setShowNewPurchaseModal(false);
+        } else if (showDueCollectionModal) {
+          e.preventDefault();
+          setShowDueCollectionModal(false);
+        } else if (showCustomerReturnModal) {
+          e.preventDefault();
+          setShowCustomerReturnModal(false);
+        } else if (showNewProductModal) {
+          e.preventDefault();
+          setShowNewProductModal(false);
         } else if (showIMEIModal) {
           e.preventDefault();
           setShowIMEIModal(false);
@@ -615,6 +702,11 @@ const ERPAppContent: React.FC = () => {
     showCommandPalette,
     showShortcutHelp,
     showMultiScanner,
+    showNewSaleModal,
+    showNewPurchaseModal,
+    showDueCollectionModal,
+    showCustomerReturnModal,
+    showNewProductModal,
     showIMEIModal,
     showInvoicePrintModal,
     showStockTransferModal,
@@ -630,7 +722,7 @@ const ERPAppContent: React.FC = () => {
         return (
           <DashboardView
             onOpenNewSale={() => handleOpenNewSale('Wholesale')}
-            onOpenNewPurchase={() => setShowNewPurchaseModal(true)}
+            onOpenNewPurchase={handleOpenNewPurchase}
             onOpenDueCollection={() => handleOpenDueCollection()}
             onOpenIMEILookup={handleOpenIMEILookup}
             onSelectView={handleNavigateView}
@@ -662,7 +754,7 @@ const ERPAppContent: React.FC = () => {
       case 'due-collection':
         return <DueCollectionView onOpenDueCollection={handleOpenDueCollection} />;
       case 'purchases':
-        return <PurchaseView onOpenNewPurchase={() => setShowNewPurchaseModal(true)} />;
+        return <PurchaseView onOpenNewPurchase={handleOpenNewPurchase} />;
       case 'inventory':
         return (
           <InventoryView
@@ -743,12 +835,29 @@ const ERPAppContent: React.FC = () => {
     }
   };
 
-  if (!isAuthenticated) {
+  if (isAuthLoading) {
+    return <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center" role="status">সেশন যাচাই করা হচ্ছে...</div>;
+  }
+
+  if (isPasswordRecovery || !isAuthenticated) {
     return (
       <>
         <OfflineStatusBanner />
         <LoginView />
       </>
+    );
+  }
+
+  if (!isUserDataReady) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center gap-3 p-6 text-center" role="status">
+        <span>{userDataLoadError || 'আপনার ব্যবহারকারীর ERP ডেটা লোড হচ্ছে...'}</span>
+        {userDataLoadError && (
+          <button type="button" onClick={() => window.location.reload()} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg">
+            পুনরায় চেষ্টা করুন
+          </button>
+        )}
+      </div>
     );
   }
 
@@ -769,11 +878,10 @@ const ERPAppContent: React.FC = () => {
         isSidebarExpanded={isSidebarExpanded}
         onToggleSidebar={() => setIsSidebarExpanded(prev => !prev)}
         onOpenNewSale={() => handleOpenNewSale('Wholesale')}
-        onOpenNewPurchase={() => setShowNewPurchaseModal(true)}
+        onOpenNewPurchase={handleOpenNewPurchase}
         onOpenDueCollection={() => handleOpenDueCollection()}
         onOpenIMEILookup={handleOpenIMEILookup}
         onOpenMultiScanner={handleOpenMultiScanner}
-        onOpenCommandPalette={() => setShowCommandPalette(true)}
         onOpenShortcutsHelp={() => setShowShortcutHelp(true)}
         onSelectView={handleNavigateView}
         isPinned={isHeaderPinned}
@@ -790,7 +898,7 @@ const ERPAppContent: React.FC = () => {
         isCheckingUpdates={isCheckingUpdates}
       />
 
-      <div className={`flex-1 flex overflow-hidden relative ${isDesktop ? 'pb-14' : ''}`}>
+      <div className="flex-1 flex overflow-hidden relative">
         {/* Left Sidebar */}
         <Sidebar
           isExpanded={isSidebarExpanded}
@@ -799,81 +907,36 @@ const ERPAppContent: React.FC = () => {
           onSelectView={handleNavigateView}
         />
 
-
-        {/* Main Content Viewport - Windows Desktop Workspace */}
-        <main className="flex-1 h-full overflow-hidden relative">
-          {!currentView || (isDesktop && !isSplitView && (isWindowMinimized(currentView) || !openViewIds.includes(currentView))) ? (
-            <DesktopView
-              onOpenApp={handleNavigateView}
-              zoomLevel={zoomLevel}
-              onZoomIn={zoomIn}
-              onZoomOut={zoomOut}
-              onResetZoom={resetZoom}
-            />
-          ) : isDesktop && isSplitView && splitWindowIds ? (
-            <div className="h-full w-full flex flex-row overflow-hidden divide-x-2 divide-slate-300 dark:divide-slate-800 bg-slate-900/10">
-              <div className="w-1/2 h-full flex flex-col overflow-hidden">
-                <WindowsWindowFrame
-                  id={splitWindowIds[0]}
-                  title={VIEW_CONFIG[splitWindowIds[0]]?.title || splitWindowIds[0]}
-                  subtitle={VIEW_CONFIG[splitWindowIds[0]]?.subtitle}
-                  icon={<span>{VIEW_CONFIG[splitWindowIds[0]]?.icon || '🖥️'}</span>}
-                  onClose={() => closeSplitView()}
-                >
-                  <ErrorBoundary fallbackTitle={splitWindowIds[0]}>
-                    {renderViewContent(splitWindowIds[0])}
-                  </ErrorBoundary>
-                </WindowsWindowFrame>
-              </div>
-              <div className="w-1/2 h-full flex flex-col overflow-hidden">
-                <WindowsWindowFrame
-                  id={splitWindowIds[1]}
-                  title={VIEW_CONFIG[splitWindowIds[1]]?.title || splitWindowIds[1]}
-                  subtitle={VIEW_CONFIG[splitWindowIds[1]]?.subtitle}
-                  icon={<span>{VIEW_CONFIG[splitWindowIds[1]]?.icon || '🖥️'}</span>}
-                  onClose={() => closeSplitView()}
-                >
-                  <ErrorBoundary fallbackTitle={splitWindowIds[1]}>
-                    {renderViewContent(splitWindowIds[1])}
-                  </ErrorBoundary>
-                </WindowsWindowFrame>
-              </div>
-            </div>
-          ) : !hasPermission(currentUserRole, currentView) ? (
-            <WindowsWindowFrame
-              id={currentView}
-              title={VIEW_CONFIG[currentView]?.title || currentView}
-              subtitle="Access Restricted"
-              icon={<span>🛡️</span>}
-              onClose={() => handleCloseViewWindow(currentView)}
-            >
-              <div className="h-full flex items-center justify-center p-6 bg-slate-100/70">
-              <div className="max-w-md w-full bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-200/90 p-8 text-center space-y-4">
-                <div className="w-16 h-16 mx-auto rounded-3xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-500 shadow-inner">
+        {/* Main Content Workspace (Executive Desktop Enterprise Canvas) */}
+        <main className="flex-1 h-full overflow-y-auto bg-[#f1f5f9] dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 p-3 sm:p-4 lg:p-6">
+          {!hasPermission(currentUserRole, currentView) ? (
+            <div className="h-full flex items-center justify-center p-6">
+              <div className="max-w-md w-full bg-white dark:bg-[#111726] rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 p-8 text-center space-y-4">
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 flex items-center justify-center text-rose-500">
                   <ShieldAlert className="w-8 h-8" />
                 </div>
                 <div>
-                  <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-200">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
                     অ্যাক্সেস সংরক্ষিত • Access Restricted
                   </span>
-                  <h3 className="text-xl font-black text-slate-900 mt-2">
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-2">
                     অনুমতি নেই (Permission Denied)
                   </h3>
-                  <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">
-                    আপনার বর্তমান রোল <strong className="text-slate-800">[{currentUserRole}]</strong> অনুযায়ী এই মডিউলটিতে প্রবেশের অনুমতি নেই।
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    আপনার বর্তমান রোল <strong className="text-slate-800 dark:text-slate-200">[{currentUserRole}]</strong> অনুযায়ী এই মডিউলটিতে প্রবেশের অনুমতি নেই।
                   </p>
                 </div>
 
-                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 text-left text-xs space-y-1.5">
-                  <div className="flex justify-between text-slate-500">
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200/80 dark:border-slate-800 text-left text-xs space-y-1.5">
+                  <div className="flex justify-between text-slate-500 dark:text-slate-400">
                     <span>অপারেটর:</span>
-                    <strong className="text-slate-800">{currentUser?.name}</strong>
+                    <strong className="text-slate-800 dark:text-slate-200">{currentUser?.name}</strong>
                   </div>
-                  <div className="flex justify-between text-slate-500">
+                  <div className="flex justify-between text-slate-500 dark:text-slate-400">
                     <span>শাখা / ডিপার্টমেন্ট:</span>
-                    <strong className="text-slate-800">{currentUser?.department?.split('/')[0] || 'N/A'}</strong>
+                    <strong className="text-slate-800 dark:text-slate-200">{currentUser?.department?.split('/')[0] || 'N/A'}</strong>
                   </div>
-                  <div className="flex justify-between text-slate-500">
+                  <div className="flex justify-between text-slate-500 dark:text-slate-400">
                     <span>অনুরোধকৃত ভিউ:</span>
                     <span className="font-mono font-bold text-rose-600">{currentView}</span>
                   </div>
@@ -881,46 +944,21 @@ const ERPAppContent: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    if (hasPermission(currentUserRole, 'dashboard')) handleNavigateView('dashboard');
-                    else if (hasPermission(currentUserRole, 'salesman-app')) handleNavigateView('salesman-app');
-                    else if (hasPermission(currentUserRole, 'retail-pos')) handleNavigateView('retail-pos');
-                    else if (hasPermission(currentUserRole, 'inventory')) handleNavigateView('inventory');
-                    else handleNavigateView('imei-trace');
-                  }}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-2xl font-black text-xs shadow-md shadow-blue-500/20 transition cursor-pointer flex items-center justify-center gap-2"
+                  onClick={() => handleNavigateView('dashboard')}
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium text-xs shadow-sm transition cursor-pointer flex items-center justify-center gap-2"
                 >
                   <ArrowRight className="w-4 h-4 rotate-180" />
                   <span>অনুমোদিত ড্যাশবোর্ডে ফিরে যান</span>
                 </button>
               </div>
             </div>
-          </WindowsWindowFrame>
-        ) : (
-          <WindowsWindowFrame
-            id={currentView}
-            title={VIEW_CONFIG[currentView]?.title || currentView}
-            subtitle={VIEW_CONFIG[currentView]?.subtitle}
-            icon={<span>{VIEW_CONFIG[currentView]?.icon || '🖥️'}</span>}
-            onClose={() => handleCloseViewWindow(currentView)}
-          >
+          ) : (
             <ErrorBoundary fallbackTitle={currentView}>
-              {renderViewContent(currentView)}
+              {renderViewContent(currentView || 'dashboard')}
             </ErrorBoundary>
-          </WindowsWindowFrame>
-        )}
+          )}
         </main>
       </div>
-
-      {/* Windows OS Taskbar - Desktop Only */}
-      {isDesktop && (
-        <WindowsTaskbar
-          onSelectView={handleNavigateView}
-          onOpenNewSale={() => handleOpenNewSale('Wholesale')}
-          onOpenNewPurchase={() => setShowNewPurchaseModal(true)}
-          onOpenDueCollection={() => handleOpenDueCollection()}
-        />
-      )}
 
       {/* Global Interactive Modals */}
       <IMEISearchModal
@@ -939,7 +977,7 @@ const ERPAppContent: React.FC = () => {
       />
 
       <NewPurchaseModal
-        isOpen={showNewPurchaseModal}
+        isOpen={showNewPurchaseModal && canCreatePurchases}
         onClose={() => setShowNewPurchaseModal(false)}
         onSuccessPurchase={(purNo) => {
           handleNavigateView('purchases');
@@ -1000,7 +1038,7 @@ const ERPAppContent: React.FC = () => {
         onClose={() => setShowCommandPalette(false)}
         onSelectView={handleNavigateView}
         onOpenNewSale={handleOpenNewSale}
-        onOpenNewPurchase={() => setShowNewPurchaseModal(true)}
+        onOpenNewPurchase={handleOpenNewPurchase}
         onOpenDueCollection={handleOpenDueCollection}
         onOpenIMEILookup={handleOpenIMEILookup}
         onOpenMultiScanner={() => handleOpenMultiScanner()}

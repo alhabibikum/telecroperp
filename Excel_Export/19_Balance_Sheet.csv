@@ -1,0 +1,15 @@
+﻿GR_SERIAL,GR_NAME,GR_PARENT,GR_PRIMARY_TYPE,GR_AMOUNT,COMPANY_NAME,BRANCH_NAME
+71,Cash in Hand,Current Assets,1,5657493.00,NULL,NULL
+72,Closing Stock,Current Assets,1,48739005.33,NULL,NULL
+73,Itel Dealer,Current Assets,1,-2426352.00,NULL,NULL
+74,Nadim Villa,Current Assets,1,12020.00,NULL,NULL
+75,Realme,Current Assets,1,1470146.00,NULL,NULL
+76,Sundry Debtors,Current Assets,1,19117876.22,NULL,NULL
+77,Uazzal Bhai Somprity,Current Assets,1,20500.00,NULL,NULL
+78,Uzzal Current Acc.,Current Assets,1,10528844.00,NULL,NULL
+79,Retailer Back Margin,Current Liabilities,2,3568773.05,NULL,NULL
+80,Sundry Creditors,Current Liabilities,2,63456266.80,NULL,NULL
+81,Tecno Mouchek,Loan Accounts,1,3523000.00,NULL,NULL
+82,Opening Balance,Profit & Loss Accounts,2,672588.67,NULL,NULL
+83,Current Period,Profit & Loss Accounts,2,8612645.63,NULL,NULL
+84,Diff in Opening Bal.,Diff in Opening Bal.,2,10332258.40,NULL,NULL

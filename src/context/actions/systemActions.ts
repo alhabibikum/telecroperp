@@ -49,11 +49,8 @@ import {
   initialCOA,
   initialSettings
 } from '../../data/initialData';
-import { demoUsers } from '../ERPContext';
 
 export interface SystemContextBundle {
-  users: AuthUser[];
-  setUsers: React.Dispatch<React.SetStateAction<AuthUser[]>>;
   currentUser: AuthUser | null;
   setCurrentUser: React.Dispatch<React.SetStateAction<AuthUser | null>>;
   setCurrentUserRole: (role: UserRole) => void;
@@ -135,115 +132,6 @@ export interface SystemContextBundle {
 }
 
 // User Management & RBAC CRUD
-export const executeCreateUser = (
-  userData: Omit<AuthUser, 'id'>,
-  ctx: SystemContextBundle
-): CrudResult => {
-  const { users, setUsers, enqueueChange, addAudit } = ctx;
-  const trimmedEmail = (userData.email || '').trim().toLowerCase();
-  if (!trimmedEmail) {
-    return { success: false, error: 'ইউজারের ইমেইল অ্যাড্রেস আবশ্যক।' };
-  }
-  const existing = users.find(u => u.email.toLowerCase() === trimmedEmail);
-  if (existing) {
-    return { success: false, error: 'এই ইমেইল দিয়ে ইতোমধ্যে একটি একাউন্ট বিদ্যমান রয়েছে।' };
-  }
-  const newUser: AuthUser = {
-    ...userData,
-    id: `user-${Date.now()}`,
-    email: trimmedEmail,
-    status: userData.status || 'Active',
-    createdAt: new Date().toISOString().replace('T', ' ').substr(0, 16)
-  };
-  setUsers(prev => [newUser, ...prev]);
-
-  enqueueChange('app_users', 'INSERT', newUser.id, newUser, `নতুন ইউজার তৈরি (${newUser.name} - ${newUser.role})`);
-  addAudit(`User Created (${newUser.name} - ${newUser.role})`, 'User Management', newUser.email);
-  return { success: true };
-};
-
-export const executeUpdateUser = (
-  id: string,
-  userData: Partial<AuthUser>,
-  ctx: SystemContextBundle
-): CrudResult => {
-  const { users, setUsers, currentUser, setCurrentUser, setCurrentUserRole, enqueueChange, addAudit } = ctx;
-  const target = users.find(u => u.id === id);
-  if (!target) return { success: false, error: 'ইউজার অ্যাকাউন্ট খুঁজে পাওয়া যায়নি।' };
-
-  const updated = { ...target, ...userData };
-  setUsers(prev => prev.map(u => u.id === id ? updated : u));
-
-  if (currentUser?.id === id) {
-    const updatedCurrent: AuthUser = { ...currentUser, ...userData };
-    setCurrentUser(updatedCurrent);
-    if (userData.role) setCurrentUserRole(userData.role);
-    try {
-      localStorage.setItem('TELECORP_AUTH_USER', JSON.stringify(updatedCurrent));
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  enqueueChange('app_users', 'UPDATE', id, updated, `ইউজার প্রোফাইল আপডেট (${target.name})`);
-  addAudit(`User Profile Updated (${target.name} - ${target.role})`, 'User Management', target.email);
-  return { success: true };
-};
-
-export const executeDeleteUser = (
-  id: string,
-  ctx: SystemContextBundle
-): CrudResult => {
-  const { users, setUsers, currentUser, enqueueChange, addAudit } = ctx;
-  const target = users.find(u => u.id === id);
-  if (!target) return { success: false, error: 'ইউজার অ্যাকাউন্ট খুঁজে পাওয়া যায়নি।' };
-  if (target.id === currentUser?.id) {
-    return { success: false, error: 'বর্তমানে লগইন থাকা সক্রিয় একাউন্ট মুছে ফেলা সম্ভব নয়।' };
-  }
-  setUsers(prev => prev.filter(u => u.id !== id));
-
-  enqueueChange('app_users', 'DELETE', id, null, `ইউজার একাউন্ট মুছে ফেলা (${target.name})`);
-  addAudit(`User Account Deleted (${target.name} - ${target.role})`, 'User Management', target.email);
-  return { success: true };
-};
-
-export const executeToggleUserStatus = (
-  id: string,
-  ctx: SystemContextBundle
-): CrudResult => {
-  const { users, setUsers, currentUser, enqueueChange, addAudit } = ctx;
-  const target = users.find(u => u.id === id);
-  if (!target) return { success: false, error: 'ইউজার অ্যাকাউন্ট খুঁজে পাওয়া যায়নি।' };
-  if (target.id === currentUser?.id) {
-    return { success: false, error: 'নিজের সক্রিয় একাউন্ট স্থগিত (Suspend) করা যাবে না।' };
-  }
-  const newStatus: 'Active' | 'Suspended' = target.status === 'Active' ? 'Suspended' : 'Active';
-  setUsers(prev => prev.map(u => u.id === id ? { ...u, status: newStatus } : u));
-
-  enqueueChange('app_users', 'UPDATE', id, { id, status: newStatus }, `ইউজার স্ট্যাটাস পরিবর্তন (${target.name} - ${newStatus})`);
-  addAudit(`User Status Changed to ${newStatus} (${target.name})`, 'User Management', target.email);
-  return { success: true };
-};
-
-export const executeResetUserPassword = (
-  id: string,
-  newPassword: string,
-  ctx: SystemContextBundle
-): CrudResult => {
-  const { users, setUsers, enqueueChange, addAudit } = ctx;
-  const target = users.find(u => u.id === id);
-  if (!target) return { success: false, error: 'ইউজার অ্যাকাউন্ট খুঁজে পাওয়া যায়নি।' };
-  const trimmedPass = (newPassword || '').trim();
-  if (trimmedPass.length < 3) {
-    return { success: false, error: 'পাসওয়ার্ড কমপক্ষে ৩ অক্ষরের হতে হবে।' };
-  }
-  setUsers(prev => prev.map(u => u.id === id ? { ...u, password: trimmedPass } : u));
-
-  enqueueChange('app_users', 'UPDATE', id, { id, password: trimmedPass }, `ইউজার পাসওয়ার্ড রিসেট (${target.name})`);
-  addAudit(`User Password Reset (${target.name})`, 'Security', target.email);
-  return { success: true };
-};
-
 export const executeExportJSON = (ctx: SystemContextBundle) => {
   const backupData = {
     version: '1.0.0',
@@ -491,7 +379,7 @@ export const executeFactoryResetFullWipe = async (
     setJournalEntries, setAlerts, setAuditLogs, setSettings, setSalesmanVisits,
     setCustomerFollowUps, setDayClosings, setPhoneExchanges, setBankStatements,
     setWarrantyClaims, setBrandIncentives, setDeliveryChallans, setPriceDropClaims,
-    setSmsLogs, setUsers, currentUser, setCurrentUser, addAudit
+    setSmsLogs, currentUser, setCurrentUser, addAudit
   } = ctx;
 
   // 1. Safety snapshot
@@ -503,7 +391,10 @@ export const executeFactoryResetFullWipe = async (
   if (ctx.setPendingSyncCount) ctx.setPendingSyncCount(0);
 
   // 3. Keep or setup Admin user
-  const activeAdmin: AuthUser = adminUser || (currentUser?.role === 'Super Admin' ? currentUser : demoUsers[0]);
+  const activeAdmin = adminUser || currentUser;
+  if (!activeAdmin) {
+    return { success: false, message: 'ফ্যাক্টরি রিসেটের আগে অনুমোদিত Auth অ্যাকাউন্টে লগইন করুন।' };
+  }
 
   // 4. Reset React states to Clean Business Slate (Zero products, zero transactions)
   setBrands([]);
@@ -553,15 +444,7 @@ export const executeFactoryResetFullWipe = async (
   setSmsLogs([]);
 
   // 5. Update Users
-  setUsers([activeAdmin]);
-  try {
-    localStorage.setItem('TELECORP_USERS_LIST', JSON.stringify([activeAdmin]));
-    setCurrentUser(activeAdmin);
-    localStorage.setItem('TELECORP_AUTH_USER', JSON.stringify(activeAdmin));
-    localStorage.setItem('TELECORP_AUTH_STATE', 'logged_in');
-  } catch (err) {
-    console.error('Failed to update local storage users during factory reset:', err);
-  }
+  setCurrentUser(activeAdmin);
 
   // 6. Cloud Clean Slate (Supabase)
   let cloudDetail = '';
