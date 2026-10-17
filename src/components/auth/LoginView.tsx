@@ -9,8 +9,11 @@ import {
   CheckCircle2,
   AlertTriangle,
   Eye,
-  EyeOff
+  EyeOff,
+  Database,
+  Settings
 } from 'lucide-react';
+import { getSupabaseConfig, saveSupabaseConfig, testSupabaseConnection } from '../../lib/supabase';
 
 export const LoginView: React.FC = () => {
   const {
@@ -28,6 +31,33 @@ export const LoginView: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSupabaseConfig, setShowSupabaseConfig] = useState(() => {
+    const config = getSupabaseConfig();
+    return !config.url || !config.anonKey;
+  });
+  const [supabaseUrl, setSupabaseUrl] = useState(() => getSupabaseConfig().url);
+  const [supabaseAnonKey, setSupabaseAnonKey] = useState(() => getSupabaseConfig().anonKey);
+  const [supabaseConfigError, setSupabaseConfigError] = useState<string | null>(null);
+  const [isSavingSupabaseConfig, setIsSavingSupabaseConfig] = useState(false);
+
+  const handleSaveSupabaseConfig = async () => {
+    setSupabaseConfigError(null);
+    setIsSavingSupabaseConfig(true);
+    try {
+      const result = await testSupabaseConnection(supabaseUrl, supabaseAnonKey);
+      if (!result.success) {
+        setSupabaseConfigError(result.message);
+        return;
+      }
+      saveSupabaseConfig(supabaseUrl, supabaseAnonKey, true);
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to configure Supabase from the login screen:', error);
+      setSupabaseConfigError(error instanceof Error ? error.message : 'Supabase configuration পরীক্ষা করা যায়নি।');
+    } finally {
+      setIsSavingSupabaseConfig(false);
+    }
+  };
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -138,6 +168,55 @@ export const LoginView: React.FC = () => {
                 {successMessage}
               </div>
             )}
+
+            <section className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <button
+                type="button"
+                onClick={() => setShowSupabaseConfig(open => !open)}
+                className="flex w-full items-center justify-between text-xs font-bold text-slate-700"
+              >
+                <span className="flex items-center gap-2">
+                  <Database className="h-4 w-4 text-blue-700" />
+                  Supabase সংযোগ
+                </span>
+                <Settings className="h-4 w-4" />
+              </button>
+              {showSupabaseConfig && (
+                <div className="mt-3 space-y-2.5">
+                  <p className="text-[11px] leading-relaxed text-slate-600">
+                    এই ডেস্কটপে সংযোগ কনফিগার করা নেই। Supabase Project URL ও publishable/anon key দিন। Service-role key এখানে দেবেন না।
+                  </p>
+                  <input
+                    type="url"
+                    value={supabaseUrl}
+                    onChange={event => setSupabaseUrl(event.target.value)}
+                    placeholder="https://your-project.supabase.co"
+                    aria-label="Supabase Project URL"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="password"
+                    value={supabaseAnonKey}
+                    onChange={event => setSupabaseAnonKey(event.target.value)}
+                    placeholder="Supabase publishable / anon key"
+                    aria-label="Supabase publishable or anon key"
+                    autoComplete="off"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  />
+                  {supabaseConfigError && (
+                    <p role="alert" className="text-[11px] font-semibold text-rose-700">{supabaseConfigError}</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleSaveSupabaseConfig}
+                    disabled={isSavingSupabaseConfig || !supabaseUrl.trim() || !supabaseAnonKey.trim()}
+                    className="w-full rounded-lg bg-blue-700 px-3 py-2 text-xs font-bold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSavingSupabaseConfig ? 'সংযোগ যাচাই হচ্ছে...' : 'সংযোগ যাচাই করে সেভ করুন'}
+                  </button>
+                </div>
+              )}
+            </section>
 
             <form onSubmit={handleSubmit} className="mt-4 space-y-3.5 text-xs">
               {!isPasswordRecovery && <div>

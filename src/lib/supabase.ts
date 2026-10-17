@@ -94,6 +94,13 @@ export const testSupabaseConnection = async (url?: string, key?: string): Promis
     const latencyMs = Date.now() - startTime;
 
     if (error) {
+      if (error.code === '42501') {
+        return {
+          success: true,
+          latencyMs,
+          message: `Supabase connected; database access is protected by RLS. Auth login is available. Ping latency: ${latencyMs}ms.`
+        };
+      }
       // If table doesn't exist yet, but authentication reached Supabase
       if (error.code === 'PGRST116' || error.message.includes('relation "app_users" does not exist')) {
         return {
