@@ -77,14 +77,14 @@
   html {
     scroll-behavior: smooth;
     text-rendering: optimizeLegibility;
-    font-size: 15px; /* Larger base font size for enterprise clarity */
+    font-size: 16px; /* Enhanced base font size for enterprise clarity & readability */
   }
 
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
     background-color: var(--canvas-bg);
     color: var(--text-primary);
-    line-height: 1.5;
+    line-height: 1.55;
     letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -102,21 +102,39 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Form Labels: High contrast, larger readable font */
-  label {
-    font-size: 13.5px;
-    font-weight: 600;
-    color: var(--text-secondary);
+  /* Headings: Clear visual hierarchy & prominent sizing */
+  h1 {
+    font-size: 1.45rem !important;
+    font-weight: 800;
+  }
+  h2 {
+    font-size: 1.25rem !important;
+    font-weight: 700;
+  }
+  h3 {
+    font-size: 1.1rem !important;
+    font-weight: 700;
   }
 
-  /* Square Form Controls (Inputs, Selects, Textareas) */
+  /* Form Labels: High contrast, larger readable font */
+  label {
+    font-size: 14.5px !important;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: inline-block;
+    margin-bottom: 4px;
+  }
+
+  /* Square Form Controls (Inputs, Selects, Textareas) - Spacious & Wide */
   input:not([type="checkbox"]):not([type="radio"]),
   select,
   textarea {
     border: 1px solid var(--border-default) !important;
     border-radius: 2px !important; /* Crisp Square Corners */
-    padding: 8px 12px;
-    font-size: 14px;
+    padding: 10px 14px !important;
+    font-size: 15px !important;
+    min-height: 44px;
+    width: 100%;
     background-color: var(--surface-bg);
     color: var(--text-primary);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -144,7 +162,8 @@
   table {
     border-collapse: collapse !important;
     border-spacing: 0 !important;
-    width: 100%;
+    width: 100% !important;
+    min-width: 100% !important;
     border: 1px solid var(--table-border) !important;
     border-radius: 0 !important;
   }
@@ -152,11 +171,11 @@
   thead th {
     background-color: var(--table-header) !important;
     color: var(--text-primary) !important;
-    font-size: 13px !important;
+    font-size: 13.5px !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.04em !important;
-    padding: 10px 14px !important;
+    padding: 12px 16px !important;
     border: 1px solid var(--table-border) !important;
     user-select: none;
     white-space: nowrap;
@@ -164,12 +183,13 @@
   }
 
   tbody td {
-    padding: 10px 14px !important;
-    font-size: 13.5px !important;
+    padding: 12px 16px !important;
+    font-size: 14.5px !important;
     border: 1px solid var(--table-border) !important;
     color: var(--text-primary) !important;
     transition: background-color 0.1s ease;
     background-color: var(--surface-bg);
+    vertical-align: middle;
   }
 
   html.dark tbody td {
@@ -185,7 +205,7 @@
    Executive Desktop & Square System Utility Classes
    ========================================================================= */
 
-/* Square Enterprise Panel / Card (Matches Image 1 & Image 2) */
+/* Square Enterprise Panel / Card (Consistent across all pages) */
 .fintech-card,
 .square-card,
 .square-panel {
@@ -194,6 +214,7 @@
   border-radius: 2px !important; /* Square Corners */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   transition: border-color 0.15s ease;
+  width: 100%;
 }
 
 .fintech-card:hover,
@@ -220,16 +241,18 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 10px 20px;
+  min-height: 42px;
   border-radius: 2px !important; /* Square */
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   background-color: #2563eb;
   color: #ffffff;
   border: 1px solid #1d4ed8;
   transition: all 0.15s ease;
   cursor: pointer;
   user-select: none;
+  white-space: nowrap;
 }
 .btn-primary:hover {
   background-color: #1d4ed8;
@@ -245,16 +268,18 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 10px 20px;
+  min-height: 42px;
   border-radius: 2px !important; /* Square */
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   background-color: #e2e8f0;
   border: 1px solid #cbd5e1;
   color: #1e293b;
   transition: all 0.15s ease;
   cursor: pointer;
   user-select: none;
+  white-space: nowrap;
 }
 .btn-secondary:hover {
   background-color: #cbd5e1;
@@ -270,13 +295,15 @@
   border-color: #64748b;
 }
 
-/* Square List Row System (স্কয়ার লিস্ট সিস্টেম) */
+/* Square List Row System (স্কয়ার লিস্ট সিস্টেম - Spacious) */
 .square-list-item {
   border: 1px solid var(--border-default) !important;
   border-radius: 2px !important;
-  padding: 10px 14px;
+  padding: 12px 16px;
+  min-height: 48px;
   background-color: var(--surface-bg);
   transition: background-color 0.12s ease;
+  width: 100%;
 }
 .square-list-item:hover {
   background-color: var(--surface-hover);
@@ -293,11 +320,30 @@
 .badge-square {
   display: inline-flex;
   align-items: center;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 2px !important;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 700;
   border: 1px solid transparent;
+}
+
+/* Global Micro-Font Enhancement for ERP readability */
+.text-\[10px\],
+.text-\[11px\],
+.text-\[11\.5px\] {
+  font-size: 12px !important;
+}
+.text-\[12px\],
+.text-\[12\.5px\] {
+  font-size: 13.5px !important;
+}
+
+/* Responsive Expanded Containers */
+.overflow-x-auto {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Workflow Progress Bar System (Matches Screenshot 1 & Screenshot 2) */
@@ -344,3 +390,249 @@
 .dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.35);
 }
+
+/* =========================================================================
+   DARK MODE COLOR THEORY SYSTEM (ডার্ক মোড কালার থিউরী সিস্টেম)
+   Ensures seamless, harmonious contrast, elevated surfaces, and readability
+   across every page, table, form, modal, and badge in Dark Mode.
+   ========================================================================= */
+
+/* 1. Base Canvas, Surfaces, and Panels */
+html.dark body,
+body.dark {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+html.dark main,
+body.dark main,
+html.dark .bg-\[\#f1f5f9\] {
+  background-color: #0f172a !important;
+}
+
+html.dark .bg-white,
+body.dark .bg-white,
+html.dark [class*="bg-white/"] {
+  background-color: #1e293b !important;
+}
+
+html.dark .bg-slate-50,
+body.dark .bg-slate-50,
+html.dark .bg-gray-50 {
+  background-color: #162032 !important;
+}
+
+html.dark .bg-slate-100,
+body.dark .bg-slate-100,
+html.dark .bg-gray-100 {
+  background-color: #1a2538 !important;
+}
+
+html.dark .bg-slate-200,
+body.dark .bg-slate-200,
+html.dark .bg-gray-200 {
+  background-color: #27354a !important;
+}
+
+/* 2. High-Contrast Typography Hierarchy */
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-gray-900,
+html.dark .text-gray-800,
+html.dark .text-black,
+body.dark .text-slate-900,
+body.dark .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+html.dark .text-slate-700,
+html.dark .text-slate-600,
+html.dark .text-gray-700,
+html.dark .text-gray-600,
+body.dark .text-slate-700,
+body.dark .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-slate-500,
+html.dark .text-gray-500,
+body.dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+html.dark .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+/* 3. Structural Borders & Dividers */
+html.dark .border-slate-200,
+html.dark .border-slate-300,
+html.dark .border-gray-200,
+html.dark .border-gray-300,
+html.dark [class*="border-slate-200/"],
+html.dark [class*="border-slate-300/"],
+body.dark .border-slate-200,
+body.dark .border-slate-300 {
+  border-color: #334155 !important;
+}
+
+html.dark .border-slate-100,
+html.dark .border-gray-100 {
+  border-color: #243247 !important;
+}
+
+html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-slate-300 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #334155 !important;
+}
+
+/* 4. Form Controls in Dark Mode */
+html.dark input:not([type="checkbox"]):not([type="radio"]),
+html.dark select,
+html.dark textarea,
+body.dark input:not([type="checkbox"]):not([type="radio"]),
+body.dark select,
+body.dark textarea {
+  background-color: #162032 !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+html.dark input:focus,
+html.dark select:focus,
+html.dark textarea:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* 5. Global Table System in Dark Mode */
+html.dark table,
+body.dark table {
+  border-color: #334155 !important;
+}
+
+html.dark thead th,
+body.dark thead th {
+  background-color: #162032 !important;
+  color: #cbd5e1 !important;
+  border-color: #334155 !important;
+}
+
+html.dark tbody td,
+body.dark tbody td {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+html.dark tbody tr:hover td,
+body.dark tbody tr:hover td {
+  background-color: #27354a !important;
+}
+
+/* 6. Semantic Status Badges & Alerts (Soft Luminance in Dark Mode) */
+/* Blue Badges (Info / Received) */
+html.dark .bg-blue-50,
+html.dark .bg-blue-100,
+body.dark .bg-blue-100 {
+  background-color: rgba(37, 99, 235, 0.22) !important;
+  color: #93c5fd !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+html.dark .text-blue-800,
+html.dark .text-blue-900,
+body.dark .text-blue-900 {
+  color: #bfdbfe !important;
+}
+
+/* Emerald/Green Badges (Success / Repaired / Paid) */
+html.dark .bg-emerald-50,
+html.dark .bg-emerald-100,
+html.dark .bg-green-50,
+html.dark .bg-green-100,
+body.dark .bg-emerald-100 {
+  background-color: rgba(16, 185, 129, 0.22) !important;
+  color: #6ee7b7 !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+}
+html.dark .text-emerald-800,
+html.dark .text-emerald-900,
+html.dark .text-green-800,
+html.dark .text-green-900,
+body.dark .text-emerald-900 {
+  color: #a7f3d0 !important;
+}
+
+/* Amber/Yellow Badges (Warning / Pending / In Repair) */
+html.dark .bg-amber-50,
+html.dark .bg-amber-100,
+html.dark .bg-yellow-50,
+html.dark .bg-yellow-100,
+body.dark .bg-amber-100 {
+  background-color: rgba(245, 158, 11, 0.22) !important;
+  color: #fcd34d !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+}
+html.dark .text-amber-800,
+html.dark .text-amber-900,
+body.dark .text-amber-900 {
+  color: #fde68a !important;
+}
+
+/* Rose/Red Badges (Danger / Rejected / Due) */
+html.dark .bg-rose-50,
+html.dark .bg-rose-100,
+html.dark .bg-red-50,
+html.dark .bg-red-100,
+body.dark .bg-rose-100 {
+  background-color: rgba(244, 63, 94, 0.22) !important;
+  color: #fda4af !important;
+  border-color: rgba(244, 63, 94, 0.4) !important;
+}
+html.dark .text-rose-800,
+html.dark .text-rose-900,
+body.dark .text-rose-900 {
+  color: #fecdd3 !important;
+}
+
+/* Purple Badges (Processing) */
+html.dark .bg-purple-50,
+html.dark .bg-purple-100,
+body.dark .bg-purple-100 {
+  background-color: rgba(168, 85, 247, 0.22) !important;
+  color: #d8b4fe !important;
+  border-color: rgba(168, 85, 247, 0.4) !important;
+}
+html.dark .text-purple-800,
+html.dark .text-purple-900,
+body.dark .text-purple-900 {
+  color: #e9d5ff !important;
+}
+
+/* Teal Badges (Swap / Replacement) */
+html.dark .bg-teal-50,
+html.dark .bg-teal-100,
+body.dark .bg-teal-100 {
+  background-color: rgba(20, 184, 166, 0.22) !important;
+  color: #5eead4 !important;
+  border-color: rgba(20, 184, 166, 0.4) !important;
+}
+html.dark .text-teal-800,
+html.dark .text-teal-900,
+body.dark .text-teal-900 {
+  color: #99f6e4 !important;
+}
+
+/* 7. Modal Windows & Overlays */
+html.dark .fixed.inset-0.bg-slate-900\/60,
+html.dark .fixed.inset-0.bg-black\/50,
+html.dark .fixed.inset-0.bg-black\/60 {
+  background-color: rgba(2, 6, 23, 0.8) !important;
+  backdrop-filter: blur(4px);
+}
+

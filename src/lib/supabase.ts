@@ -19,8 +19,8 @@ export const getSupabaseConfig = (): SupabaseConfig => {
   const envUrl = import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
   const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
 
-  const storedUrl = localStorage.getItem(SUPABASE_URL_KEY) || envUrl;
-  const storedKey = localStorage.getItem(SUPABASE_KEY_KEY) || envKey;
+  const storedUrl = envUrl || localStorage.getItem(SUPABASE_URL_KEY) || '';
+  const storedKey = envKey || localStorage.getItem(SUPABASE_KEY_KEY) || '';
   const storedEnabled = localStorage.getItem(SUPABASE_ENABLED_KEY);
 
   // Enabled by default if URL and key are present

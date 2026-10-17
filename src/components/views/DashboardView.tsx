@@ -756,22 +756,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       )}
 
+
       {/* ============================================================== */}
-      {/* ============================================================== */}
-      {/* FEATURE 2: TODAY'S REAL-TIME OPERATIONAL PULSE BAROMETER       */}
-      {/* ============================================================== */}
-      <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white p-5 sm:p-6 rounded-2xl shadow-lg border border-slate-800">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3.5 mb-5">
+      <div className="bg-white dark:bg-[#1e293b] p-5 sm:p-6 border border-slate-200 dark:border-slate-700 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-700/80 pb-3.5 mb-5">
           <div className="flex items-center gap-2.5">
-            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <Activity className="w-4 h-4 text-emerald-400" />
+            <div className="w-8 h-8 bg-[#1d4ed8] dark:bg-blue-600 text-white flex items-center justify-center border border-blue-700 dark:border-blue-500">
+              <Activity className="w-4 h-4" />
             </div>
-            <h2 className="font-extrabold text-sm sm:text-base text-white tracking-tight">
-              {isBn ? 'আজকের ব্যবসায়িক পালস ও লক্ষ্যমাত্রা (Daily Operational Pulse)' : "Today's Operational Pulse & Sales Target"}
-            </h2>
+            <div>
+              <h2 className="font-extrabold text-[15px] text-slate-900 dark:text-slate-100 tracking-tight leading-none">
+                {isBn ? 'আজকের ব্যবসায়িক পালস ও লক্ষ্যমাত্রা (Daily Operational Pulse)' : "Today's Operational Pulse & Sales Target"}
+              </h2>
+              <p className="text-[11.5px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                Date: {todayStr} • Dynamic Telemetry
+              </p>
+            </div>
           </div>
-          <span className="text-[11px] text-slate-400 font-mono bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/60">
-            Date: {todayStr} • Dynamic Telemetry
+          <span className="text-[12px] text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-3 py-1 border border-slate-200 dark:border-slate-700">
+            LIVE
           </span>
         </div>
 
@@ -779,24 +782,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Card 1: Today's Billed Sales vs Daily Target */}
           <div
             onClick={() => onSelectView('wholesale-sales')}
-            className="bg-slate-800/90 hover:bg-slate-800 p-4 sm:p-5 rounded-xl border border-slate-700/70 hover:border-blue-500/60 space-y-3 cursor-pointer transition-all group shadow-xs"
-            title="পাইকারি বিক্রয় ও ইনভয়েস দেখতে ক্লিক করুন"
+            className="bg-slate-50 dark:bg-slate-800/80 hover:bg-blue-50/60 dark:hover:bg-slate-800 p-4 sm:p-5 border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500/60 space-y-3 cursor-pointer transition-all group shadow-2xs"
+            title="পাইকারি বিক্রয় ও ইনভয়েস দেখতে ক্লিক করুন"
           >
-            <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-              <span className="group-hover:text-blue-300 transition-colors">{isBn ? 'আজকের মোট সেলস' : "Today's Billed Sales"}</span>
-              <Target className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold">
+              <span className="group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">{isBn ? 'আজকের মোট সেলস' : "Today's Billed Sales"}</span>
+              <div className="w-7 h-7 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-blue-700/50 group-hover:scale-105 transition-transform">
+                <Target className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
+            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
               {formatBDT(todaySalesRevenue)}
             </div>
             <div className="space-y-1.5">
-              <div className="flex justify-between text-[11px] text-slate-400">
+              <div className="flex justify-between text-[11.5px] text-slate-500 dark:text-slate-400 font-medium">
                 <span>{isBn ? 'দৈনিক টার্গেট' : 'Target'}: {formatBDT(defaultDailyTarget)}</span>
-                <span className="font-bold text-blue-400">{todayTargetAchievementPct}%</span>
+                <span className="font-bold text-blue-600 dark:text-blue-400">{todayTargetAchievementPct}%</span>
               </div>
-              <div className="w-full h-2 bg-slate-700/80 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 overflow-hidden">
                 <div
-                  className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                  className="h-full bg-[#2563eb] dark:bg-blue-500 transition-all duration-500"
                   style={{ width: `${Math.min(100, todayTargetAchievementPct)}%` }}
                 />
               </div>
@@ -806,38 +811,44 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Card 2: Today's Cash & Bank Inflow */}
           <div
             onClick={() => onSelectView('cash-bank')}
-            className="bg-slate-800/90 hover:bg-slate-800 p-4 sm:p-5 rounded-xl border border-slate-700/70 hover:border-emerald-500/60 space-y-3 cursor-pointer transition-all group shadow-xs"
+            className="bg-slate-50 dark:bg-slate-800/80 hover:bg-emerald-50/60 dark:hover:bg-slate-800 p-4 sm:p-5 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 dark:hover:border-emerald-500/60 space-y-3 cursor-pointer transition-all group shadow-2xs"
             title="ক্যাশ ও ব্যাংক লেজার দেখতে ক্লিক করুন"
           >
-            <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-              <span className="group-hover:text-emerald-300 transition-colors">{isBn ? 'আজকের ক্যাশ ও ব্যাংক ইন-ফ্লো' : "Today's Inflow Liquidity"}</span>
-              <DollarSign className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold">
+              <span className="group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">{isBn ? 'আজকের ক্যাশ ও ব্যাংক ইন-ফ্লো' : "Today's Inflow Liquidity"}</span>
+              <div className="w-7 h-7 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-700/50 group-hover:scale-105 transition-transform">
+                <DollarSign className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono tracking-tight">
+            <div className="text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-400 font-mono tracking-tight">
               {formatBDT(todayTotalLiquidity)}
             </div>
-            <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
+            <div className="text-[11.5px] text-slate-500 dark:text-slate-400 flex items-center justify-between pt-1 font-medium">
               <span>From Invoices: {formatBDT(todayPaidCollections)}</span>
-              <span className="text-emerald-400 font-bold px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">100% Verified</span>
+              <span className="font-bold text-emerald-700 dark:text-emerald-400 px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-700/50">
+                100% Verified
+              </span>
             </div>
           </div>
 
           {/* Card 3: Handset Units Dispatched vs Procured */}
           <div
             onClick={() => onSelectView('inventory')}
-            className="bg-slate-800/90 hover:bg-slate-800 p-4 sm:p-5 rounded-xl border border-slate-700/70 hover:border-amber-500/60 space-y-3 cursor-pointer transition-all group shadow-xs"
+            className="bg-slate-50 dark:bg-slate-800/80 hover:bg-amber-50/60 dark:hover:bg-slate-800 p-4 sm:p-5 border border-slate-200 dark:border-slate-700 hover:border-amber-400 dark:hover:border-amber-500/60 space-y-3 cursor-pointer transition-all group shadow-2xs"
             title="ইনভেন্টরি ও হ্যান্ডসেট স্টক দেখতে ক্লিক করুন"
           >
-            <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-              <span className="group-hover:text-amber-300 transition-colors">{isBn ? 'আজকের হ্যান্ডসেট ডেলিভারি / ক্রয়' : "Handsets Sold / Inflow"}</span>
-              <Smartphone className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold">
+              <span className="group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">{isBn ? 'আজকের হ্যান্ডসেট ডেলিভারি / ক্রয়' : "Handsets Sold / Inflow"}</span>
+              <div className="w-7 h-7 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-700/50 group-hover:scale-105 transition-transform">
+                <Smartphone className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
-              {todayUnitsSold} <span className="text-xs font-semibold text-slate-400">Units Sold</span>
+            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
+              {todayUnitsSold} <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Units Sold</span>
             </div>
-            <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
-              <span>Procured: <b className="text-slate-200">{todayUnitsPurchased} Units</b></span>
-              <span className={`font-bold px-1.5 py-0.5 rounded-md ${todayUnitsSold >= todayUnitsPurchased ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+            <div className="text-[11.5px] text-slate-500 dark:text-slate-400 flex items-center justify-between pt-1 font-medium">
+              <span>Procured: <b className="text-slate-700 dark:text-slate-200">{todayUnitsPurchased} Units</b></span>
+              <span className={`font-bold px-2 py-0.5 ${todayUnitsSold >= todayUnitsPurchased ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-700/50' : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-700/50'}`}>
                 Net: {todayUnitsSold - todayUnitsPurchased >= 0 ? `+${todayUnitsSold - todayUnitsPurchased}` : todayUnitsSold - todayUnitsPurchased}
               </span>
             </div>
@@ -846,25 +857,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Card 4: Field Force & Active Billing Orders */}
           <div
             onClick={() => onSelectView('salesmen')}
-            className="bg-slate-800/90 hover:bg-slate-800 p-4 sm:p-5 rounded-xl border border-slate-700/70 hover:border-purple-500/60 space-y-3 cursor-pointer transition-all group shadow-xs"
+            className="bg-slate-50 dark:bg-slate-800/80 hover:bg-purple-50/60 dark:hover:bg-slate-800 p-4 sm:p-5 border border-slate-200 dark:border-slate-700 hover:border-purple-400 dark:hover:border-purple-500/60 space-y-3 cursor-pointer transition-all group shadow-2xs"
             title="সেলসম্যান ও ফিল্ড স্টাফ দেখতে ক্লিক করুন"
           >
-            <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-              <span className="group-hover:text-purple-300 transition-colors">{isBn ? 'সক্রিয় সেলস প্রতিনিধি ও অর্ডার' : 'Active Reps & Open Invoices'}</span>
-              <Users className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold">
+              <span className="group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors">{isBn ? 'সক্রিয় সেলস প্রতিনিধি ও অর্ডার' : 'Active Reps & Open Invoices'}</span>
+              <div className="w-7 h-7 bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-200 dark:border-purple-700/50 group-hover:scale-105 transition-transform">
+                <Users className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
-              {activeSalesmenCount} <span className="text-xs font-semibold text-slate-400">Reps On-Field</span>
+            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
+              {activeSalesmenCount} <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Reps On-Field</span>
             </div>
-            <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
-              <span>Due Invoices: <b className="text-amber-400">{openInvoicesCount}</b></span>
+            <div className="text-[11.5px] text-slate-500 dark:text-slate-400 flex items-center justify-between pt-1 font-medium">
+              <span>Due Invoices: <b className="text-amber-600 dark:text-amber-400">{openInvoicesCount}</b></span>
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelectView('wholesale-sales');
                 }}
-                className="text-purple-400 hover:text-purple-300 font-bold hover:underline cursor-pointer"
+                className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 font-bold hover:underline cursor-pointer"
               >
                 Inspect →
               </button>
@@ -875,6 +888,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* ============================================================== */}
       {/* 4 CORE EXECUTIVE FINANCIAL KPI CARDS                          */}
+
       {/* ============================================================== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
         {/* Stock Valuation */}

@@ -703,11 +703,17 @@ export const WarrantyServiceView: React.FC = () => {
         <MultiBarcodeScannerModal
           isOpen={showScannerModal}
           onClose={() => setShowScannerModal(false)}
-          onScan={(code) => {
-            if (activeTab === 'workstation') {
-              handleIntakeSerialChange(code);
-            } else {
-              setSearchTerm(code);
+          title="ওয়ারেন্টি ও সার্ভিস বারকোড / IMEI স্ক্যানার"
+          subtitle="হ্যান্ডসেটের বারকোড বা IMEI বারকোড গান বা ক্যামেরা দিয়ে স্ক্যান করুন"
+          mode="lookup"
+          onConfirm={(_records, tokens) => {
+            const code = tokens && tokens.length > 0 ? tokens[0] : (_records[0]?.imei1 || '');
+            if (code) {
+              if (activeTab === 'workstation') {
+                handleIntakeSerialChange(code);
+              } else {
+                setSearchTerm(code);
+              }
             }
             setShowScannerModal(false);
           }}

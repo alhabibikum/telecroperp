@@ -47,6 +47,7 @@ const authByEmail = new Map(
     .filter(user => user.email)
     .map(user => [user.email.toLowerCase(), user])
 );
+const profileEmails = new Set();
 const resetEmails = [];
 
 for (const profile of profiles) {
@@ -55,10 +56,20 @@ for (const profile of profiles) {
   if (!email || !legacyPassword) {
     throw new Error(`Profile ${profile.id} has no email or legacy password; no more profiles were migrated.`);
   }
+  if (profileEmails.has(email)) {
+    throw new Error(`Multiple ERP profiles use the same email address (${email}); resolve the duplicate before migrating.`);
+  }
+  profileEmails.add(email);
 
   const linkedAuthUser = profile.auth_user_id
     ? authById.get(profile.auth_user_id)
     : authByEmail.get(email);
+  if (
+    linkedAuthUser?.email &&
+    linkedAuthUser.email.trim().toLowerCase() !== email
+  ) {
+    throw new Error(`Profile ${profile.id} is linked to a different Auth email; resolve the mismatch before migrating.`);
+  }
   if (linkedAuthUser?.user_metadata?.erp_legacy_password_migrated) {
     if (profile.auth_user_id !== linkedAuthUser.id) {
       const { error } = await adminClient
@@ -66,6 +77,14 @@ for (const profile of profiles) {
         .update({ auth_user_id: linkedAuthUser.id })
         .eq('id', profile.id);
       if (error) throw error;
+    }
+    const resetRequired = linkedAuthUser.user_metadata.erp_legacy_password_reset_required === true ||
+      (
+        linkedAuthUser.user_metadata.erp_legacy_password_reset_required === undefined &&
+        legacyPassword.length < 6
+      );
+    if (resetRequired) {
+      resetEmails.push(email);
     }
     continue;
   }
@@ -76,7 +95,8 @@ for (const profile of profiles) {
     : legacyPassword;
   const userMetadata = {
     ...(linkedAuthUser?.user_metadata || {}),
-    erp_legacy_password_migrated: true
+    erp_legacy_password_migrated: true,
+    erp_legacy_password_reset_required: needsReset
   };
 
   let authUser;
@@ -117,6 +137,18 @@ for (const email of resetEmails) {
   if (error) {
     throw new Error(`Password reset email request failed for a legacy account (${email}): ${error.message}`);
   }
+
+  const authUser = authByEmail.get(email);
+  if (!authUser) {
+    throw new Error(`Auth user lookup failed after requesting a password reset for ${email}.`);
+  }
+  const { error: metadataError } = await adminClient.auth.admin.updateUserById(authUser.id, {
+    user_metadata: {
+      ...authUser.user_metadata,
+      erp_legacy_password_reset_required: false
+    }
+  });
+  if (metadataError) throw metadataError;
 }
 
 console.log(`Linked ${profiles.length} ERP accounts to Supabase Auth.`);

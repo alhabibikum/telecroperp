@@ -113,13 +113,27 @@ REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
 
 ALTER TABLE public.app_users ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS app_users_select_self_or_admin ON public.app_users;
+DO $$
+DECLARE
+  policy_name text;
+BEGIN
+  FOR policy_name IN
+    SELECT policyname
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'app_users'
+  LOOP
+    EXECUTE format('DROP POLICY %I ON public.app_users', policy_name);
+  END LOOP;
+END
+$$;
 CREATE POLICY app_users_select_self_or_admin ON public.app_users
   FOR SELECT TO authenticated
   USING (auth_user_id = auth.uid() OR public.app_is_admin());
 DO $$
 DECLARE
   item record;
+  policy_name text;
 BEGIN
   FOR item IN
     SELECT * FROM (VALUES
@@ -164,7 +178,14 @@ BEGIN
     ) AS resources(table_name, view_name)
   LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', item.table_name);
-    EXECUTE format('DROP POLICY IF EXISTS erp_role_access ON public.%I', item.table_name);
+    FOR policy_name IN
+      SELECT pg_policies.policyname
+      FROM pg_policies
+      WHERE pg_policies.schemaname = 'public'
+        AND pg_policies.tablename = item.table_name
+    LOOP
+      EXECUTE format('DROP POLICY %I ON public.%I', policy_name, item.table_name);
+    END LOOP;
     EXECUTE format(
       'CREATE POLICY erp_role_access ON public.%I FOR ALL TO authenticated USING (public.app_user_has_permission(%L)) WITH CHECK (public.app_user_has_permission(%L))',
       item.table_name,
@@ -174,15 +195,5 @@ BEGIN
   END LOOP;
 END
 $$;
-
-DROP POLICY IF EXISTS audit_logs_authenticated_insert ON public.audit_logs;
-CREATE POLICY audit_logs_authenticated_insert ON public.audit_logs
-  FOR INSERT TO authenticated
-  WITH CHECK (public.app_is_active_user());
-
-DROP POLICY IF EXISTS system_alerts_authenticated_insert ON public.system_alerts;
-CREATE POLICY system_alerts_authenticated_insert ON public.system_alerts
-  FOR INSERT TO authenticated
-  WITH CHECK (public.app_is_active_user());
 
 ALTER TABLE public.app_users DROP COLUMN IF EXISTS password;

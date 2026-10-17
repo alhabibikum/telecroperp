@@ -17,6 +17,18 @@
     <meta property="og:description" content="Comprehensive Multi-Brand Mobile Dealer ERP & Wholesale Distribution Management with IMEI Tracking, Customer Credit, Double-Entry Accounting, and Salesman Management." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('telecorp_theme');
+          if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.documentElement.style.colorScheme = 'dark';
+          }
+        } catch(e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

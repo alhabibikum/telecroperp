@@ -295,6 +295,43 @@ const fetchAuthenticatedProfile = async (
   return mapAppUserProfile(data as AppUserProfile);
 };
 
+const getAuthProfileErrorMessage = (error: unknown): string => {
+  const details = typeof error === 'object' && error !== null
+    ? error as { code?: unknown; message?: unknown }
+    : {};
+  const code = typeof details.code === 'string' ? details.code : '';
+  const message = typeof details.message === 'string' ? details.message : '';
+
+  if (code === '42703' || message.includes('auth_user_id')) {
+    return 'ডাটাবেজে Auth migration সম্পূর্ণ হয়নি। প্রথমে 001 migration চালিয়ে Auth account link করুন, তারপর 002 RLS migration চালান।';
+  }
+  if (
+    code === '42501' ||
+    message.toLowerCase().includes('permission denied') ||
+    message.toLowerCase().includes('row-level security')
+  ) {
+    return 'ডাটাবেজের Auth/RLS অনুমতি অসম্পূর্ণ। Auth user ও ERP profile link এবং RLS migration যাচাই করুন।';
+  }
+  if (message) return `ERP প্রোফাইল যাচাই করা যায়নি: ${message}`;
+  return 'লগইন প্রক্রিয়ায় ত্রুটি ঘটেছে। ইন্টারনেট সংযোগ ও Supabase configuration যাচাই করুন।';
+};
+
+const requireSupabaseData = async <T,>(
+  query: PromiseLike<{
+    data: T | null;
+    error: { code?: string; message: string } | null;
+  }>
+): Promise<T> => {
+  const { data, error } = await query;
+  if (error) {
+    throw new Error(`Supabase query failed (${error.code || 'UNKNOWN'}): ${error.message}`);
+  }
+  if (data === null) {
+    throw new Error('Supabase query succeeded without returning data.');
+  }
+  return data;
+};
+
 export type { CrudResult };
 
 interface ERPContextType {
@@ -757,7 +794,9 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     let isMounted = true;
+    let authSessionRequest = 0;
     const applyAuthSession = async (authUserId: string | null) => {
+      const request = ++authSessionRequest;
       if (!authUserId) {
         if (isMounted) {
           setCurrentUser(null);
@@ -769,7 +808,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       try {
         const profile = await fetchAuthenticatedProfile(supabase, authUserId);
-        if (!isMounted) return;
+        if (!isMounted || request !== authSessionRequest) return;
         if (!profile) {
           await supabase.auth.signOut();
           setCurrentUser(null);
@@ -784,21 +823,22 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (isMounted) {
           setCurrentUser(null);
           setUsers([]);
-          await supabase.auth.signOut();
         }
       } finally {
-        if (isMounted) setIsAuthLoading(false);
+        if (isMounted && request === authSessionRequest) setIsAuthLoading(false);
       }
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
+        authSessionRequest++;
         setCurrentUser(null);
         setIsPasswordRecovery(true);
         setIsAuthLoading(false);
         return;
       }
       if (event === 'SIGNED_OUT') {
+        authSessionRequest++;
         setCurrentUser(null);
         setUsers([]);
         setIsPasswordRecovery(false);
@@ -851,15 +891,17 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   // Sync and hydrate all enterprise entities from Supabase Cloud
-  const syncAllFromSupabase = useCallback(async () => {
+  const syncAllFromSupabase = useCallback(async (): Promise<{ success: boolean; message: string }> => {
     if (!currentUser || !isUserDataReady) {
-      return;
+      return { success: false, message: 'আপনার ব্যবহারকারীর ডেটা এখনও প্রস্তুত নয়।' };
     }
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      return;
+      return { success: false, message: 'ইন্টারনেট সংযোগ নেই।' };
     }
     const supabase = getSupabaseClient();
-    if (!supabase) return;
+    if (!supabase) {
+      return { success: false, message: 'Supabase ক্লাউড ডেটাবেস কনফিগার করা নেই।' };
+    }
     try {
       setIsSyncing(true);
       await processSyncQueue();
@@ -895,7 +937,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 2. Sync Brands
-      const { data: brandData } = await supabase.from('brands').select('*');
+      const brandData = await requireSupabaseData(supabase.from('brands').select('*'));
       if (brandData && brandData.length > 0) {
         setBrands(brandData.map((b: any) => ({
           id: b.id,
@@ -908,7 +950,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 3. Sync Warehouses
-      const { data: whData } = await supabase.from('warehouses').select('*');
+      const whData = await requireSupabaseData(supabase.from('warehouses').select('*'));
       if (whData && whData.length > 0) {
         setWarehouses(whData.map((w: any) => ({
           id: w.id,
@@ -924,7 +966,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 4. Sync Suppliers
-      const { data: supData } = await supabase.from('suppliers').select('*');
+      const supData = await requireSupabaseData(supabase.from('suppliers').select('*'));
       if (supData && supData.length > 0) {
         setSuppliers(supData.map((s: any) => ({
           id: s.id,
@@ -949,7 +991,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 5. Sync Customers
-      const { data: custData } = await supabase.from('customers').select('*');
+      const custData = await requireSupabaseData(supabase.from('customers').select('*'));
       if (custData && custData.length > 0) {
         setCustomers(custData.map((c: any) => ({
           id: c.id,
@@ -977,7 +1019,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 6. Sync Salesmen
-      const { data: smData } = await supabase.from('salesmen').select('*');
+      const smData = await requireSupabaseData(supabase.from('salesmen').select('*'));
       if (smData && smData.length > 0) {
         setSalesmen(smData.map((sm: any) => ({
           id: sm.id,
@@ -1000,8 +1042,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 7. Sync Products
-      const { data: prodData } = await supabase.from('products').select('*');
-      const { data: varData } = await supabase.from('product_variants').select('*');
+      const prodData = await requireSupabaseData(supabase.from('products').select('*'));
+      const varData = await requireSupabaseData(supabase.from('product_variants').select('*'));
       if (prodData && prodData.length > 0) {
         const mappedProds: Product[] = prodData.map((p: any) => ({
           id: p.id,
@@ -1033,7 +1075,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 8. Sync Serialized IMEIs
-      const { data: imeiData } = await supabase.from('imeis').select('*');
+      const imeiData = await requireSupabaseData(supabase.from('imeis').select('*'));
       if (imeiData && imeiData.length > 0) {
         setImeis(imeiData.map((i: any) => ({
           id: i.id,
@@ -1066,7 +1108,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 9. Sync Bank Accounts
-      const { data: bankData } = await supabase.from('bank_accounts').select('*');
+      const bankData = await requireSupabaseData(supabase.from('bank_accounts').select('*'));
       if (bankData && bankData.length > 0) {
         setBankAccounts(bankData.map((b: any) => ({
           id: b.id,
@@ -1082,7 +1124,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 10. Sync Chart of Accounts
-      const { data: coaData } = await supabase.from('chart_of_accounts').select('*');
+      const coaData = await requireSupabaseData(supabase.from('chart_of_accounts').select('*'));
       if (coaData && coaData.length > 0) {
         setChartOfAccounts(coaData.map((c: any) => ({
           code: c.code,
@@ -1095,7 +1137,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 11. Sync Sales Invoices
-      const { data: salesData } = await supabase.from('sales_invoices').select('*');
+      const salesData = await requireSupabaseData(supabase.from('sales_invoices').select('*'));
       if (salesData && salesData.length > 0) {
         setSalesInvoices(salesData.map((s: any) => ({
           id: s.id,
@@ -1126,7 +1168,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 12. Sync Purchase Invoices
-      const { data: purchData } = await supabase.from('purchase_invoices').select('*');
+      const purchData = await requireSupabaseData(supabase.from('purchase_invoices').select('*'));
       if (purchData && purchData.length > 0) {
         setPurchaseInvoices(purchData.map((p: any) => ({
           id: p.id,
@@ -1155,7 +1197,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 13. Sync Expenses
-      const { data: expData } = await supabase.from('expenses').select('*');
+      const expData = await requireSupabaseData(supabase.from('expenses').select('*'));
       if (expData && expData.length > 0) {
         setExpenses(expData.map((e: any) => ({
           id: e.id,
@@ -1175,7 +1217,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 14. Sync Expense Categories
-      const { data: expCatData } = await supabase.from('expense_categories').select('*');
+      const expCatData = await requireSupabaseData(supabase.from('expense_categories').select('*'));
       if (expCatData && expCatData.length > 0) {
         setExpenseCategories(expCatData.map((c: any) => ({
           id: c.id,
@@ -1185,7 +1227,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 15. Sync Cash Transactions
-      const { data: cashData } = await supabase.from('cash_transactions').select('*');
+      const cashData = await requireSupabaseData(supabase.from('cash_transactions').select('*'));
       if (cashData && cashData.length > 0) {
         setCashTransactions(cashData.map((c: any) => ({
           id: c.id,
@@ -1200,7 +1242,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 16. Sync Warranty Claims
-      const { data: wcData } = await supabase.from('warranty_claims').select('*');
+      const wcData = await requireSupabaseData(supabase.from('warranty_claims').select('*'));
       if (wcData && wcData.length > 0) {
         setWarrantyClaims(wcData.map((w: any) => ({
           id: w.id,
@@ -1228,7 +1270,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 17. Sync Brand Incentives
-      const { data: bisData } = await supabase.from('brand_incentive_schemes').select('*');
+      const bisData = await requireSupabaseData(supabase.from('brand_incentive_schemes').select('*'));
       if (bisData && bisData.length > 0) {
         setBrandIncentives(bisData.map((b: any) => ({
           id: b.id,
@@ -1248,7 +1290,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 18. Sync Delivery Challans
-      const { data: chData } = await supabase.from('delivery_challans').select('*');
+      const chData = await requireSupabaseData(supabase.from('delivery_challans').select('*'));
       if (chData && chData.length > 0) {
         setDeliveryChallans(chData.map((c: any) => ({
           id: c.id,
@@ -1276,7 +1318,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 19. Sync Price Drop Claims
-      const { data: pdcData } = await supabase.from('price_drop_claims').select('*');
+      const pdcData = await requireSupabaseData(supabase.from('price_drop_claims').select('*'));
       if (pdcData && pdcData.length > 0) {
         setPriceDropClaims(pdcData.map((p: any) => ({
           id: p.id,
@@ -1300,7 +1342,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 20. Sync Phone Exchanges
-      const { data: excData } = await supabase.from('phone_exchange_records').select('*');
+      const excData = await requireSupabaseData(supabase.from('phone_exchange_records').select('*'));
       if (excData && excData.length > 0) {
         setPhoneExchanges(excData.map((e: any) => ({
           id: e.id,
@@ -1332,7 +1374,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 21. Sync Customer Follow Ups
-      const { data: fupData } = await supabase.from('customer_follow_ups').select('*');
+      const fupData = await requireSupabaseData(supabase.from('customer_follow_ups').select('*'));
       if (fupData && fupData.length > 0) {
         setCustomerFollowUps(fupData.map((f: any) => ({
           id: f.id,
@@ -1353,7 +1395,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 22. Sync Salesman Visits
-      const { data: svData } = await supabase.from('salesman_visits').select('*');
+      const svData = await requireSupabaseData(supabase.from('salesman_visits').select('*'));
       if (svData && svData.length > 0) {
         setSalesmanVisits(svData.map((v: any) => ({
           id: v.id,
@@ -1372,7 +1414,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 23. Sync Day Closings
-      const { data: dcData } = await supabase.from('day_closings').select('*');
+      const dcData = await requireSupabaseData(supabase.from('day_closings').select('*'));
       if (dcData && dcData.length > 0) {
         setDayClosings(dcData.map((d: any) => ({
           id: d.id,
@@ -1397,7 +1439,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 24. Sync Stock Transfers
-      const { data: trData } = await supabase.from('stock_transfers').select('*');
+      const trData = await requireSupabaseData(supabase.from('stock_transfers').select('*'));
       if (trData && trData.length > 0) {
         setStockTransfers(trData.map((t: any) => ({
           id: t.id,
@@ -1418,7 +1460,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 25. Sync Customer Returns
-      const { data: retData } = await supabase.from('customer_returns').select('*');
+      const retData = await requireSupabaseData(supabase.from('customer_returns').select('*'));
       if (retData && retData.length > 0) {
         setCustomerReturns(retData.map((r: any) => ({
           id: r.id,
@@ -1444,7 +1486,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 26. Sync Supplier Returns
-      const { data: sretData } = await supabase.from('supplier_returns').select('*');
+      const sretData = await requireSupabaseData(supabase.from('supplier_returns').select('*'));
       if (sretData && sretData.length > 0) {
         setSupplierReturns(sretData.map((s: any) => ({
           id: s.id,
@@ -1464,7 +1506,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 27. Sync System Settings
-      const { data: setArr } = await supabase.from('system_settings').select('*').limit(1);
+      const setArr = await requireSupabaseData(supabase.from('system_settings').select('*').limit(1));
       if (setArr && setArr.length > 0) {
         const s = setArr[0];
         setSettings(sanitizeSystemSettings({
@@ -1485,7 +1527,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 28. Sync Alerts
-      const { data: alertData } = await supabase.from('system_alerts').select('*');
+      const alertData = await requireSupabaseData(supabase.from('system_alerts').select('*'));
       if (alertData && alertData.length > 0) {
         setAlerts(alertData.map((a: any) => ({
           id: a.id,
@@ -1500,7 +1542,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 29. Sync SMS Logs
-      const { data: smsData } = await supabase.from('sms_logs').select('*');
+      const smsData = await requireSupabaseData(supabase.from('sms_logs').select('*'));
       if (smsData && smsData.length > 0) {
         setSmsLogs(smsData.map((s: any) => ({
           id: s.id,
@@ -1516,7 +1558,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 30. Sync Money Receipts
-      const { data: mrData } = await supabase.from('money_receipts').select('*');
+      const mrData = await requireSupabaseData(supabase.from('money_receipts').select('*'));
       if (mrData && mrData.length > 0) {
         setMoneyReceipts(mrData.map((m: any) => ({
           id: m.id,
@@ -1543,7 +1585,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 31. Sync EMI Plans
-      const { data: emiData } = await supabase.from('emi_plans').select('*');
+      const emiData = await requireSupabaseData(supabase.from('emi_plans').select('*'));
       if (emiData && emiData.length > 0) {
         setEmiPlans(emiData.map((e: any) => ({
           id: e.id,
@@ -1579,7 +1621,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 32. Sync Commission Disbursements
-      const { data: comData } = await supabase.from('commission_disbursements').select('*');
+      const comData = await requireSupabaseData(supabase.from('commission_disbursements').select('*'));
       if (comData && comData.length > 0) {
         setCommissionDisbursements(comData.map((c: any) => ({
           id: c.id,
@@ -1604,7 +1646,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 33. Sync Journal Entries
-      const { data: jvData } = await supabase.from('journal_entries').select('*');
+      const jvData = await requireSupabaseData(supabase.from('journal_entries').select('*'));
       if (jvData && jvData.length > 0) {
         setJournalEntries(jvData.map((j: any) => ({
           id: j.id,
@@ -1622,7 +1664,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // 34. Sync Bank Statements
-      const { data: stData } = await supabase.from('bank_statements').select('*');
+      const stData = await requireSupabaseData(supabase.from('bank_statements').select('*'));
       if (stData && stData.length > 0) {
         setBankStatements(stData.map((b: any) => ({
           id: b.id,
@@ -1635,8 +1677,11 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           status: b.status || 'Unmatched'
         })));
       }
+      return { success: true, message: 'ক্লাউড ডেটা সিঙ্ক হয়েছে।' };
     } catch (err) {
-      console.warn('Failed to sync entities from Supabase on init:', err);
+      console.error('Failed to sync entities from Supabase:', err);
+      const message = err instanceof Error ? err.message : 'Supabase ডেটা সিঙ্ক ব্যর্থ হয়েছে।';
+      return { success: false, message };
     } finally {
       setIsSyncing(false);
     }
@@ -1681,7 +1726,10 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const pushRes = await processSyncQueue();
       setSyncQueue(getSyncQueue());
       setPendingSyncCount(getPendingSyncCount());
-      await syncAllFromSupabase();
+      const hydration = await syncAllFromSupabase();
+      if (!hydration.success) {
+        return { success: false, message: hydration.message, syncedCount: pushRes.syncedCount };
+      }
       return {
         success: pushRes.success,
         message: pushRes.message,
@@ -1917,12 +1965,12 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Auth Operations
   const login = async (email?: string, password?: string): Promise<{ success: boolean; error?: string }> => {
     const trimmedEmail = (email || '').trim().toLowerCase();
-    const trimmedPass = (password || '').trim();
+    const enteredPassword = password || '';
 
     if (!trimmedEmail) {
       return { success: false, error: 'দয়া করে আপনার রেজিস্টার্ড ইমেইল অ্যাড্রেস প্রদান করুন।' };
     }
-    if (!trimmedPass) {
+    if (!enteredPassword.trim()) {
       return { success: false, error: 'দয়া করে আপনার অ্যাকাউন্টের পাসওয়ার্ড লিখুন।' };
     }
 
@@ -1937,10 +1985,13 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: trimmedEmail,
-        password: trimmedPass
+        password: enteredPassword
       });
       if (error) {
-        return { success: false, error: 'ইমেইল বা পাসওয়ার্ড সঠিক নয়।' };
+        if (error.code === 'invalid_credentials' || error.status === 400) {
+          return { success: false, error: 'ইমেইল বা পাসওয়ার্ড সঠিক নয়।' };
+        }
+        return { success: false, error: getAuthProfileErrorMessage(error) };
       }
 
       const profile = await fetchAuthenticatedProfile(supabase, data.user.id);
@@ -1956,8 +2007,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: true };
     } catch (error) {
       console.error('Supabase Auth login failed:', error);
-      const message = error instanceof Error ? error.message : 'লগইন প্রক্রিয়ায় ত্রুটি ঘটেছে।';
-      return { success: false, error: message };
+      return { success: false, error: getAuthProfileErrorMessage(error) };
     }
   };
 
@@ -2001,7 +2051,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: true };
     } catch (profileError) {
       console.error('Failed to load profile after password reset:', profileError);
-      return { success: false, error: 'পাসওয়ার্ড বদলেছে, কিন্তু ERP প্রোফাইল যাচাই করা যায়নি।' };
+      return { success: false, error: getAuthProfileErrorMessage(profileError) };
     }
   };
 

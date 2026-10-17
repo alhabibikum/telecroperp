@@ -28,9 +28,11 @@ any real password or provider key that was previously committed.
 4. Run `supabase/migrations/001_add_auth_user_link.sql`, then
    `supabase/migrations/002_enable_auth_and_rls.sql` and
    `supabase/migrations/003_restrict_public_function_execution.sql` in order.
-   The first migration is safe to run after bootstrap; the second enables
-   role-based RLS and grants authenticated access only through its policies.
-   The third restricts direct execution of public RPC and trigger functions.
+   The first migration closes public/authenticated table access while accounts
+   are linked; the ERP remains unavailable until migrations 002 and 003 finish.
+   The second enables role-based RLS and restores authenticated access through
+   its policies. The third safely restricts existing public RPC/trigger
+   functions, and can be run whether or not optional RPCs are installed.
 5. Set `ERP_ALLOWED_ORIGIN` and the Supabase URL, anon key, and service-role
    key as Supabase Edge Function secrets, then deploy the `admin-users`
    function. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in the
@@ -42,7 +44,9 @@ any real password or provider key that was previously committed.
    migration. Authenticate the CLI and link the project (`supabase login`,
    then `supabase link --project-ref <project-ref>`). Set
    `SUPABASE_DB_PASSWORD` in `.env.local` for remote database CLI operations.
-   Run `001_add_auth_user_link.sql`.
+   Run `001_add_auth_user_link.sql`. This immediately revokes public and
+   authenticated table/sequence access and enables RLS; the ERP will be
+   unavailable until the remaining steps are complete.
 2. Set the URL, anon key, service-role key, and
    `SUPABASE_PASSWORD_RESET_REDIRECT_URL` in `.env.local`. Allow the redirect
    URL in Supabase Auth settings.

@@ -36,10 +36,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         document.documentElement.classList.add('dark');
         document.documentElement.setAttribute('data-theme', 'dark');
         document.documentElement.style.colorScheme = 'dark';
+        document.body.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
         document.documentElement.setAttribute('data-theme', 'light');
         document.documentElement.style.colorScheme = 'light';
+        document.body.classList.remove('dark');
       }
     } catch {}
   }, [theme]);
