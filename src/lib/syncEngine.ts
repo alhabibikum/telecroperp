@@ -1000,13 +1000,19 @@ export const processSyncQueue = async (): Promise<{
 
           if (error) throw error;
         } else {
-          // INSERT / UPDATE / UPSERT
           const payload = mapToSupabasePayload(item.table, item.data);
-          const { error } = await supabase
-            .from(item.table)
-            .upsert(payload, { onConflict: 'id' });
-
-          if (error) throw error;
+          if (item.action === 'UPDATE') {
+            const { error } = await supabase
+              .from(item.table)
+              .update(payload)
+              .eq('id', item.recordId);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase
+              .from(item.table)
+              .upsert(payload, { onConflict: 'id' });
+            if (error) throw error;
+          }
 
           // If product has variants, also upsert product_variants
           if (item.table === 'products' && item.data?.variants && Array.isArray(item.data.variants)) {
