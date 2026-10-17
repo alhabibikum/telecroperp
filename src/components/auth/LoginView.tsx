@@ -125,7 +125,7 @@ export const LoginView: React.FC = () => {
   };
 
   return (
-    <main className="relative flex min-h-screen min-h-[100svh] flex-col items-center overflow-x-hidden bg-[linear-gradient(180deg,#263238_0%,#176b68_48%,#63ad98_100%)] px-4 pb-8 font-sans text-white">
+    <main className="relative flex min-h-screen min-h-[100svh] flex-col items-center overflow-x-hidden bg-[linear-gradient(180deg,#174c49_0%,#568a78_52%,#e5d7b8_100%)] px-4 pb-8 font-sans text-white">
       <header className="absolute left-[5.5%] top-[6.5%] z-20 drop-shadow-sm">
         <h1 className="text-lg font-extrabold tracking-[0.08em] sm:text-2xl">FIROZA ENTERPRISE</h1>
         <p className="mt-1 text-xs font-semibold tracking-[0.12em] text-white/90 sm:text-sm">ERP DASHBOARD</p>
@@ -137,7 +137,7 @@ export const LoginView: React.FC = () => {
         preserveAspectRatio="xMidYMax meet"
         className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[38vh] min-h-[230px] w-full"
       >
-        <g fill="#96d3bd" opacity="0.3">
+        <g fill="#d7c7a5" opacity="0.36">
           <rect x="155" y="139" width="28" height="218" rx="12" />
           <rect x="190" y="108" width="28" height="249" rx="12" />
           <rect x="225" y="77" width="28" height="280" rx="12" />
@@ -148,14 +148,14 @@ export const LoginView: React.FC = () => {
           <rect x="945" y="123" width="28" height="234" rx="12" />
           <rect x="980" y="160" width="28" height="197" rx="12" />
         </g>
-        <g fill="none" stroke="#b6e5d2" strokeWidth="7" opacity="0.72">
+        <g fill="none" stroke="#e7dcc2" strokeWidth="7" opacity="0.78">
           <circle cx="335" cy="177" r="27" />
           <circle cx="866" cy="215" r="47" />
-          <path d="M866 168a47 47 0 0 1 43 28l-43 19z" fill="#b6e5d2" stroke="none" />
-          <path d="M866 215l-30 36a47 47 0 0 1-17-52" fill="#285e62" stroke="none" />
+          <path d="M866 168a47 47 0 0 1 43 28l-43 19z" fill="#e7dcc2" stroke="none" />
+          <path d="M866 215l-30 36a47 47 0 0 1-17-52" fill="#a7c4a7" stroke="none" />
           <path d="M530 225v-47m0 0c-20-19-31 2-10 7l20 4c20 4 10 26-10 7z" />
         </g>
-        <ellipse cx="600" cy="349" rx="470" ry="20" fill="#17272b" opacity="0.45" />
+        <ellipse cx="600" cy="349" rx="470" ry="20" fill="#244744" opacity="0.38" />
         <text
           x="600"
           y="337"
@@ -177,7 +177,7 @@ export const LoginView: React.FC = () => {
           <g transform="translate(376 305)">
             <circle cx="0" cy="0" r="9" fill="#e9b88e" stroke="none" />
             <path d="M0 13v41m0-24-17 16m17-16 16 13m-16 11-12 29m12-29 13 29" fill="none" />
-            <path d="M-10 14h20l7 15h-34z" fill="#1689a2" stroke="none" />
+            <path d="M-10 14h20l7 15h-34z" fill="#d4c29e" stroke="none" />
           </g>
           <g transform="translate(741 238)">
             <circle cx="0" cy="0" r="10" fill="#efc298" stroke="none" />
@@ -187,12 +187,12 @@ export const LoginView: React.FC = () => {
           <g transform="translate(991 306)">
             <circle cx="0" cy="0" r="9" fill="#eabe97" stroke="none" />
             <path d="M0 13v39m0-22-16 11m16-11 16 10m-16 12-12 28m12-28 14 28" fill="none" />
-            <path d="M-10 14h20l6 14h-32z" fill="#147e9a" stroke="none" />
+            <path d="M-10 14h20l6 14h-32z" fill="#a7c4a7" stroke="none" />
           </g>
         </g>
       </svg>
 
-      <section className="relative z-10 mt-[19vh] w-full max-w-[402px] rounded-[20px] border border-[#276c67] bg-[#164b49] px-7 pb-6 pt-10 shadow-[0_20px_48px_-20px_rgba(15,34,38,0.58)]">
+      <section className="relative z-10 mt-[19vh] w-full max-w-[402px] rounded-[20px] border border-[#d7c7a5] bg-[#164b49] px-7 pb-6 pt-10 shadow-[0_20px_48px_-20px_rgba(22,57,52,0.5)]">
         {errorMessage && (
           <div role="alert" className="mb-4 flex items-start gap-2 rounded-lg border border-white/50 bg-red-950/20 p-2.5 text-xs text-white">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -226,7 +226,7 @@ export const LoginView: React.FC = () => {
                   onChange={event => setSupabaseUrl(event.target.value)}
                   placeholder="https://your-project.supabase.co"
                   aria-label="Supabase Project URL"
-                  className="w-full rounded-lg border border-white/70 bg-transparent px-3 py-2 text-xs text-white placeholder:text-white/65 focus:outline-hidden focus:ring-2 focus:ring-emerald-200"
+                  className="w-full rounded-lg border border-[#e7dcc2]/80 bg-transparent px-3 py-2 text-xs text-white placeholder:text-white/65 focus:outline-hidden focus:ring-2 focus:ring-[#d7c7a5]"
                 />
                 <input
                   type="password"
@@ -235,14 +235,14 @@ export const LoginView: React.FC = () => {
                   placeholder="Supabase publishable / anon key"
                   aria-label="Supabase publishable or anon key"
                   autoComplete="off"
-                  className="w-full rounded-lg border border-white/70 bg-transparent px-3 py-2 text-xs text-white placeholder:text-white/65 focus:outline-hidden focus:ring-2 focus:ring-emerald-200"
+                  className="w-full rounded-lg border border-[#e7dcc2]/80 bg-transparent px-3 py-2 text-xs text-white placeholder:text-white/65 focus:outline-hidden focus:ring-2 focus:ring-[#d7c7a5]"
                 />
                 {supabaseConfigError && <p role="alert" className="text-[11px] font-semibold text-white">{supabaseConfigError}</p>}
                 <button
                   type="button"
                   onClick={handleSaveSupabaseConfig}
                   disabled={isSavingSupabaseConfig || !supabaseUrl.trim() || !supabaseAnonKey.trim()}
-                  className="w-full rounded-lg bg-[#bce8d3] px-3 py-2 text-xs font-bold text-[#173e3c] hover:bg-[#d2f2e2] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-lg bg-[#e2d4b3] px-3 py-2 text-xs font-bold text-[#244744] hover:bg-[#eee4cf] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSavingSupabaseConfig ? 'সংযোগ যাচাই হচ্ছে...' : 'সংযোগ যাচাই করে সেভ করুন'}
                 </button>
@@ -269,7 +269,7 @@ export const LoginView: React.FC = () => {
               placeholder="username@firozaenterprise.com"
               aria-label="Email address"
               required
-              className="h-[44px] w-full rounded-[9px] border-2 border-white/85 bg-transparent px-[18px] text-xs text-white outline-none placeholder:text-white/70 focus:border-emerald-200 focus:ring-2 focus:ring-emerald-200/40"
+              className="h-[44px] w-full rounded-[9px] border-2 border-[#e7dcc2]/90 bg-transparent px-[18px] text-xs text-white outline-none placeholder:text-white/70 focus:border-[#e2d4b3] focus:ring-2 focus:ring-[#e2d4b3]/40"
             />
           )}
 
@@ -289,7 +289,7 @@ export const LoginView: React.FC = () => {
                   placeholder="Secret key..."
                   aria-label="Secret key"
                   required
-                  className="h-[44px] w-full rounded-[9px] border-2 border-white/85 bg-transparent px-[18px] pr-12 text-xs text-white outline-none placeholder:text-white/70 focus:border-emerald-200 focus:ring-2 focus:ring-emerald-200/40"
+                  className="h-[44px] w-full rounded-[9px] border-2 border-[#e7dcc2]/90 bg-transparent px-[18px] pr-12 text-xs text-white outline-none placeholder:text-white/70 focus:border-[#e2d4b3] focus:ring-2 focus:ring-[#e2d4b3]/40"
                 />
                 <button
                   type="button"
@@ -313,7 +313,7 @@ export const LoginView: React.FC = () => {
               placeholder="New secret key..."
               aria-label="New password"
               required
-              className="h-[44px] w-full rounded-[9px] border-2 border-white/85 bg-transparent px-[18px] text-xs text-white outline-none placeholder:text-white/70 focus:border-emerald-200 focus:ring-2 focus:ring-emerald-200/40"
+              className="h-[44px] w-full rounded-[9px] border-2 border-[#e7dcc2]/90 bg-transparent px-[18px] text-xs text-white outline-none placeholder:text-white/70 focus:border-[#e2d4b3] focus:ring-2 focus:ring-[#e2d4b3]/40"
             />
           )}
 
@@ -330,7 +330,7 @@ export const LoginView: React.FC = () => {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={event => setRememberMe(event.target.checked)}
-                  className="h-5 w-5 cursor-pointer accent-[#bce8d3]"
+                  className="h-5 w-5 cursor-pointer accent-[#e2d4b3]"
                 />
                 Remember me
               </label>
@@ -338,7 +338,7 @@ export const LoginView: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="min-w-[118px] rounded-[10px] border-2 border-white/80 bg-[#bce8d3] px-5 py-1.5 text-sm font-bold text-[#173e3c] shadow-sm transition hover:bg-[#d2f2e2] disabled:cursor-wait disabled:opacity-60"
+              className="min-w-[118px] rounded-[10px] border-2 border-[#f4ead5] bg-[#e2d4b3] px-5 py-1.5 text-sm font-bold text-[#244744] shadow-sm transition hover:bg-[#eee4cf] disabled:cursor-wait disabled:opacity-60"
             >
               {isLoading ? 'Please wait...' : isPasswordRecovery ? 'Update key' : isResetRequest ? 'Send link' : 'Let me in'}
             </button>
