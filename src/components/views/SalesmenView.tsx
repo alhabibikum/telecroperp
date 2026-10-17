@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -35,6 +36,7 @@ import type { Salesman, CommissionDisbursement } from '../../types/erp';
 import { useToast } from '../common/ToastNotificationSystem';
 import { HistoryInput } from '../common/HistoryInput';
 import { recordFieldHistory } from '../../services/formHistoryService';
+import { DateInput } from '../common/DateInput';
 
 export const SalesmenView: React.FC = () => {
   const {
@@ -77,7 +79,7 @@ export const SalesmenView: React.FC = () => {
     email: '',
     address: '',
     assignedArea: '',
-    joiningDate: new Date().toISOString().split('T')[0],
+    joiningDate: getLocalDateString(),
     basicSalary: 30000,
     monthlyTarget: 4000000,
     monthlyUnitTarget: 150,
@@ -114,7 +116,7 @@ export const SalesmenView: React.FC = () => {
       email: '',
       address: '',
       assignedArea: '',
-      joiningDate: new Date().toISOString().split('T')[0],
+      joiningDate: getLocalDateString(),
       basicSalary: 30000,
       monthlyTarget: 4000000,
       monthlyUnitTarget: 150,
@@ -136,7 +138,7 @@ export const SalesmenView: React.FC = () => {
       email: sm.email || '',
       address: sm.address || '',
       assignedArea: sm.assignedArea,
-      joiningDate: sm.joiningDate || new Date().toISOString().split('T')[0],
+      joiningDate: sm.joiningDate || getLocalDateString(),
       basicSalary: sm.basicSalary || 0,
       monthlyTarget: sm.monthlyTarget || 0,
       monthlyUnitTarget: sm.monthlyUnitTarget || 100,
@@ -219,7 +221,7 @@ export const SalesmenView: React.FC = () => {
         email: '',
         address: '',
         assignedArea: '',
-        joiningDate: new Date().toISOString().split('T')[0],
+        joiningDate: getLocalDateString(),
         basicSalary: 30000,
         monthlyTarget: 4000000,
         monthlyUnitTarget: 150,
@@ -281,7 +283,7 @@ export const SalesmenView: React.FC = () => {
       salesmanId: payoutSalesman.id,
       salesmanName: payoutSalesman.name,
       month: payoutForm.month,
-      date: new Date().toISOString().split('T')[0],
+      date: getLocalDateString(),
       salesAmount: payoutSalesman.currentMonthSales,
       collectionAmount: payoutSalesman.currentMonthCollection,
       salesCommission: calc.salesCommission,
@@ -953,7 +955,7 @@ export const SalesmenView: React.FC = () => {
               <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
                 <Percent className="w-5 h-5 text-blue-600" />
                 <h3 className="font-black text-slate-900 text-base">
-                  {isBn ? 'টেলিকর্প ইআরপি কমিশন পলিসি ফ্রেমওয়ার্ক' : 'TeleCorp Commission Policy Framework'}
+                  {isBn ? 'FIROZA ERP কমিশন পলিসি ফ্রেমওয়ার্ক' : 'FIROZA ERP Commission Policy Framework'}
                 </h3>
               </div>
 
@@ -1343,8 +1345,7 @@ export const SalesmenView: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">যোগদানের তারিখ</label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={formData.joiningDate}
                     onChange={e => setFormData({ ...formData, joiningDate: e.target.value })}
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold"

@@ -2,6 +2,7 @@ import type React from 'react';
 import type {
   Brand,
   Product,
+  ProductVariant,
   IMEIRecord,
   IMEIStatus,
   Warehouse,
@@ -66,13 +67,14 @@ export interface MasterDataContextBundle {
 export const executeAddBrand = (
   b: Omit<Brand, 'id'>,
   ctx: MasterDataContextBundle
-) => {
+): string => {
   const { setBrands, enqueueChange, addAudit } = ctx;
   const id = `brand-${Date.now()}`;
   const newBrand = { ...b, id };
   setBrands(prev => [...prev, newBrand]);
   enqueueChange('brands', 'INSERT', id, newBrand, `নতুন ব্র্যান্ড যুক্ত (${b.name})`);
   addAudit('Added Brand', 'Brand Master', b.code, undefined, b.name);
+  return id;
 };
 
 export const executeUpdateBrand = (
@@ -115,13 +117,14 @@ export const executeDeleteBrand = (
 export const executeAddProduct = (
   p: Omit<Product, 'id'>,
   ctx: MasterDataContextBundle
-) => {
+): string => {
   const { setProducts, enqueueChange, addAudit } = ctx;
   const id = `prod-${Date.now()}`;
   const newProd = { ...p, id };
   setProducts(prev => [...prev, newProd]);
   enqueueChange('products', 'INSERT', id, newProd, `নতুন প্রোডাক্ট মডেল যুক্ত (${p.model})`);
   addAudit('Added Product Model', 'Product Master', p.model, undefined, `${p.brandName} - ${p.model}`);
+  return id;
 };
 
 export const executeUpdateProduct = (
@@ -174,13 +177,14 @@ export const executeDeleteProduct = (
 export const executeAddSupplier = (
   s: Omit<Supplier, 'id' | 'supplierCode'>,
   ctx: MasterDataContextBundle
-) => {
+): string => {
   const { suppliers, setSuppliers, enqueueChange, addAudit } = ctx;
   const code = `SUP-${(suppliers.length + 1).toString().padStart(3, '0')}`;
   const newSup: Supplier = { ...s, id: `sup-${Date.now()}`, supplierCode: code };
   setSuppliers(prev => [...prev, newSup]);
   enqueueChange('suppliers', 'INSERT', newSup.id, newSup, `নতুন সাপ্লায়ার যুক্ত (${s.name})`);
   addAudit('Added Supplier', 'Supplier Master', code, undefined, s.name);
+  return newSup.id;
 };
 
 export const executeUpdateSupplier = (
@@ -220,13 +224,14 @@ export const executeDeleteSupplier = (
 export const executeAddCustomer = (
   c: Omit<Customer, 'id' | 'customerCode'>,
   ctx: MasterDataContextBundle
-) => {
+): string => {
   const { customers, setCustomers, enqueueChange, addAudit } = ctx;
   const code = `CUST-${(customers.length + 1).toString().padStart(3, '0')}`;
   const newCust: Customer = { ...c, id: `cust-${Date.now()}`, customerCode: code };
   setCustomers(prev => [...prev, newCust]);
   enqueueChange('customers', 'INSERT', newCust.id, newCust, `নতুন কাস্টমার যুক্ত (${c.shopName})`);
   addAudit('Added Customer / Dealer', 'Customer Master', code, undefined, `${c.shopName} (${c.ownerName})`);
+  return newCust.id;
 };
 
 export const executeUpdateCustomer = (
@@ -263,13 +268,14 @@ export const executeDeleteCustomer = (
 export const executeAddSalesman = (
   sm: Omit<Salesman, 'id' | 'employeeCode'>,
   ctx: MasterDataContextBundle
-) => {
+): string => {
   const { salesmen, setSalesmen, enqueueChange, addAudit } = ctx;
   const code = `EMP-SM-${(salesmen.length + 1).toString().padStart(2, '0')}`;
   const newSm: Salesman = { ...sm, id: `sm-${Date.now()}`, employeeCode: code };
   setSalesmen(prev => [...prev, newSm]);
   enqueueChange('salesmen', 'INSERT', newSm.id, newSm, `নতুন সেলসম্যান যুক্ত (${sm.name})`);
   addAudit('Added Salesman', 'Salesman Master', code, undefined, sm.name);
+  return newSm.id;
 };
 
 export const executeUpdateSalesman = (
@@ -308,13 +314,14 @@ export const executeDeleteSalesman = (
 export const executeAddWarehouse = (
   wh: Omit<Warehouse, 'id' | 'code'>,
   ctx: MasterDataContextBundle
-) => {
+): string => {
   const { warehouses, setWarehouses, enqueueChange, addAudit } = ctx;
   const code = `WH-${wh.city.toUpperCase().substring(0, 3)}-${(warehouses.length + 1).toString().padStart(2, '0')}`;
   const newWh: Warehouse = { ...wh, id: `wh-${Date.now()}`, code };
   setWarehouses(prev => [...prev, newWh]);
   enqueueChange('warehouses', 'INSERT', newWh.id, newWh, `নতুন ওয়্যারহাউস যুক্ত (${wh.name})`);
   addAudit('Added Warehouse / Outlet', 'Warehouse Master', code, undefined, wh.name);
+  return newWh.id;
 };
 
 export const executeUpdateWarehouse = (
@@ -378,10 +385,27 @@ export const executeTransferStock = (
   const src = warehouses.find(w => w.id === data.sourceWarehouseId);
   const dest = warehouses.find(w => w.id === data.destinationWarehouseId);
   if (!src || !dest) return { success: false, error: 'Invalid warehouse selection' };
+  if (src.id === dest.id) return { success: false, error: 'Source and destination warehouses must be different.' };
 
+  const allTransferImeis = data.items.flatMap(i => i.imeis);
+  if (allTransferImeis.length === 0) return { success: false, error: 'Select at least one IMEI to transfer.' };
+  if (new Set(allTransferImeis).size !== allTransferImeis.length) {
+    return { success: false, error: 'An IMEI cannot be listed more than once in a transfer.' };
+  }
+  for (const item of data.items) {
+    const product = products.find(entry => entry.id === item.productId);
+    const variant = product?.variants.find(entry => entry.id === item.variantId);
+    if (!product || !variant) return { success: false, error: 'A selected product or variant no longer exists.' };
+    for (const imei of item.imeis) {
+      const record = imeis.find(entry => entry.imei1 === imei);
+      if (!record || record.status !== 'In Stock' || record.warehouseId !== src.id ||
+          record.productId !== item.productId || record.variantId !== item.variantId) {
+        return { success: false, error: `IMEI ${imei} is not available for this product/variant at the source warehouse.` };
+      }
+    }
+  }
   const transferNo = generateDocNumber('TRF', stockTransfers.length);
   const today = todayStr();
-  const allTransferImeis = data.items.flatMap(i => i.imeis);
 
   // Update each IMEI's current warehouse
   setImeis(prev =>
@@ -783,7 +807,7 @@ export const executeBulkImportData = (
   entityType: 'customers' | 'suppliers' | 'products' | 'imeis',
   rows: any[],
   ctx: MasterDataContextBundle
-): { success: boolean; count: number } => {
+): { success: boolean; count: number; error?: string } => {
   const {
     customers,
     setCustomers,
@@ -877,6 +901,31 @@ export const executeBulkImportData = (
     newProds.forEach(p => enqueueChange('products', 'INSERT', p.id, p, `ইম্পোর্টকৃত পণ্য (${p.model})`));
     count = newProds.length;
   } else if (entityType === 'imeis') {
+    const existingIdentifiers = new Set(
+      ctx.imeis.flatMap(record => [record.imei1, record.imei2, record.serialNumber])
+        .filter((value): value is string => Boolean(value))
+        .map(value => value.trim().toLowerCase())
+    );
+    const importedIdentifiers = new Set<string>();
+    for (let index = 0; index < rows.length; index++) {
+      const row = rows[index] as Record<string, unknown>;
+      const imei1 = String(row.imei1 || '').trim();
+      const imei2 = String(row.imei2 || '').trim();
+      const serialNumber = String(row.serialNumber || '').trim();
+      if (!/^\d{15}$/.test(imei1)) {
+        return { success: false, count: 0, error: `Row ${index + 1}: IMEI 1 must contain exactly 15 digits.` };
+      }
+      const rowIdentifiers = [imei1, imei2, serialNumber].filter(Boolean).map(value => value.toLowerCase());
+      if (new Set(rowIdentifiers).size !== rowIdentifiers.length) {
+        return { success: false, count: 0, error: `Row ${index + 1}: IMEI and serial identifiers must be unique.` };
+      }
+      for (const identifier of rowIdentifiers) {
+        if (existingIdentifiers.has(identifier) || importedIdentifiers.has(identifier)) {
+          return { success: false, count: 0, error: `Row ${index + 1}: duplicate device identifier "${identifier}".` };
+        }
+        importedIdentifiers.add(identifier);
+      }
+    }
     const firstProd = products[0];
     const firstWh = warehouses[0];
     const firstSup = suppliers[0];
@@ -889,9 +938,9 @@ export const executeBulkImportData = (
       const color = r.color || prod?.variants[0]?.color || 'Black';
       return {
         id: `imei-imp-${Date.now()}-${idx}`,
-        imei1: (r.imei1 || `8600000000${idx}`).trim(),
-        imei2: (r.imei2 || '').trim(),
-        serialNumber: r.serialNumber || `SN-${idx}`,
+        imei1: String(r.imei1).trim(),
+        imei2: String(r.imei2 || '').trim(),
+        serialNumber: String(r.serialNumber || '').trim() || undefined,
         productId: prod?.id || 'prod-1',
         productName: model,
         variantId: prod?.variants[0]?.id || 'var-1',
@@ -924,90 +973,498 @@ export const executeBulkImportData = (
   return { success: true, count };
 };
 
+export type PartyProfileImportContext = Pick<
+  MasterDataContextBundle,
+  'customers' | 'setCustomers' | 'suppliers' | 'setSuppliers' | 'salesmen' | 'enqueueChange' | 'addAudit'
+>;
+
+export const executeImportPartyProfiles = (
+  entityType: 'customers' | 'suppliers',
+  rows: Record<string, unknown>[],
+  ctx: PartyProfileImportContext
+): { success: boolean; count: number; error?: string } => {
+  const normalizeText = (value: unknown): string => String(value ?? '').trim();
+  const normalizeMobile = (value: unknown): string => normalizeText(value).replace(/[\s()-]/g, '');
+  const readNumber = (value: unknown, fallback: number, rowNumber: number, field: string): number => {
+    if (value === '' || value === undefined || value === null) return fallback;
+    const number = typeof value === 'number' ? value : Number(String(value).replace(/,/g, ''));
+    if (!Number.isFinite(number) || number < 0) {
+      throw new Error(`Row ${rowNumber}: ${field} must be a non-negative number.`);
+    }
+    return number;
+  };
+
+  if (rows.length === 0) return { success: false, count: 0, error: 'Excel worksheet contains no profile rows.' };
+
+  try {
+    if (entityType === 'customers') {
+      const { customers, salesmen, setCustomers, enqueueChange, addAudit } = ctx;
+      const usedKeys = new Set<string>();
+      const incoming = rows.map((row, index) => {
+        const rowNumber = index + 2;
+        const shopName = normalizeText(row.shopName);
+        const mobile = normalizeText(row.mobile);
+        if (!shopName || !mobile) {
+          throw new Error(`Row ${rowNumber}: Shop / Outlet Name and Mobile are required.`);
+        }
+        const customerType = normalizeText(row.customerType) || 'Wholesale Dealer';
+        const status = normalizeText(row.status) || 'Active';
+        if (!['Wholesale Dealer', 'Sub-Dealer', 'Retail Shop', 'Corporate', 'Walk-in'].includes(customerType)) {
+          throw new Error(`Row ${rowNumber}: invalid Customer Type "${customerType}".`);
+        }
+        if (!['Active', 'Suspended', 'Blocked'].includes(status)) {
+          throw new Error(`Row ${rowNumber}: invalid Status "${status}".`);
+        }
+
+        const code = normalizeText(row.customerCode);
+        const mobileKey = normalizeMobile(mobile);
+        const key = code ? `code:${code.toLowerCase()}` : `mobile:${mobileKey}`;
+        if (usedKeys.has(key)) throw new Error(`Row ${rowNumber}: duplicate customer code or mobile in this file.`);
+        usedKeys.add(key);
+
+        const salesmanIdFromRow = normalizeText(row.salesmanId);
+        const salesmanNameFromRow = normalizeText(row.salesmanName);
+        const salesman = (salesmanIdFromRow
+          ? salesmen.find(item => item.id === salesmanIdFromRow)
+          : undefined) || (salesmanNameFromRow
+            ? salesmen.find(item => item.name.trim().toLowerCase() === salesmanNameFromRow.toLowerCase())
+            : undefined);
+        if ((salesmanIdFromRow || salesmanNameFromRow) && !salesman) {
+          throw new Error(`Row ${rowNumber}: assigned salesman was not found.`);
+        }
+
+        return {
+          rowNumber,
+          code,
+          mobileKey,
+          values: {
+            shopName,
+            ownerName: normalizeText(row.ownerName),
+            mobile,
+            alternativeMobile: normalizeText(row.alternativeMobile),
+            email: normalizeText(row.email),
+            address: normalizeText(row.address),
+            area: normalizeText(row.area),
+            district: normalizeText(row.district),
+            tradeLicense: normalizeText(row.tradeLicense),
+            nid: normalizeText(row.nid),
+            creditLimit: readNumber(row.creditLimit, 200000, rowNumber, 'Credit Limit'),
+            allowedDueDays: readNumber(row.allowedDueDays, 15, rowNumber, 'Allowed Due Days'),
+            salesmanId: salesman?.id,
+            salesmanName: salesman?.name,
+            customerType: customerType as Customer['customerType'],
+            status: status as Customer['status'],
+            notes: normalizeText(row.notes)
+          },
+          openingBalance: readNumber(row.openingBalance, 0, rowNumber, 'Opening Balance')
+        };
+      });
+
+      const existing = customers.map(customer => ({
+        customer,
+        mobileKey: normalizeMobile(customer.mobile)
+      }));
+      const matchedIds = new Set<string>();
+      const matches = incoming.map(item => {
+        const match = (item.code
+          ? existing.find(entry => entry.customer.customerCode.toLowerCase() === item.code.toLowerCase())
+          : undefined) || existing.find(entry => entry.mobileKey === item.mobileKey);
+        if (match && matchedIds.has(match.customer.id)) {
+          throw new Error(`Row ${item.rowNumber}: multiple rows match the same existing customer.`);
+        }
+        if (match) matchedIds.add(match.customer.id);
+        return match?.customer;
+      });
+
+      let nextCode = customers.length + 1;
+      const usedCodes = new Set(customers.map(customer => customer.customerCode));
+      const now = Date.now();
+      const updatedCustomers = incoming.map((item, index): Customer => {
+        const current = matches[index];
+        const customer: Customer = current
+          ? { ...current, ...item.values }
+          : {
+              ...item.values,
+              id: `cust-import-${now}-${index}`,
+              customerCode: (() => {
+                let code = `CUST-${String(nextCode).padStart(3, '0')}`;
+                while (usedCodes.has(code)) {
+                  nextCode += 1;
+                  code = `CUST-${String(nextCode).padStart(3, '0')}`;
+                }
+                usedCodes.add(code);
+                nextCode += 1;
+                return code;
+              })(),
+              openingBalance: item.openingBalance,
+              currentDue: item.openingBalance
+            };
+        return customer;
+      });
+      const importedById = new Map(updatedCustomers.map(customer => [customer.id, customer]));
+      const newIds = new Set(updatedCustomers.filter(customer => !matches.some(match => match?.id === customer.id)).map(customer => customer.id));
+      setCustomers(prev => [
+        ...prev.map(customer => importedById.get(customer.id) || customer),
+        ...updatedCustomers.filter(customer => newIds.has(customer.id))
+      ]);
+      updatedCustomers.forEach(customer => {
+        const isNew = newIds.has(customer.id);
+        enqueueChange('customers', isNew ? 'INSERT' : 'UPDATE', customer.id, customer, `Excel ${isNew ? 'import' : 'update'} (${customer.shopName})`);
+        addAudit(`${isNew ? 'Imported' : 'Updated'} Customer / Dealer`, 'Customer Master', customer.customerCode, undefined, customer.shopName);
+      });
+      return { success: true, count: updatedCustomers.length };
+    }
+
+    const { suppliers, setSuppliers, enqueueChange, addAudit } = ctx;
+    const usedKeys = new Set<string>();
+    const incoming = rows.map((row, index) => {
+      const rowNumber = index + 2;
+      const name = normalizeText(row.name);
+      const mobile = normalizeText(row.mobile);
+      if (!name || !mobile) throw new Error(`Row ${rowNumber}: Supplier Name and Mobile are required.`);
+      const status = normalizeText(row.status) || 'Active';
+      if (!['Active', 'Inactive'].includes(status)) throw new Error(`Row ${rowNumber}: invalid Status "${status}".`);
+
+      const code = normalizeText(row.supplierCode);
+      const mobileKey = normalizeMobile(mobile);
+      const key = code ? `code:${code.toLowerCase()}` : `mobile:${mobileKey}`;
+      if (usedKeys.has(key)) throw new Error(`Row ${rowNumber}: duplicate supplier code or mobile in this file.`);
+      usedKeys.add(key);
+
+      return {
+        rowNumber,
+        code,
+        mobileKey,
+        openingBalance: readNumber(row.openingBalance, 0, rowNumber, 'Opening Balance'),
+        values: {
+          name,
+          companyName: normalizeText(row.companyName) || name,
+          contactPerson: normalizeText(row.contactPerson),
+          mobile,
+          alternativeMobile: normalizeText(row.alternativeMobile),
+          email: normalizeText(row.email),
+          address: normalizeText(row.address),
+          district: normalizeText(row.district),
+          taxVatNumber: normalizeText(row.taxVatNumber),
+          tradeLicense: normalizeText(row.tradeLicense),
+          creditLimit: readNumber(row.creditLimit, 10000000, rowNumber, 'Credit Limit'),
+          paymentTermsDays: readNumber(row.paymentTermsDays, 15, rowNumber, 'Payment Terms'),
+          bankInfo: normalizeText(row.bankInfo),
+          status: status as Supplier['status'],
+          notes: normalizeText(row.notes)
+        }
+      };
+    });
+
+    const existing = suppliers.map(supplier => ({
+      supplier,
+      mobileKey: normalizeMobile(supplier.mobile)
+    }));
+    const matchedIds = new Set<string>();
+    const matches = incoming.map(item => {
+      const match = (item.code
+        ? existing.find(entry => entry.supplier.supplierCode.toLowerCase() === item.code.toLowerCase())
+        : undefined) || existing.find(entry => entry.mobileKey === item.mobileKey);
+      if (match && matchedIds.has(match.supplier.id)) {
+        throw new Error(`Row ${item.rowNumber}: multiple rows match the same existing supplier.`);
+      }
+      if (match) matchedIds.add(match.supplier.id);
+      return match?.supplier;
+    });
+
+    let nextCode = suppliers.length + 1;
+    const usedCodes = new Set(suppliers.map(supplier => supplier.supplierCode));
+    const now = Date.now();
+    const updatedSuppliers = incoming.map((item, index): Supplier => {
+      const current = matches[index];
+      if (current) return { ...current, ...item.values };
+      let code = `SUP-${String(nextCode).padStart(3, '0')}`;
+      while (usedCodes.has(code)) {
+        nextCode += 1;
+        code = `SUP-${String(nextCode).padStart(3, '0')}`;
+      }
+      usedCodes.add(code);
+      nextCode += 1;
+      return {
+        ...item.values,
+        id: `sup-import-${now}-${index}`,
+        supplierCode: code,
+        openingBalance: item.openingBalance,
+        currentDue: item.openingBalance
+      };
+    });
+    const importedById = new Map(updatedSuppliers.map(supplier => [supplier.id, supplier]));
+    const newIds = new Set(updatedSuppliers.filter(supplier => !matches.some(match => match?.id === supplier.id)).map(supplier => supplier.id));
+    setSuppliers(prev => [
+      ...prev.map(supplier => importedById.get(supplier.id) || supplier),
+      ...updatedSuppliers.filter(supplier => newIds.has(supplier.id))
+    ]);
+    updatedSuppliers.forEach(supplier => {
+      const isNew = newIds.has(supplier.id);
+      enqueueChange('suppliers', isNew ? 'INSERT' : 'UPDATE', supplier.id, supplier, `Excel ${isNew ? 'import' : 'update'} (${supplier.name})`);
+      addAudit(`${isNew ? 'Imported' : 'Updated'} Supplier`, 'Supplier Master', supplier.supplierCode, undefined, supplier.name);
+    });
+    return { success: true, count: updatedSuppliers.length };
+  } catch (error) {
+    return {
+      success: false,
+      count: 0,
+      error: error instanceof Error ? error.message : 'Excel profile data is invalid.'
+    };
+  }
+};
+
+export type ProductImportContext = Pick<
+  MasterDataContextBundle,
+  'products' | 'setProducts' | 'brands' | 'imeis' | 'setImeis' | 'enqueueChange' | 'addAudit'
+>;
+
+export const executeImportProducts = (
+  rows: Record<string, unknown>[],
+  ctx: ProductImportContext
+): { success: boolean; count: number; error?: string } => {
+  const text = (value: unknown): string => String(value ?? '').trim();
+  const number = (value: unknown, fallback: number, rowNumber: number, field: string): number => {
+    if (value === '' || value === undefined || value === null) return fallback;
+    const parsed = typeof value === 'number' ? value : Number(String(value).replace(/,/g, ''));
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      throw new Error(`Row ${rowNumber}: ${field} must be a non-negative number.`);
+    }
+    return parsed;
+  };
+
+  if (rows.length === 0) return { success: false, count: 0, error: 'Excel worksheet contains no product rows.' };
+
+  try {
+    type ImportedRow = {
+      rowNumber: number;
+      sourceProductId: string;
+      sourceVariantId: string;
+      brandId: string;
+      brandName: string;
+      model: string;
+      category: string;
+      networkRegion: string;
+      warrantyPeriodMonths: number;
+      description: string;
+      status: Product['status'];
+      variant: Omit<ProductVariant, 'id' | 'currentStock'> & { sourceId: string; currentStock: number };
+    };
+
+    const seenSkus = new Set<string>();
+    const importedRows: ImportedRow[] = rows.map((row, index) => {
+      const rowNumber = index + 2;
+      const brandName = text(row.brandName);
+      const model = text(row.model);
+      const sku = text(row.sku);
+      if (!brandName || !model || !sku) {
+        throw new Error(`Row ${rowNumber}: Brand, Model, and SKU are required.`);
+      }
+
+      const brandIdFromRow = text(row.brandId);
+      const brand = (brandIdFromRow ? ctx.brands.find(item => item.id === brandIdFromRow) : undefined)
+        || ctx.brands.find(item => item.name.trim().toLowerCase() === brandName.toLowerCase());
+      if (!brand) throw new Error(`Row ${rowNumber}: brand "${brandName}" was not found. Add the brand before importing products.`);
+      if (brandIdFromRow && brand.id !== brandIdFromRow) {
+        throw new Error(`Row ${rowNumber}: Brand ID does not match "${brandName}".`);
+      }
+
+      const status = text(row.status) || 'Active';
+      if (!['Active', 'Discontinued'].includes(status)) {
+        throw new Error(`Row ${rowNumber}: invalid product status "${status}".`);
+      }
+
+      const skuKey = sku.toLowerCase();
+      if (seenSkus.has(skuKey)) throw new Error(`Row ${rowNumber}: duplicate SKU "${sku}".`);
+      seenSkus.add(skuKey);
+
+      const sourceProductId = text(row.productId);
+      if (sourceProductId && !ctx.products.some(product => product.id === sourceProductId)) {
+        throw new Error(`Row ${rowNumber}: Product ID "${sourceProductId}" was not found.`);
+      }
+
+      const existingProduct = sourceProductId
+        ? ctx.products.find(product => product.id === sourceProductId)
+        : ctx.products.find(product => product.brandId === brand.id && product.model.trim().toLowerCase() === model.toLowerCase());
+      const sourceVariantId = text(row.variantId);
+      if (sourceVariantId && !existingProduct?.variants.some(variant => variant.id === sourceVariantId)) {
+        throw new Error(`Row ${rowNumber}: Variant ID "${sourceVariantId}" does not belong to the selected product.`);
+      }
+      const existingVariant = existingProduct?.variants.find(variant =>
+        (sourceVariantId && variant.id === sourceVariantId) || variant.sku.toLowerCase() === skuKey
+      );
+      const sameProductSku = existingProduct?.variants.find(variant => variant.sku.toLowerCase() === skuKey);
+      if (sourceVariantId && sameProductSku && sameProductSku.id !== sourceVariantId) {
+        throw new Error(`Row ${rowNumber}: SKU "${sku}" already belongs to another variant in this product.`);
+      }
+      const skuOwner = ctx.products.find(product =>
+        product.variants.some(variant => variant.sku.toLowerCase() === skuKey)
+      );
+      if (skuOwner && skuOwner.id !== existingProduct?.id) {
+        throw new Error(`Row ${rowNumber}: SKU "${sku}" already belongs to another product.`);
+      }
+
+      return {
+        rowNumber,
+        sourceProductId,
+        sourceVariantId,
+        brandId: brand.id,
+        brandName: brand.name,
+        model,
+        category: text(row.category) || 'Smartphone',
+        networkRegion: text(row.networkRegion) || 'Official BD (BTRC Approved)',
+        warrantyPeriodMonths: number(row.warrantyPeriodMonths, 12, rowNumber, 'Warranty Period'),
+        description: text(row.description),
+        status: status as Product['status'],
+        variant: {
+          sourceId: existingVariant?.id || '',
+          sku,
+          ram: text(row.ram),
+          storage: text(row.storage),
+          color: text(row.color),
+          purchasePrice: number(row.purchasePrice, existingVariant?.purchasePrice ?? 0, rowNumber, 'Purchase Price'),
+          dealerPrice: number(row.dealerPrice, existingVariant?.dealerPrice ?? 0, rowNumber, 'Dealer Price'),
+          wholesalePrice: number(row.wholesalePrice, existingVariant?.wholesalePrice ?? 0, rowNumber, 'Wholesale Price'),
+          retailPrice: number(row.retailPrice, existingVariant?.retailPrice ?? 0, rowNumber, 'Retail Price'),
+          minSellingPrice: number(row.minSellingPrice, existingVariant?.minSellingPrice ?? 0, rowNumber, 'Minimum Selling Price'),
+          maxDiscount: number(row.maxDiscount, existingVariant?.maxDiscount ?? 0, rowNumber, 'Maximum Discount'),
+          reorderLevel: number(row.reorderLevel, existingVariant?.reorderLevel ?? 0, rowNumber, 'Reorder Level'),
+          currentStock: existingVariant?.currentStock ?? 0
+        }
+      };
+    });
+
+    const groups = new Map<string, ImportedRow[]>();
+    importedRows.forEach(row => {
+      const key = row.sourceProductId
+        ? `id:${row.sourceProductId}`
+        : `brand-model:${row.brandId}:${row.model.toLowerCase()}`;
+      groups.set(key, [...(groups.get(key) || []), row]);
+    });
+
+    const updatedById = new Map<string, Product>();
+    const addedProducts: Product[] = [];
+    const now = Date.now();
+    let productIndex = 0;
+
+    groups.forEach(group => {
+      const first = group[0];
+      const existing = first.sourceProductId
+        ? ctx.products.find(product => product.id === first.sourceProductId)
+        : ctx.products.find(product =>
+            product.brandId === first.brandId && product.model.trim().toLowerCase() === first.model.toLowerCase()
+          );
+      if (existing && updatedById.has(existing.id)) {
+        throw new Error(`Rows ${group.map(row => row.rowNumber).join(', ')}: product rows use inconsistent IDs or identifiers.`);
+      }
+      if (group.some(row => row.brandId !== first.brandId || row.model.toLowerCase() !== first.model.toLowerCase())) {
+        throw new Error(`Rows ${group.map(row => row.rowNumber).join(', ')}: rows with one product ID must have matching brand and model.`);
+      }
+      if (group.some(row =>
+        row.category !== first.category ||
+        row.networkRegion !== first.networkRegion ||
+        row.warrantyPeriodMonths !== first.warrantyPeriodMonths ||
+        row.description !== first.description ||
+        row.status !== first.status
+      )) {
+        throw new Error(`Rows ${group.map(row => row.rowNumber).join(', ')}: product details must match for every variant of the same model.`);
+      }
+
+      const variantsById = new Map((existing?.variants || []).map(variant => [variant.id, variant]));
+      const variants = group.map((row, index): ProductVariant => {
+        const variant = row.variant;
+        const previous = variant.sourceId
+          ? variantsById.get(variant.sourceId)
+          : [...variantsById.values()].find(item => item.sku.toLowerCase() === variant.sku.toLowerCase());
+        return {
+          id: previous?.id || `var-import-${now}-${productIndex}-${index}`,
+          sku: variant.sku,
+          ram: variant.ram,
+          storage: variant.storage,
+          color: variant.color,
+          purchasePrice: variant.purchasePrice,
+          dealerPrice: variant.dealerPrice,
+          wholesalePrice: variant.wholesalePrice,
+          retailPrice: variant.retailPrice,
+          minSellingPrice: variant.minSellingPrice,
+          maxDiscount: variant.maxDiscount,
+          reorderLevel: variant.reorderLevel,
+          currentStock: previous?.currentStock ?? 0
+        };
+      });
+
+      const product: Product = {
+        id: existing?.id || `prod-import-${now}-${productIndex}`,
+        brandId: first.brandId,
+        brandName: first.brandName,
+        model: first.model,
+        category: first.category,
+        networkRegion: first.networkRegion,
+        warrantyPeriodMonths: first.warrantyPeriodMonths,
+        description: first.description,
+        status: first.status,
+        variants: existing
+          ? [
+              ...existing.variants.map(variant => variants.find(item => item.id === variant.id) || variant),
+              ...variants.filter(variant => !existing.variants.some(item => item.id === variant.id))
+            ]
+          : variants
+      };
+      productIndex += 1;
+      if (existing) updatedById.set(product.id, product);
+      else addedProducts.push(product);
+    });
+
+    const updatedProducts = [...updatedById.values()];
+    ctx.setProducts(prev => [
+      ...prev.map(product => updatedById.get(product.id) || product),
+      ...addedProducts
+    ]);
+    updatedProducts.forEach(product => {
+      const previous = ctx.products.find(item => item.id === product.id);
+      if (previous && previous.model !== product.model) {
+        ctx.setImeis(prev => prev.map(imei =>
+          imei.productId === product.id ? { ...imei, productName: product.model } : imei
+        ));
+      }
+    });
+
+    [...updatedProducts, ...addedProducts].forEach(product => {
+      const isNew = addedProducts.some(item => item.id === product.id);
+      ctx.enqueueChange('products', isNew ? 'INSERT' : 'UPDATE', product.id, product, `Excel ${isNew ? 'import' : 'update'} (${product.brandName} ${product.model})`);
+      ctx.addAudit(`${isNew ? 'Imported' : 'Updated'} Product Model`, 'Product Master', product.model, undefined, `${product.brandName} - ${product.model}`);
+    });
+
+    return { success: true, count: importedRows.length };
+  } catch (error) {
+    return {
+      success: false,
+      count: 0,
+      error: error instanceof Error ? error.message : 'Excel product data is invalid.'
+    };
+  }
+};
+
 // ---- SMS NOTIFICATIONS ----
 export const executeSendSmsNotification = (
   sms: Omit<SmsLog, 'id' | 'sentAt' | 'status'>,
   ctx: MasterDataContextBundle
 ): { success: boolean } => {
-  const { setSmsLogs, enqueueChange, addAudit, settings } = ctx;
-  const today = new Date().toISOString().replace('T', ' ').substr(0, 16);
+  const { setSmsLogs, enqueueChange, addAudit } = ctx;
+  const sentAt = new Date().toISOString().replace('T', ' ').substring(0, 16);
   const smsId = `sms-${Date.now()}`;
-  const integrations = settings?.apiIntegrations;
-  const apiKey = integrations?.smsApiKey;
-  const provider = integrations?.smsProvider || 'Greenweb';
-  const senderId = integrations?.smsSenderId || sms.masking || 'TeleCorp';
-  const gatewayUrl = integrations?.smsGatewayUrl;
-
-  const newSms: SmsLog = {
-    ...sms,
-    id: smsId,
-    sentAt: today,
-    status: apiKey || gatewayUrl ? 'Sent' : 'Delivered'
-  };
+  const newSms: SmsLog = { ...sms, id: smsId, sentAt, status: 'Failed' };
 
   setSmsLogs(prev => [newSms, ...prev]);
-  enqueueChange('sms_logs', 'INSERT', newSms.id, newSms, `এসএমএস লগ (${sms.recipientPhone})`);
-  addAudit(`Dispatched SMS to ${sms.recipientPhone} via ${provider}`, 'SMS Gateway', sms.recipientName);
+  enqueueChange('sms_logs', 'INSERT', newSms.id, newSms, `SMS log (${sms.recipientPhone})`);
+  addAudit(
+    `SMS not sent to ${sms.recipientPhone}: secure server-side dispatch is not configured`,
+    'SMS Gateway',
+    sms.recipientName
+  );
 
-  // Live Async Dispatch to SMS Gateway
-  if (apiKey || gatewayUrl) {
-    (async () => {
-      try {
-        let dispatchUrl = '';
-        let requestOptions: RequestInit = { method: 'GET' };
-        const cleanPhone = sms.recipientPhone.replace(/[^0-9]/g, '');
-
-        if (gatewayUrl) {
-          dispatchUrl = gatewayUrl;
-          requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}) },
-            body: JSON.stringify({
-              to: cleanPhone,
-              message: sms.messageBody,
-              senderId: senderId,
-              apiKey: apiKey
-            })
-          };
-        } else if (provider === 'Greenweb') {
-          dispatchUrl = `https://api.greenweb.com.bd/api.php?token=${encodeURIComponent(apiKey || '')}&to=${cleanPhone}&message=${encodeURIComponent(sms.messageBody)}`;
-        } else if (provider === 'BulkSMSBD') {
-          dispatchUrl = `https://bulksmsbd.net/api/smsapi?api_key=${encodeURIComponent(apiKey || '')}&type=text&number=${cleanPhone}&senderid=${encodeURIComponent(senderId)}&message=${encodeURIComponent(sms.messageBody)}`;
-        } else if (provider === 'MimSMS') {
-          dispatchUrl = `https://api.mimsms.com/api/v3/send-sms`;
-          requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-            body: JSON.stringify({
-              sender_id: senderId,
-              type: 'plain',
-              phone: cleanPhone,
-              message: sms.messageBody
-            })
-          };
-        } else {
-          dispatchUrl = `https://api.greenweb.com.bd/api.php?token=${encodeURIComponent(apiKey || '')}&to=${cleanPhone}&message=${encodeURIComponent(sms.messageBody)}`;
-        }
-
-        const resp = await fetch(dispatchUrl, { ...requestOptions, mode: 'cors' });
-        const isOk = resp.ok;
-
-        setSmsLogs(prev => prev.map(s => s.id === smsId ? {
-          ...s,
-          status: isOk ? 'Delivered' : 'Failed'
-        } : s));
-        enqueueChange('sms_logs', 'UPDATE', smsId, { ...newSms, status: isOk ? 'Delivered' : 'Failed' }, `এসএমএস গেটওয়ে রেসপন্স (${cleanPhone})`);
-      } catch (netErr: any) {
-        console.warn('Live SMS Gateway dispatch notice:', netErr);
-        // In browser without backend CORS proxy, mark as Sent
-        setSmsLogs(prev => prev.map(s => s.id === smsId ? { ...s, status: 'Sent' } : s));
-      }
-    })();
-  }
-
-  return { success: true };
+  return { success: false };
 };
-
 // ---- STOCK ADJUSTMENT FOR IMEIS ----
 export const executeAdjustStockIMEIs = (
   data: {
@@ -1023,58 +1480,58 @@ export const executeAdjustStockIMEIs = (
   if (!data.imeis || data.imeis.length === 0) return { success: false, error: 'No IMEIs provided' };
 
   const targetWh = data.newWarehouseId ? warehouses.find(w => w.id === data.newWarehouseId) : undefined;
+  if (data.newWarehouseId && !targetWh) return { success: false, error: 'Selected warehouse was not found.' };
+  const tokens = data.imeis.map(value => value.trim());
+  if (tokens.some(token => !token)) return { success: false, error: 'IMEI and serial identifiers cannot be empty.' };
+  if (new Set(tokens).size !== tokens.length) return { success: false, error: 'Duplicate inventory identifiers were provided.' };
+  const records = tokens.map(token => imeis.find(record =>
+    record.imei1 === token ||
+    record.imei2 === token ||
+    record.serialNumber?.toLowerCase() === token.toLowerCase()
+  ));
+  const missing = tokens.filter((_token, index) => !records[index]);
+  if (missing.length > 0) {
+    return { success: false, error: `No inventory record found for: ${missing.join(', ')}` };
+  }
+  const matchedRecords = records.filter((record): record is IMEIRecord => Boolean(record));
   const today = todayStr();
 
-  setImeis(prev =>
-    prev.map(i => {
-      if (data.imeis.includes(i.imei1)) {
-        return {
-          ...i,
-          status: data.newStatus,
-          condition: data.newCondition || i.condition,
-          warehouseId: targetWh ? targetWh.id : i.warehouseId,
-          warehouseName: targetWh ? targetWh.name : i.warehouseName,
-          history: [
-            ...i.history,
-            {
-              date: `${today} 12:00`,
-              action: 'Stock Adjustment',
-              description: `Status changed to ${data.newStatus}${data.newCondition ? ` (${data.newCondition})` : ''}: ${data.reason}`,
-              user: currentUserRole
-            }
-          ]
-        };
+  const updatedRecords = matchedRecords.map(record => ({
+    ...record,
+    status: data.newStatus,
+    condition: data.newCondition || record.condition,
+    warehouseId: targetWh ? targetWh.id : record.warehouseId,
+    warehouseName: targetWh ? targetWh.name : record.warehouseName,
+    history: [
+      ...record.history,
+      {
+        date: `${today} 12:00`,
+        action: 'Stock Adjustment',
+        description: `Status changed to ${data.newStatus}${data.newCondition ? ` (${data.newCondition})` : ''}: ${data.reason}`,
+        user: currentUserRole
       }
-      return i;
-    })
-  );
+    ]
+  }));
+  const updatedById = new Map(updatedRecords.map(record => [record.id, record]));
+  setImeis(prev => prev.map(record => updatedById.get(record.id) || record));
 
-  data.imeis.forEach(im => {
-    const rec = imeis.find(i => i.imei1 === im);
-    if (rec) {
-      enqueueChange(
-        'imeis',
-        'UPDATE',
-        rec.id,
-        {
-          ...rec,
-          status: data.newStatus,
-          condition: data.newCondition || rec.condition,
-          warehouseId: targetWh ? targetWh.id : rec.warehouseId,
-          warehouseName: targetWh ? targetWh.name : rec.warehouseName
-        },
-        `IMEI স্টক সমন্বয় (${im}) -> ${data.newStatus}`
-      );
-    }
+  updatedRecords.forEach(record => {
+    enqueueChange(
+      'imeis',
+      'UPDATE',
+      record.id,
+      record,
+      `IMEI স্টক সমন্বয় (${record.imei1}) -> ${data.newStatus}`
+    );
   });
 
   addAudit(
-    `Stock Adjustment (${data.imeis.length} units)`,
+    `Stock Adjustment (${updatedRecords.length} units)`,
     'Inventory',
     data.newStatus,
     undefined,
     `Status set to ${data.newStatus}. Reason: ${data.reason}`
   );
 
-  return { success: true, count: data.imeis.length };
+  return { success: true, count: updatedRecords.length };
 };

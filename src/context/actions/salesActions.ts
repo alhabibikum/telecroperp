@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import type React from 'react';
 import type {
   SalesInvoice,
@@ -77,6 +78,7 @@ export const executeCreateSale = (
     setProducts,
     setCustomers,
     setCashTransactions,
+    bankAccounts,
     setBankAccounts,
     journalEntries,
     setJournalEntries,
@@ -116,6 +118,9 @@ export const executeCreateSale = (
   saleData.items.forEach(item => {
     requestedImeis.push(...item.imeiList);
   });
+  if (new Set(requestedImeis).size !== requestedImeis.length) {
+    return { success: false, error: 'The same IMEI cannot be sold more than once on an invoice.' };
+  }
 
   for (const imeiNum of requestedImeis) {
     const record = imeis.find(i => i.imei1 === imeiNum);
@@ -128,7 +133,7 @@ export const executeCreateSale = (
   }
 
   const invoiceNo = generateDocNumber('SAL', salesInvoices.length);
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
 
   let commissionEarned = 0;
   if (saleData.salesmanId) {
@@ -197,13 +202,15 @@ export const executeCreateSale = (
     prev.map(p => ({
       ...p,
       variants: p.variants.map(v => {
-        const soldItem = saleData.items.find(item => item.variantId === v.id);
-        return soldItem ? { ...v, currentStock: Math.max(0, v.currentStock - soldItem.quantity) } : v;
+        const soldQuantity = saleData.items
+          .filter(item => item.productId === p.id && item.variantId === v.id)
+          .reduce((total, item) => total + item.quantity, 0);
+        return soldQuantity > 0 ? { ...v, currentStock: Math.max(0, v.currentStock - soldQuantity) } : v;
       })
     }))
   );
 
-  if (customer && customer.customerType !== 'Walk-in') {
+  if (customer) {
     setCustomers(prev =>
       prev.map(c =>
         c.id === saleData.customerId
@@ -225,18 +232,23 @@ export const executeCreateSale = (
             amount: p.amount,
             referenceNo: invoiceNo,
             description: `Payment received for invoice ${invoiceNo} from ${saleData.customerName}`,
-            performedBy: currentUserRole
+            performedBy: currentUserRole,
+            warehouseId: saleData.warehouseId,
+            customerId: saleData.customerId
           },
           ...prev
         ]);
-      } else if (p.bankAccountId) {
-        setBankAccounts(prev =>
-          prev.map(b =>
-            b.id === p.bankAccountId
-              ? { ...b, currentBalance: b.currentBalance + p.amount }
-              : b
-          )
-        );
+      } else {
+        const targetBankId = p.bankAccountId || (bankAccounts[0]?.id);
+        if (targetBankId) {
+          setBankAccounts(prev =>
+            prev.map(b =>
+              b.id === targetBankId
+                ? { ...b, currentBalance: b.currentBalance + p.amount }
+                : b
+            )
+          );
+        }
       }
     }
   });
@@ -344,13 +356,13 @@ export const executeCreateSale = (
 
   // Auto-send SMS to Customer if enabled
   if (ctx.sendSmsNotification && (settings.apiIntegrations?.autoSmsOnSale ?? true) && customer?.mobile) {
-    const text = `প্রিয় ${customer.ownerName || customer.shopName}, TeleCorp থেকে আপনার ইনভয়েস #${invoiceNo} সম্পন্ন হয়েছে। মোট: ৳${saleData.grandTotal.toLocaleString()}, পরিশোধ: ৳${saleData.paidAmount.toLocaleString()}, বকেয়া: ৳${saleData.dueAmount.toLocaleString()}। ধন্যবাদ!`;
+    const text = `প্রিয় ${customer.ownerName || customer.shopName}, FIROZA ENTERPRISE থেকে আপনার ইনভয়েস #${invoiceNo} সম্পন্ন হয়েছে। মোট: ৳${saleData.grandTotal.toLocaleString()}, পরিশোধ: ৳${saleData.paidAmount.toLocaleString()}, বকেয়া: ৳${saleData.dueAmount.toLocaleString()}। ধন্যবাদ!`;
     ctx.sendSmsNotification({
       recipientPhone: customer.mobile,
       recipientName: customer.shopName,
       messageType: 'Invoice Alert',
       messageBody: text,
-      masking: settings.apiIntegrations?.smsSenderId || 'TeleCorp',
+      masking: settings.apiIntegrations?.smsSenderId || 'FIROZA',
       smsUnits: 1
     });
   }
@@ -388,6 +400,7 @@ export const executeCancelSale = (
     customers,
     setCustomers,
     setCashTransactions,
+    bankAccounts,
     setBankAccounts,
     salesmen,
     setSalesmen,
@@ -461,7 +474,7 @@ export const executeCancelSale = (
   );
 
   const customer = customers.find(c => c.id === inv.customerId);
-  if (customer && customer.customerType !== 'Walk-in') {
+  if (customer) {
     setCustomers(prev =>
       prev.map(c => (c.id === inv.customerId ? { ...c, currentDue: Math.max(0, c.currentDue - inv.dueAmount) } : c))
     );
@@ -470,9 +483,21 @@ export const executeCancelSale = (
   inv.payments.forEach(p => {
     if (p.amount <= 0) return;
     if (p.method === 'Cash') {
-      pushCashHelper(setCashTransactions, 'Cash Out', 'Customer Sale', p.amount, inv.invoiceNo, `Refund/reversal for cancelled invoice ${inv.invoiceNo}`, currentUserRole);
+      pushCashHelper(
+        setCashTransactions,
+        'Cash Out',
+        'Customer Sale',
+        p.amount,
+        inv.invoiceNo,
+        `Refund/reversal for cancelled invoice ${inv.invoiceNo}`,
+        currentUserRole,
+        {
+          warehouseId: inv.warehouseId,
+          customerId: inv.customerId
+        }
+      );
     } else {
-      adjustBankHelper(setBankAccounts, p.bankAccountId, -p.amount);
+      adjustBankHelper(setBankAccounts, p.bankAccountId || bankAccounts[0]?.id, -p.amount);
     }
   });
 
@@ -525,7 +550,7 @@ export const executeCollectCustomerPayment = (
   if (!customer) return { success: false, error: 'Customer not found' };
 
   const collectionNo = generateDocNumber('REC', 100);
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
 
   setCustomers(prev =>
     prev.map(c =>
@@ -574,6 +599,9 @@ export const executeCollectCustomerPayment = (
     );
   }
 
+  const linkedInvoice = salesInvoices.find(inv => inv.customerId === data.customerId);
+  const targetWarehouseId = (data as any).warehouseId || linkedInvoice?.warehouseId;
+
   if (data.paymentMethod === 'Cash') {
     setCashTransactions(prev => [
       {
@@ -584,18 +612,23 @@ export const executeCollectCustomerPayment = (
         amount: data.amount,
         referenceNo: collectionNo,
         description: `Customer payment from ${customer.shopName} (Ref: ${data.transactionRef || collectionNo})`,
-        performedBy: currentUserRole
+        performedBy: currentUserRole,
+        warehouseId: targetWarehouseId,
+        customerId: data.customerId
       },
       ...prev
     ]);
-  } else if (data.bankAccountId) {
-    setBankAccounts(prev =>
-      prev.map(b =>
-        b.id === data.bankAccountId
-          ? { ...b, currentBalance: b.currentBalance + data.amount }
-          : b
-      )
-    );
+  } else {
+    const targetBankId = data.bankAccountId || bankAccounts[0]?.id;
+    if (targetBankId) {
+      setBankAccounts(prev =>
+        prev.map(b =>
+          b.id === targetBankId
+            ? { ...b, currentBalance: b.currentBalance + data.amount }
+            : b
+        )
+      );
+    }
   }
 
   const jvNo = generateDocNumber('JV', journalEntries.length);
@@ -672,8 +705,8 @@ export const executeCollectCustomerPayment = (
       recipientPhone: customer.mobile,
       recipientName: customer.shopName,
       messageType: 'Payment Receipt',
-      messageBody: `প্রিয় ${customer.ownerName || customer.shopName}, TeleCorp-এ আপনার ৳${data.amount.toLocaleString()} জমা গ্রহণ করা হয়েছে। মানি রিসিট #${receiptNo}। বর্তমান অবশিষ্ট বকেয়া: ৳${remainingDue.toLocaleString()}। ধন্যবাদ!`,
-      masking: settings?.apiIntegrations?.smsSenderId || 'TeleCorp',
+      messageBody: `প্রিয় ${customer.ownerName || customer.shopName}, FIROZA ENTERPRISE-এ আপনার ৳${data.amount.toLocaleString()} জমা গ্রহণ করা হয়েছে। মানি রিসিট #${receiptNo}। বর্তমান অবশিষ্ট বকেয়া: ৳${remainingDue.toLocaleString()}। ধন্যবাদ!`,
+      masking: settings?.apiIntegrations?.smsSenderId || 'FIROZA',
       smsUnits: 1
     });
   }
@@ -701,8 +734,13 @@ export const executeProcessCustomerReturn = (
   }
 
   const returnNo = generateDocNumber('RET', customerReturns.length);
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
   const isDamaged = data.condition === 'Damaged' || data.condition === 'Defective';
+  const imeiCondition = data.condition === 'Sealed'
+    ? 'Brand New'
+    : data.condition === 'Used' || data.condition === 'Missing Accessories'
+      ? 'Refurbished'
+      : 'Open Box';
   const restockStatus = isDamaged ? 'Sent to Damaged' : 'Restocked';
 
   const newReturn: CustomerReturn = {
@@ -731,8 +769,8 @@ export const executeProcessCustomerReturn = (
       i.imei1 === data.imei
         ? {
           ...i,
-          status: isDamaged ? 'Damaged' : 'Returned',
-          condition: isDamaged ? 'Damaged' : 'Open Box',
+          status: isDamaged ? 'Damaged' : 'In Stock',
+          condition: isDamaged ? 'Damaged' : imeiCondition,
           warehouseId: data.restockWarehouseId,
           returnReason: data.returnReason,
           history: [
@@ -804,8 +842,8 @@ export const executeProcessCustomerReturn = (
   enqueueChange('customer_returns', 'INSERT', newReturn.id, newReturn, `কাস্টমার রিটার্ন #${returnNo}`);
   enqueueChange('imeis', 'UPDATE', imeiRecord.id, {
     ...imeiRecord,
-    status: isDamaged ? 'Damaged' : 'Returned',
-    condition: isDamaged ? 'Damaged' : 'Open Box',
+    status: isDamaged ? 'Damaged' : 'In Stock',
+    condition: isDamaged ? 'Damaged' : imeiCondition,
     warehouseId: data.restockWarehouseId,
     returnReason: data.returnReason
   }, `IMEI রিটার্ন স্ট্যাটাস #${data.imei}`);
@@ -879,7 +917,7 @@ export const executeProcessPhoneExchange = (
     addAudit
   } = ctx;
   const exchangeNo = generateDocNumber('EXCH' as any, phoneExchanges.length);
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
 
   const newImeiRecord = imeis.find(i => i.imei1 === data.newIMEI);
   if (!newImeiRecord || newImeiRecord.status !== 'In Stock') {
@@ -1010,8 +1048,8 @@ export const executeProcessPhoneExchange = (
     supplierName: `Trade-in from ${data.customerName}`,
     purchaseInvoiceNo: exchangeNo,
     purchaseDate: today,
-    warehouseId: 'wh-1',
-    warehouseName: 'Central Warehouse (Motijheel, Dhaka)',
+    warehouseId: (data as any).warehouseId || newImeiRecord.warehouseId || 'wh-1',
+    warehouseName: (data as any).warehouseName || newImeiRecord.warehouseName || 'Central Warehouse',
     status: 'In Stock',
     condition: data.oldCondition === 'Used' ? 'Open Box' : 'Refurbished',
     history: [
@@ -1045,15 +1083,22 @@ export const executeProcessPhoneExchange = (
         'Customer Sale',
         data.amountPaidNow,
         exchangeNo,
-        `Exchange differential cash received (${exchangeNo})`,
-        currentUserRole
+        `Exchange differential cash received (${exchangeNo}) from ${data.customerName}`,
+        currentUserRole,
+        {
+          warehouseId: (data as any).warehouseId || newImeiRecord.warehouseId,
+          customerId: data.customerId
+        }
       );
-    } else if (data.bankAccountId) {
-      adjustBankHelper(
-        setBankAccounts,
-        data.bankAccountId,
-        data.amountPaidNow
-      );
+    } else {
+      const targetBankId = data.bankAccountId || bankAccounts[0]?.id;
+      if (targetBankId) {
+        adjustBankHelper(
+          setBankAccounts,
+          targetBankId,
+          data.amountPaidNow
+        );
+      }
     }
   }
 
@@ -1215,6 +1260,8 @@ export const executeSettleChallanCod = (
   enqueueChange('delivery_challans', 'UPDATE', id, updatedChallan, `চালান সিওডি আদায় ও সেটেল্ড #${challan.challanNo}`);
 
   // 2. Deposit into Bank Account or Vault Cash
+  const targetInvoice = salesInvoices.find(inv => inv.invoiceNo === challan.invoiceNo);
+
   if (bankAccountId) {
     const bank = bankAccounts.find(b => b.id === bankAccountId);
     if (bank) {
@@ -1230,12 +1277,15 @@ export const executeSettleChallanCod = (
       codAmount,
       challan.challanNo,
       `Courier COD remittance for Challan ${challan.challanNo} (${challan.courierPartner})`,
-      currentUserRole
+      currentUserRole,
+      {
+        warehouseId: targetInvoice?.warehouseId,
+        customerId: targetInvoice?.customerId
+      }
     );
   }
 
   // 3. Update Sales Invoice payment and due balances
-  const targetInvoice = salesInvoices.find(inv => inv.invoiceNo === challan.invoiceNo);
   if (targetInvoice) {
     const newPaidAmount = targetInvoice.paidAmount + codAmount;
     const newDueAmount = Math.max(0, targetInvoice.dueAmount - codAmount);

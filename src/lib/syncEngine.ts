@@ -1,5 +1,7 @@
+import { getLocalDateString } from '../utils/dateUtils';
 import { getSupabaseClient } from './supabase';
 import { erpStorage } from '../services/storageService';
+import { sanitizeApiIntegrations } from '../utils/sanitizeApiIntegrations';
 
 export type SyncAction = 'INSERT' | 'UPDATE' | 'DELETE' | 'UPSERT';
 
@@ -16,29 +18,73 @@ export interface SyncQueueItem {
   retryCount: number;
 }
 
-const SYNC_QUEUE_KEY = 'TELECORP_OFFLINE_SYNC_QUEUE_V1';
-
 let memoryQueue: SyncQueueItem[] | null = null;
+let activeQueueUserId: string | null = null;
+let queueReady = false;
+let queueLoadVersion = 0;
 
-// Initialize queue from IndexedDB
-erpStorage.getItem<SyncQueueItem[]>(SYNC_QUEUE_KEY).then(items => {
-  if (items && Array.isArray(items)) {
-    memoryQueue = items;
+const getSyncQueueKey = (userId: string) => `TELECORP_OFFLINE_SYNC_QUEUE_V1_${encodeURIComponent(userId)}`;
+
+const removeQueuedIntegrationSecrets = (queue: SyncQueueItem[]): SyncQueueItem[] =>
+  queue.map(item => {
+    if (item.table !== 'system_settings' || !item.data || typeof item.data !== 'object') {
+      return item;
+    }
+    const data = { ...item.data };
+    if (data.apiIntegrations) {
+      data.apiIntegrations = sanitizeApiIntegrations(data.apiIntegrations);
+    }
+    return { ...item, data };
+  });
+
+const notifyQueueUpdated = (queue: SyncQueueItem[]) => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('telecorp-sync-queue-updated', {
+      detail: {
+        pendingCount: queue.filter(q => q.status === 'pending' || q.status === 'failed').length,
+        queue
+      }
+    }));
   }
-}).catch(() => {});
+};
+
+export const configureSyncQueueUser = async (userId: string | null): Promise<void> => {
+  const loadVersion = ++queueLoadVersion;
+  activeQueueUserId = userId;
+  memoryQueue = [];
+  queueReady = false;
+  if (!userId) {
+    queueReady = true;
+    notifyQueueUpdated([]);
+    return;
+  }
+
+  const key = getSyncQueueKey(userId);
+  const items = await erpStorage.getItem<SyncQueueItem[]>(key);
+  if (loadVersion !== queueLoadVersion || activeQueueUserId !== userId) return;
+
+  const safeItems = Array.isArray(items) ? removeQueuedIntegrationSecrets(items) : [];
+  memoryQueue = safeItems;
+  queueReady = true;
+  if (items && JSON.stringify(safeItems) !== JSON.stringify(items)) saveSyncQueue(safeItems);
+  else notifyQueueUpdated(safeItems);
+};
 
 /**
  * Retrieve the current offline sync queue from Memory / IndexedDB / LocalStorage
  */
 export const getSyncQueue = (): SyncQueueItem[] => {
+  if (!activeQueueUserId || !queueReady) return [];
   if (memoryQueue) return memoryQueue;
   try {
-    const raw = localStorage.getItem(SYNC_QUEUE_KEY);
+    const raw = localStorage.getItem(getSyncQueueKey(activeQueueUserId));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      memoryQueue = parsed;
-      return parsed;
+      const safeItems = removeQueuedIntegrationSecrets(parsed);
+      memoryQueue = safeItems;
+      if (JSON.stringify(safeItems) !== JSON.stringify(parsed)) saveSyncQueue(safeItems);
+      return safeItems;
     }
   } catch (err) {
     console.error('Failed to read sync queue from localStorage:', err);
@@ -49,23 +95,20 @@ export const getSyncQueue = (): SyncQueueItem[] => {
 /**
  * Save the sync queue to IndexedDB & LocalStorage and dispatch change event
  */
-const saveSyncQueue = (queue: SyncQueueItem[]) => {
-  memoryQueue = queue;
+const saveSyncQueue = (queue: SyncQueueItem[], userId = activeQueueUserId) => {
+  if (!userId) {
+    throw new Error('Offline sync queue is not configured for an authenticated user.');
+  }
+  if (userId === activeQueueUserId && queueReady) memoryQueue = queue;
+  const key = getSyncQueueKey(userId);
   try {
-    erpStorage.setItem(SYNC_QUEUE_KEY, queue).catch(console.error);
+    erpStorage.setItem(key, queue).catch(console.error);
     try {
-      localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+      localStorage.setItem(key, JSON.stringify(queue));
     } catch {
       // Ignored if localStorage 5MB limit is reached; IndexedDB has saved it safely
     }
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('telecorp-sync-queue-updated', {
-        detail: {
-          pendingCount: queue.filter(q => q.status === 'pending' || q.status === 'failed').length,
-          queue
-        }
-      }));
-    }
+    if (userId === activeQueueUserId && queueReady) notifyQueueUpdated(queue);
   } catch (err) {
     console.error('Failed to write sync queue:', err);
   }
@@ -81,6 +124,9 @@ export const enqueueChange = (
   data?: any,
   description?: string
 ) => {
+  if (!activeQueueUserId || !queueReady) {
+    throw new Error('Cannot queue changes before the authenticated user queue is loaded.');
+  }
   const queue = getSyncQueue();
   const readableDesc = description || `${action} on ${table} (ID: ${recordId})`;
 
@@ -194,7 +240,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         mobile: data.mobile,
         email: data.email || null,
         address: data.address || '',
-        joining_date: data.joiningDate || data.joining_date || new Date().toISOString().split('T')[0],
+        joining_date: data.joiningDate || data.joining_date || getLocalDateString(),
         basic_salary: data.basicSalary ?? data.basic_salary ?? 25000,
         commission_type: data.commissionType || data.commission_type || 'Percentage of Sales',
         commission_percentage: data.commissionRate ?? data.commission_percentage ?? 1,
@@ -255,7 +301,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         supplier_id: data.supplierId || data.supplier_id || null,
         supplier_name: data.supplierName || data.supplier_name || null,
         purchase_invoice_no: data.purchaseInvoiceNo || data.purchase_invoice_no || null,
-        purchase_date: data.purchaseDate || data.purchase_date || new Date().toISOString().split('T')[0],
+        purchase_date: data.purchaseDate || data.purchase_date || getLocalDateString(),
         warehouse_id: data.warehouseId || data.warehouse_id,
         warehouse_name: data.warehouseName || data.warehouse_name || 'Central Warehouse',
         status: data.status || 'In Stock',
@@ -282,7 +328,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         salesman_name: data.salesmanName || data.salesman_name || null,
         warehouse_id: data.warehouseId || data.warehouse_id,
         warehouse_name: data.warehouseName || data.warehouse_name,
-        invoice_date: data.invoiceDate || data.invoice_date || new Date().toISOString().split('T')[0],
+        invoice_date: data.invoiceDate || data.invoice_date || getLocalDateString(),
         due_date: data.dueDate || data.due_date || data.invoiceDate || null,
         items: data.items || [],
         subtotal: data.subTotal ?? data.subtotal ?? 0,
@@ -307,7 +353,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         invoice_no: data.invoiceNo || data.invoice_no,
         supplier_id: data.supplierId || data.supplier_id,
         supplier_name: data.supplierName || data.supplier_name,
-        purchase_date: data.purchaseDate || data.purchase_date || new Date().toISOString().split('T')[0],
+        purchase_date: data.purchaseDate || data.purchase_date || getLocalDateString(),
         due_date: data.dueDate || data.due_date || data.purchaseDate || null,
         warehouse_id: data.warehouseId || data.warehouse_id,
         warehouse_name: data.warehouseName || data.warehouse_name,
@@ -347,7 +393,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         id: data.id,
         bank_account_id: data.bankAccountId || data.bank_account_id,
         bank_name: data.bankName || data.bank_name || 'Bank',
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         type: data.type,
         reference_no: data.referenceNo || data.reference_no || null,
         amount: data.amount ?? 0,
@@ -359,7 +405,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
     case 'bank_statements':
       return {
         id: data.id,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         description: data.description || '',
         reference_no: data.referenceNo || data.reference_no || null,
         debit: data.debit ?? 0,
@@ -372,7 +418,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         voucher_no: data.voucherNo || data.referenceNo || data.voucher_no || `CSH-${Date.now()}`,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         type: data.type,
         category: data.category,
         amount: data.amount ?? 0,
@@ -385,7 +431,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         expense_no: data.expenseNo || data.expense_no,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         category_id: data.categoryId || data.category_id || null,
         category_name: data.categoryName || data.category_name,
         amount: data.amount ?? 0,
@@ -420,7 +466,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         voucher_no: data.voucherNo || data.voucher_no,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         voucher_type: data.voucherType || data.voucher_type || 'Journal Voucher',
         reference_no: data.referenceNo || data.reference_no || null,
         description: data.description || '',
@@ -434,7 +480,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         transfer_no: data.transferNo || data.transfer_no,
-        date: data.transferDate || data.date || new Date().toISOString().split('T')[0],
+        date: data.transferDate || data.date || getLocalDateString(),
         from_warehouse_id: data.sourceWarehouseId || data.from_warehouse_id,
         from_warehouse_name: data.sourceWarehouseName || data.from_warehouse_name,
         to_warehouse_id: data.destinationWarehouseId || data.to_warehouse_id,
@@ -453,7 +499,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         return_no: data.returnNo || data.return_no,
-        return_date: data.returnDate || data.return_date || new Date().toISOString().split('T')[0],
+        return_date: data.returnDate || data.return_date || getLocalDateString(),
         sales_invoice_no: data.originalInvoiceNo || data.sales_invoice_no,
         customer_id: data.customerId || data.customer_id,
         customer_name: data.customerName || data.customer_name,
@@ -478,7 +524,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         return_no: data.returnNo || data.return_no,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         supplier_id: data.supplierId || data.supplier_id,
         supplier_name: data.supplierName || data.supplier_name,
         purchase_invoice_no: data.purchaseInvoiceNo || data.purchase_invoice_no || null,
@@ -495,7 +541,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         receipt_no: data.receiptNo || data.receipt_no,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         customer_id: data.customerId || data.customer_id,
         customer_name: data.customerName || data.customer_name,
         customer_phone: data.customerPhone || data.customer_phone || null,
@@ -537,7 +583,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         interest_rate: data.interestRate ?? data.interest_rate ?? 0,
         tenure_months: data.tenureMonths ?? data.tenure_months ?? 6,
         monthly_installment: data.monthlyInstallment ?? data.monthly_installment ?? 0,
-        start_date: data.startDate || data.start_date || new Date().toISOString().split('T')[0],
+        start_date: data.startDate || data.start_date || getLocalDateString(),
         status: data.status || 'Active',
         guarantor: data.guarantor || {},
         documents: data.documents || {},
@@ -555,7 +601,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         salesman_id: data.salesmanId || data.salesman_id,
         salesman_name: data.salesmanName || data.salesman_name,
         month: data.month,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         sales_amount: data.salesAmount ?? data.sales_amount ?? 0,
         collection_amount: data.collectionAmount ?? data.collection_amount ?? 0,
         sales_commission: data.salesCommission ?? data.sales_commission ?? 0,
@@ -574,7 +620,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         rma_number: data.rmaNumber || data.rma_number,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         customer_id: data.customerId || data.customer_id,
         customer_name: data.customerName || data.customer_name,
         customer_phone: data.customerPhone || data.customer_phone || null,
@@ -586,7 +632,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         problem_description: data.problemDescription || data.problem_description,
         physical_condition: data.physicalCondition || data.physical_condition || '',
         accessories_included: data.accessoriesIncluded || data.accessories_included || '',
-        service_center_name: data.serviceCenterName || data.service_center_name || 'TeleCorp Central Service Center',
+        service_center_name: data.serviceCenterName || data.service_center_name || 'FIROZA ENTERPRISE Central Service Center',
         service_center_job_no: data.serviceCenterJobNo || data.service_center_job_no || null,
         status: data.status || 'Received',
         replacement_imei: data.replacementIMEI || data.replacement_imei || null,
@@ -602,8 +648,8 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         brand_name: data.brandName || data.brand_name,
         scheme_title: data.schemeTitle || data.scheme_title,
         period: data.period || 'Monthly',
-        start_date: data.startDate || data.start_date || new Date().toISOString().split('T')[0],
-        end_date: data.endDate || data.end_date || new Date().toISOString().split('T')[0],
+        start_date: data.startDate || data.start_date || getLocalDateString(),
+        end_date: data.endDate || data.end_date || getLocalDateString(),
         target_units: data.targetUnits ?? data.target_units ?? 0,
         achieved_units: data.achievedUnits ?? data.achieved_units ?? 0,
         slabs: data.slabs || [],
@@ -616,7 +662,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         challan_no: data.challanNo || data.challan_no,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         invoice_no: data.invoiceNo || data.invoice_no,
         customer_id: data.customerId || data.customer_id,
         customer_name: data.customerName || data.customer_name,
@@ -641,7 +687,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         claim_no: data.claimNo || data.claim_no,
-        claim_date: data.claimDate || data.claim_date || new Date().toISOString().split('T')[0],
+        claim_date: data.claimDate || data.claim_date || getLocalDateString(),
         brand_name: data.brandName || data.brand_name,
         supplier_id: data.supplierId || data.supplier_id,
         supplier_name: data.supplierName || data.supplier_name,
@@ -662,7 +708,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         exchange_no: data.exchangeNo || data.exchange_no,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         customer_id: data.customerId || data.customer_id,
         customer_name: data.customerName || data.customer_name,
         customer_phone: data.customerPhone || data.customer_phone || null,
@@ -699,7 +745,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         shop_name: data.shopName || data.shop_name,
         salesman_id: data.salesmanId || data.salesman_id || null,
         salesman_name: data.salesmanName || data.salesman_name || null,
-        scheduled_date: data.scheduledDate || data.scheduled_date || new Date().toISOString().split('T')[0],
+        scheduled_date: data.scheduledDate || data.scheduled_date || getLocalDateString(),
         contact_number: data.contactNumber || data.contact_number || '01700-000000',
         purpose,
         current_due_amount: data.currentDueAmount ?? data.current_due_amount ?? 0,
@@ -718,7 +764,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         customer_id: data.customerId || data.customer_id,
         customer_name: data.customerName || data.customer_name || null,
         shop_name: data.shopName || data.shop_name,
-        visit_date: data.visitDate || data.visit_date || new Date().toISOString().split('T')[0],
+        visit_date: data.visitDate || data.visit_date || getLocalDateString(),
         purpose: data.purpose || 'Route Visit',
         outcome_notes: data.outcomeNotes || data.outcome_notes || '',
         order_amount_booked: data.orderAmountBooked ?? data.order_amount_booked ?? 0,
@@ -731,7 +777,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         closing_no: data.closingNo || data.closing_no,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         cashier_name: data.cashierName || data.cashier_name,
         warehouse_id: data.warehouseId || data.warehouse_id,
         warehouse_name: data.warehouseName || data.warehouse_name || 'Central Warehouse',
@@ -757,7 +803,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         message_body: data.messageBody || data.message_body,
         sent_at: data.sentAt || data.sent_at || new Date().toISOString(),
         status: data.status || 'Delivered',
-        masking: data.masking || 'TeleCorp',
+        masking: data.masking || 'FIROZA',
         sms_units: data.smsUnits ?? data.sms_units ?? 1
       };
 
@@ -776,10 +822,10 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
     case 'app_users':
       return {
         id: data.id,
+        auth_user_id: data.authUserId || data.auth_user_id || null,
         email: data.email,
         name: data.name,
         role: data.role,
-        password: data.password || '123456',
         status: data.status || 'Active',
         phone: data.phone || null,
         department: data.department || null,
@@ -791,7 +837,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         bank_account_id: data.bankAccountId || data.bank_account_id || null,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         description: data.description || '',
         reference_no: data.referenceNo || data.reference_no || '',
         debit: data.debit ?? 0,
@@ -803,11 +849,18 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
     case 'system_settings':
       return {
         id: 'primary_settings',
-        company_name: data.companyName || data.company_name,
-        company_address: data.companyAddress || data.company_address,
-        company_phone: data.companyPhone || data.company_phone,
-        company_email: data.companyEmail || data.company_email,
+        company_name: data.companyName || data.company_name || 'FIROZA ENTERPRISE',
+        company_address: data.companyAddress || data.company_address || 'Level 8, Motijheel C/A, Dhaka-1000, Bangladesh',
+        company_phone: data.companyPhone || data.company_phone || '+880 2-9568912 / +880 1711-002233',
+        company_email: data.companyEmail || data.company_email || 'operations@firoza-enterprise.com',
+        vat_tax_number: data.vatTaxNumber || data.vat_tax_number || 'BIN: 002341890-0101 (BTRC Reg: D-88902)',
+        default_vat_percent: data.defaultVatPercent ?? data.default_vat_percent ?? 5,
         currency: data.currency || 'BDT',
+        currency_symbol: data.currencySymbol || data.currency_symbol || '৳',
+        valuation_method: data.valuationMethod || data.valuation_method || 'FIFO',
+        negative_stock_allowed: Boolean(data.negativeStockAllowed ?? data.negative_stock_allowed),
+        credit_limit_hard_block: Boolean(data.creditLimitHardBlock ?? data.credit_limit_hard_block),
+        max_discount_without_approval: data.maxDiscountWithoutApproval ?? data.max_discount_without_approval ?? 1000,
         language: data.language || 'bn',
         updated_at: new Date().toISOString()
       };
@@ -830,6 +883,15 @@ export const processSyncQueue = async (): Promise<{
   failedCount: number;
   message: string;
 }> => {
+  if (!activeQueueUserId || !queueReady) {
+    return {
+      success: false,
+      totalPending: 0,
+      syncedCount: 0,
+      failedCount: 0,
+      message: 'সাইন-ইন করা ব্যবহারকারীর অফলাইন কিউ প্রস্তুত নয়।'
+    };
+  }
   if (isSyncing) {
     needsReSync = true;
     return {
@@ -863,7 +925,49 @@ export const processSyncQueue = async (): Promise<{
     };
   }
 
+  const queueUserId = activeQueueUserId;
   isSyncing = true;
+  let authData;
+  let authError;
+  let profile;
+  let profileError;
+  try {
+    ({ data: authData, error: authError } = await supabase.auth.getUser());
+  } catch (error) {
+    isSyncing = false;
+    throw error;
+  }
+  if (authError || !authData.user) {
+    isSyncing = false;
+    return {
+      success: false,
+      totalPending: getSyncQueue().filter(q => q.status === 'pending' || q.status === 'failed').length,
+      syncedCount: 0,
+      failedCount: 0,
+      message: 'অফলাইন পরিবর্তন সিঙ্ক করার আগে সাইন-ইন যাচাই করা যায়নি।'
+    };
+  }
+  try {
+    ({ data: profile, error: profileError } = await supabase
+      .from('app_users')
+      .select('id')
+      .eq('auth_user_id', authData.user.id)
+      .maybeSingle());
+  } catch (error) {
+    isSyncing = false;
+    throw error;
+  }
+  if (profileError || profile?.id !== queueUserId || activeQueueUserId !== queueUserId) {
+    isSyncing = false;
+    return {
+      success: false,
+      totalPending: getSyncQueue().filter(q => q.status === 'pending' || q.status === 'failed').length,
+      syncedCount: 0,
+      failedCount: 0,
+      message: 'এই ডিভাইসের অফলাইন পরিবর্তন বর্তমান সাইন-ইন করা অ্যাকাউন্টের নয়; সিঙ্ক স্থগিত করা হয়েছে।'
+    };
+  }
+
   let queue = getSyncQueue();
   // Filter items that need syncing and have not exceeded 5 failed retries
   const pendingItems = queue.filter(q => (q.status === 'pending' || q.status === 'failed') && (q.retryCount || 0) < 5);
@@ -884,8 +988,9 @@ export const processSyncQueue = async (): Promise<{
 
   try {
     for (const item of pendingItems) {
+      if (activeQueueUserId !== queueUserId || !queueReady) break;
       item.status = 'syncing';
-      saveSyncQueue(queue);
+      saveSyncQueue(queue, queueUserId);
 
       try {
         if (item.action === 'DELETE') {
@@ -896,13 +1001,19 @@ export const processSyncQueue = async (): Promise<{
 
           if (error) throw error;
         } else {
-          // INSERT / UPDATE / UPSERT
           const payload = mapToSupabasePayload(item.table, item.data);
-          const { error } = await supabase
-            .from(item.table)
-            .upsert(payload, { onConflict: 'id' });
-
-          if (error) throw error;
+          if (item.action === 'UPDATE') {
+            const { error } = await supabase
+              .from(item.table)
+              .update(payload)
+              .eq('id', item.recordId);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase
+              .from(item.table)
+              .upsert(payload, { onConflict: 'id' });
+            if (error) throw error;
+          }
 
           // If product has variants, also upsert product_variants
           if (item.table === 'products' && item.data?.variants && Array.isArray(item.data.variants)) {
@@ -928,16 +1039,35 @@ export const processSyncQueue = async (): Promise<{
           }
         }
 
+        if (activeQueueUserId !== queueUserId || !queueReady) {
+          item.status = 'pending';
+          break;
+        }
         item.status = 'synced';
         item.error = undefined;
         syncedCount++;
       } catch (err: any) {
+        if (activeQueueUserId !== queueUserId || !queueReady) {
+          item.status = 'pending';
+          break;
+        }
         console.warn(`Failed to sync item ${item.id} (${item.table}):`, err);
         item.status = 'failed';
         item.error = err.message || 'Unknown Supabase sync error';
         item.retryCount = (item.retryCount || 0) + 1;
         failedCount++;
       }
+    }
+
+    if (activeQueueUserId !== queueUserId || !queueReady) {
+      saveSyncQueue(queue, queueUserId);
+      return {
+        success: false,
+        totalPending: queue.filter(q => q.status === 'pending' || q.status === 'failed').length,
+        syncedCount,
+        failedCount,
+        message: 'ব্যবহারকারী বদলেছে; অবশিষ্ট অফলাইন পরিবর্তন সিঙ্ক স্থগিত করা হয়েছে।'
+      };
     }
 
     // Clean up successfully synced items from queue to keep storage lightweight
@@ -977,18 +1107,13 @@ export const getPendingSyncCount = (): number => {
  * Clear the offline sync queue from LocalStorage and dispatch event
  */
 export const clearSyncQueue = () => {
+  if (!activeQueueUserId || !queueReady) return;
   memoryQueue = [];
+  const key = getSyncQueueKey(activeQueueUserId);
   try {
-    erpStorage.removeItem(SYNC_QUEUE_KEY).catch(console.error);
-    localStorage.removeItem(SYNC_QUEUE_KEY);
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('telecorp-sync-queue-updated', {
-        detail: {
-          pendingCount: 0,
-          queue: []
-        }
-      }));
-    }
+    erpStorage.removeItem(key).catch(console.error);
+    localStorage.removeItem(key);
+    notifyQueueUpdated([]);
   } catch (err) {
     console.error('Failed to clear sync queue from storage:', err);
   }

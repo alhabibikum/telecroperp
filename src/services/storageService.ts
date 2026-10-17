@@ -1,5 +1,5 @@
 /**
- * TeleCorp ERP - High-Performance IndexedDB Storage Service
+ * FIROZA ERP - High-Performance IndexedDB Storage Service
  * Replaces localStorage (5MB limit) with IndexedDB (hundreds of MBs capacity).
  * Provides seamless migration from localStorage with fallback safety.
  */

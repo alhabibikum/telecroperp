@@ -1,6 +1,6 @@
 /**
  * Form History Service
- * Provides persistent history suggestions for all form inputs across TeleCorp ERP.
+ * Provides persistent history suggestions for all form inputs across FIROZA ERP.
  * Stores recent values in localStorage and seeds with domain-specific ERP defaults.
  */
 
@@ -204,26 +204,32 @@ export function normalizeHistoryKey(keyOrName: string): string {
   if (!keyOrName) return 'general';
   const clean = keyOrName.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-  if (clean.includes('model') || clean.includes('handset')) return 'model';
+  if (clean.includes('model') || clean.includes('handset') || clean.includes('product')) return 'model';
   if (clean.includes('brand')) return 'brand';
   if (clean.includes('sku')) return 'sku';
   if (clean.includes('ram')) return 'ram';
   if (clean.includes('storage') || clean.includes('rom')) return 'storage';
   if (clean.includes('color')) return 'color';
   if (clean.includes('network') || clean.includes('btrc')) return 'networkRegion';
-  if (clean.includes('shop') || clean.includes('outlet')) return 'shopName';
+  if (clean.includes('shop') || clean.includes('outlet') || clean.includes('customername')) return 'shopName';
   if (clean.includes('owner') || clean.includes('proprietor')) return 'ownerName';
   if (clean.includes('mobile') || clean.includes('phone') || clean.includes('contact')) return 'mobile';
   if (clean.includes('area') || clean.includes('market')) return 'area';
   if (clean.includes('district') || clean.includes('city')) return 'district';
   if (clean.includes('address')) return 'address';
-  if (clean.includes('supplier') || clean.includes('company')) return 'companyName';
+  if (clean.includes('supplier')) return 'supplier';
+  if (clean.includes('company')) return 'companyName';
   if (clean.includes('reason')) return 'returnReason';
   if (clean.includes('note') || clean.includes('remark')) return 'notes';
   if (clean.includes('ref') || clean.includes('transaction')) return 'referenceNo';
   if (clean.includes('desc') || clean.includes('details')) return 'description';
   if (clean.includes('payee') || clean.includes('beneficiary')) return 'payee';
   if (clean.includes('condition')) return 'condition';
+  if (clean.includes('warehouse')) return 'warehouse';
+  if (clean.includes('salesman') || clean.includes('collector')) return 'salesman';
+  if (clean.includes('bankaccount')) return 'bankAccount';
+  if (clean.includes('accountname')) return 'accountName';
+  if (clean.includes('invoice') || clean.includes('voucher')) return 'referenceNo';
 
   return keyOrName;
 }

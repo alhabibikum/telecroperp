@@ -1,5 +1,5 @@
 /**
- * TeleCorp ERP - Hardware Direct Thermal Printer Engine
+ * FIROZA ERP - Hardware Direct Thermal Printer Engine
  * Supports:
  * 1. Web Serial API (USB-to-UART / Virtual COM port thermal printers like Xprinter, TSC, Rongta, POS-58, POS-80)
  * 2. Web Bluetooth API (Bluetooth portable thermal printers like PT-210, MPT-II, Cat/Goojprt, 58mm/80mm BLE)
@@ -373,7 +373,7 @@ export const generateESCPOSReceipt = (data: ReceiptPrintData, is80mm = false): U
   append([ESC, 0x61, 0x01]);
   append([ESC, 0x45, 0x01]);
   append([GS, 0x21, 0x11]); // Double height & width
-  appendStr("TELECORP ERP\n");
+  appendStr("FIROZA ERP\n");
   append([GS, 0x21, 0x00]); // Normal size
   append([ESC, 0x45, 0x00]);
   appendStr("Mobile Wholesale & Retail Hub\n");
@@ -428,7 +428,7 @@ export const generateESCPOSReceipt = (data: ReceiptPrintData, is80mm = false): U
   append([0x0a]);
 
   // Thank you message
-  appendStr("\nThank you for choosing TeleCorp!\n");
+  appendStr("\nThank you for choosing FIROZA ENTERPRISE!\n");
   appendStr("Software Generated Authentic Slip\n");
 
   // Paper feed & cut
@@ -443,7 +443,7 @@ export const generateESCPOSReceipt = (data: ReceiptPrintData, is80mm = false): U
  */
 export const generateTestSticker = (protocol: PrinterProtocol): Uint8Array => {
   const testItem: LabelPrintItem = {
-    brandName: 'TeleCorp',
+    brandName: 'FIROZA',
     model: 'Test Calibration',
     variantDesc: '8GB/256GB - Blue',
     imei1: '864912068888999',

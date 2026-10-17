@@ -161,7 +161,7 @@ export const DesktopView: React.FC<DesktopViewProps> = ({
   onZoomOut,
   onResetZoom
 }) => {
-  const { salesInvoices, imeis, customers, isOnline } = useERP();
+  const { salesInvoices, imeis, customers, isOnline, settings } = useERP();
 
   // Desktop Wallpaper State
   const [wallpaper, setWallpaper] = useState<string>(() => {
@@ -868,7 +868,7 @@ export const DesktopView: React.FC<DesktopViewProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-black text-sm sm:text-base tracking-tight text-white drop-shadow">
-                  TeleCorp ERP Desktop OS
+                  {settings?.companyName || 'FIROZA ERP Desktop OS'}
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono">
                   Enterprise
@@ -1045,7 +1045,7 @@ export const DesktopView: React.FC<DesktopViewProps> = ({
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="drop-shadow text-[11px] sm:text-xs">
-            টেলিকর্প ইআরপি ডেস্কটপ রেডি • যেকোনো খোলা উইন্ডো নিচে টাস্কবারে মিনিমাইজ থাকে
+            FIROZA ERP ডেস্কটপ রেডি • যেকোনো খোলা উইন্ডো নিচে টাস্কবারে মিনিমাইজ থাকে
           </span>
         </div>
 

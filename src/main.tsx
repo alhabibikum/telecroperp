@@ -2,12 +2,13 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { registerServiceWorker } from './registerServiceWorker';
-import { setupGlobalAutoSelect } from './utils/keyboardNavigationUtils';
+import { setupGlobalAutoSelect, setupGlobalEnterKeyNavigation } from './utils/keyboardNavigationUtils';
 import { ToastProvider } from './components/common/ToastNotificationSystem';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
-// Initialize Global Auto-Select on Focus for rapid dealer keyboard operations
+// Initialize Global Auto-Select on Focus and Enter-key rapid field navigation
 setupGlobalAutoSelect();
+setupGlobalEnterKeyNavigation();
 
 createRoot(document.getElementById('root')!).render(
   <ErrorBoundary>

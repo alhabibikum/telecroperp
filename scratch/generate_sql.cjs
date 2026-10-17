@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const schemaSql = `-- =========================================================================
--- TELECORP MOBILE DISTRIBUTION ERP - SUPABASE CLOUD DATABASE SCHEMA
+-- FIROZA ERP - SUPABASE CLOUD DATABASE SCHEMA
 -- PostgreSQL / Supabase Enterprise Migration & Real Data Seed Script
 -- Covers ALL 35 Modules with 100% Real-Life Bangladeshi Telecom Data
 -- Version: 3.1.0 (Full Cloud Production Release - No Dummies)
@@ -14,55 +14,14 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- =========================================================================
--- 0. CLEAN RESET (Drop old/incomplete tables to ensure fresh synchronization)
--- =========================================================================
-DROP TABLE IF EXISTS audit_logs CASCADE;
-DROP TABLE IF EXISTS backup_snapshots CASCADE;
-DROP TABLE IF EXISTS gateway_configs CASCADE;
-DROP TABLE IF EXISTS system_alerts CASCADE;
-DROP TABLE IF EXISTS sms_logs CASCADE;
-DROP TABLE IF EXISTS salesman_visits CASCADE;
-DROP TABLE IF EXISTS customer_follow_ups CASCADE;
-DROP TABLE IF EXISTS phone_exchange_records CASCADE;
-DROP TABLE IF EXISTS price_drop_claims CASCADE;
-DROP TABLE IF EXISTS delivery_challans CASCADE;
-DROP TABLE IF EXISTS brand_incentive_schemes CASCADE;
-DROP TABLE IF EXISTS warranty_claims CASCADE;
-DROP TABLE IF EXISTS journal_entries CASCADE;
-DROP TABLE IF EXISTS chart_of_accounts CASCADE;
-DROP TABLE IF EXISTS day_closings CASCADE;
-DROP TABLE IF EXISTS expenses CASCADE;
-DROP TABLE IF EXISTS expense_categories CASCADE;
-DROP TABLE IF EXISTS cash_transactions CASCADE;
-DROP TABLE IF EXISTS bank_statements CASCADE;
-DROP TABLE IF EXISTS bank_transactions CASCADE;
-DROP TABLE IF EXISTS bank_accounts CASCADE;
-DROP TABLE IF EXISTS money_receipts CASCADE;
-DROP TABLE IF EXISTS supplier_returns CASCADE;
-DROP TABLE IF EXISTS customer_returns CASCADE;
-DROP TABLE IF EXISTS stock_transfers CASCADE;
-DROP TABLE IF EXISTS sales_invoices CASCADE;
-DROP TABLE IF EXISTS purchase_invoices CASCADE;
-DROP TABLE IF EXISTS imeis CASCADE;
-DROP TABLE IF EXISTS product_variants CASCADE;
-DROP TABLE IF EXISTS products CASCADE;
-DROP TABLE IF EXISTS salesmen CASCADE;
-DROP TABLE IF EXISTS customers CASCADE;
-DROP TABLE IF EXISTS suppliers CASCADE;
-DROP TABLE IF EXISTS warehouses CASCADE;
-DROP TABLE IF EXISTS brands CASCADE;
-DROP TABLE IF EXISTS system_settings CASCADE;
-DROP TABLE IF EXISTS app_users CASCADE;
-
--- =========================================================================
 -- 1. AUTH & USERS (Profiles & RBAC 9 Enterprise Roles)
 -- =========================================================================
 CREATE TABLE app_users (
     id TEXT PRIMARY KEY,
+    auth_user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'Salesman',
-    password TEXT NOT NULL DEFAULT '123456',
     status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Suspended')),
     phone TEXT,
     department TEXT,
@@ -78,10 +37,10 @@ CREATE TABLE app_users (
 -- =========================================================================
 CREATE TABLE system_settings (
     id TEXT PRIMARY KEY DEFAULT 'primary_settings',
-    company_name TEXT NOT NULL DEFAULT 'TeleCorp Mobile Distribution & Trade Ltd.',
+    company_name TEXT NOT NULL DEFAULT 'FIROZA ENTERPRISE',
     company_address TEXT NOT NULL DEFAULT 'Level 8, Motijheel C/A, Dhaka-1000, Bangladesh',
     company_phone TEXT NOT NULL DEFAULT '+880 2-9568912 / +880 1711-002233',
-    company_email TEXT NOT NULL DEFAULT 'operations@telecorp-bd.com',
+    company_email TEXT NOT NULL DEFAULT 'operations@firoza-enterprise.com',
     vat_tax_number TEXT DEFAULT 'BIN: 002341890-0101 (BTRC Reg: D-88902)',
     default_vat_percent NUMERIC(5, 2) DEFAULT 5.00,
     currency TEXT DEFAULT 'BDT',
@@ -729,7 +688,7 @@ CREATE TABLE sms_logs (
     message_body TEXT NOT NULL,
     sent_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     status TEXT NOT NULL DEFAULT 'Sent' CHECK (status IN ('Delivered', 'Sent', 'Failed')),
-    masking TEXT DEFAULT 'TELECORP',
+    masking TEXT DEFAULT 'FIROZA',
     sms_units INTEGER DEFAULT 1
 );
 
@@ -789,50 +748,13 @@ CREATE TABLE audit_logs (
     details TEXT
 );
 
--- =========================================================================
--- 25. SECURITY: DISABLE RLS & GRANT ACCESSIBILITY TO CONNECTED ERP
--- =========================================================================
-ALTER TABLE app_users DISABLE ROW LEVEL SECURITY;
-ALTER TABLE system_settings DISABLE ROW LEVEL SECURITY;
-ALTER TABLE brands DISABLE ROW LEVEL SECURITY;
-ALTER TABLE warehouses DISABLE ROW LEVEL SECURITY;
-ALTER TABLE suppliers DISABLE ROW LEVEL SECURITY;
-ALTER TABLE customers DISABLE ROW LEVEL SECURITY;
-ALTER TABLE salesmen DISABLE ROW LEVEL SECURITY;
-ALTER TABLE products DISABLE ROW LEVEL SECURITY;
-ALTER TABLE product_variants DISABLE ROW LEVEL SECURITY;
-ALTER TABLE imeis DISABLE ROW LEVEL SECURITY;
-ALTER TABLE sales_invoices DISABLE ROW LEVEL SECURITY;
-ALTER TABLE purchase_invoices DISABLE ROW LEVEL SECURITY;
-ALTER TABLE stock_transfers DISABLE ROW LEVEL SECURITY;
-ALTER TABLE customer_returns DISABLE ROW LEVEL SECURITY;
-ALTER TABLE supplier_returns DISABLE ROW LEVEL SECURITY;
-ALTER TABLE money_receipts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE bank_accounts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE bank_transactions DISABLE ROW LEVEL SECURITY;
-ALTER TABLE bank_statements DISABLE ROW LEVEL SECURITY;
-ALTER TABLE cash_transactions DISABLE ROW LEVEL SECURITY;
-ALTER TABLE expense_categories DISABLE ROW LEVEL SECURITY;
-ALTER TABLE expenses DISABLE ROW LEVEL SECURITY;
-ALTER TABLE day_closings DISABLE ROW LEVEL SECURITY;
-ALTER TABLE chart_of_accounts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE journal_entries DISABLE ROW LEVEL SECURITY;
-ALTER TABLE warranty_claims DISABLE ROW LEVEL SECURITY;
-ALTER TABLE brand_incentive_schemes DISABLE ROW LEVEL SECURITY;
-ALTER TABLE delivery_challans DISABLE ROW LEVEL SECURITY;
-ALTER TABLE price_drop_claims DISABLE ROW LEVEL SECURITY;
-ALTER TABLE phone_exchange_records DISABLE ROW LEVEL SECURITY;
-ALTER TABLE customer_follow_ups DISABLE ROW LEVEL SECURITY;
-ALTER TABLE salesman_visits DISABLE ROW LEVEL SECURITY;
-ALTER TABLE sms_logs DISABLE ROW LEVEL SECURITY;
-ALTER TABLE system_alerts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE gateway_configs DISABLE ROW LEVEL SECURITY;
-ALTER TABLE backup_snapshots DISABLE ROW LEVEL SECURITY;
-ALTER TABLE audit_logs DISABLE ROW LEVEL SECURITY;
-
-GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
-GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, service_role;
+-- API roles stay locked down until the Auth-linked RLS migration is applied.
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL ON ALL ROUTINES IN SCHEMA public FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON ROUTINES FROM anon, authenticated;
 
 -- =========================================================================
 -- 26. STORED PROCEDURES & ATOMIC FUNCTIONS
@@ -918,19 +840,9 @@ $$ LANGUAGE plpgsql;
 
 -- SYSTEM SETTINGS
 INSERT INTO system_settings (id, company_name, company_address, company_phone, company_email, vat_tax_number, default_vat_percent, currency, currency_symbol, valuation_method, negative_stock_allowed, credit_limit_hard_block, max_discount_without_approval, language)
-VALUES ('primary_settings', 'TeleCorp Mobile Distribution & Trade Ltd.', 'Level 8, Motijheel C/A, Dhaka-1000, Bangladesh', '+880 2-9568912 / +880 1711-002233', 'operations@telecorp-bd.com', 'BIN: 002341890-0101 (BTRC Reg: D-88902)', 5.00, 'BDT', '৳', 'FIFO', false, true, 1000.00, 'bn');
+VALUES ('primary_settings', 'FIROZA ENTERPRISE', 'Level 8, Motijheel C/A, Dhaka-1000, Bangladesh', '+880 2-9568912 / +880 1711-002233', 'operations@firoza-enterprise.com', 'BIN: 002341890-0101 (BTRC Reg: D-88902)', 5.00, 'BDT', '৳', 'FIFO', false, true, 1000.00, 'bn');
 
--- APP USERS (All Roles & Mansur Azad preserved)
-INSERT INTO app_users (id, email, name, role, password, status, phone, department, branch_name, avatar, last_login, created_at) VALUES
-('8d510069-b154-440a-aa3e-0999a9c354e1', 'mansurazad@gmail.com', 'Mansur Azad', 'Super Admin', 'M#112233@a', 'Active', '+880 1711-002233', 'Executive Board / Managing Director', 'Headquarters (Motijheel, Dhaka)', '👨‍💼', NOW(), NOW()),
-('user-admin', 'admin@telecorp.com', 'Aminul Islam', 'Super Admin', 'admin', 'Active', '+880 1711-002233', 'Executive Board / Managing Director', 'Headquarters (Motijheel, Dhaka)', '👨‍💼', NOW(), NOW()),
-('user-owner', 'owner@telecorp.com', 'M. A. Rashid', 'Owner', 'owner', 'Active', '+880 1711-112233', 'Chairman & Principal Investor', 'Headquarters (Motijheel, Dhaka)', '👑', NOW(), NOW()),
-('user-gm', 'gm@telecorp.com', 'Rafiqul Bari', 'General Manager', 'gm', 'Active', '+880 1711-445566', 'General Operations & Supply Chain', 'Headquarters (Motijheel, Dhaka)', '🎩', NOW(), NOW()),
-('user-wh', 'warehouse@telecorp.com', 'Md. Masum Billah', 'Warehouse Manager', 'wh', 'Active', '+880 1819-234567', 'Central Logistics & IMEI Vault', 'Central Warehouse (Motijheel, Dhaka)', '📦', NOW(), NOW()),
-('user-acc', 'accountant@telecorp.com', 'Shabbir Ahmed', 'Accountant', 'acc', 'Active', '+880 1911-223344', 'Accounts & Day Ledgering', 'Headquarters (Motijheel, Dhaka)', '📑', NOW(), NOW()),
-('user-sales', 'sales@telecorp.com', 'Kazi Farhan', 'Sales Manager', 'sales', 'Active', '+880 1711-778899', 'Regional Sales & Dealer Network', 'Headquarters (Motijheel, Dhaka)', '📈', NOW(), NOW()),
-('user-field', 'field@telecorp.com', 'Karim Ullah', 'Salesman', 'field', 'Active', '+880 1611-990011', 'Field Sales & Dealer Route Service', 'Dhaka North Territory', '🛵', NOW(), NOW()),
-('user-cashier', 'cashier@telecorp.com', 'Sumon Mia', 'Cashier', 'cash', 'Active', '+880 1611-332211', 'Retail POS Counter & Daily Vault', 'Gulshan Express Outlet', '💵', NOW(), NOW());
+-- User accounts must be provisioned through Supabase Auth.
 
 -- BRANDS
 INSERT INTO brands (id, name, code, logo, country, description, status) VALUES
@@ -968,10 +880,10 @@ INSERT INTO customers (id, customer_code, shop_name, owner_name, mobile, alterna
 
 -- SALESMEN
 INSERT INTO salesmen (id, employee_code, name, mobile, email, target_monthly_bdt, achieved_monthly_bdt, commission_percentage, active_routes, assigned_area, status) VALUES
-('sm-1', 'EMP-01', 'Md. Rafiqul Islam', '+880 1711-998811', 'rafiq.sales@telecorp.com', 2500000.00, 1950000.00, 1.25, ARRAY['Uttara', 'Mirpur', 'Gazipur'], 'Dhaka North Zone', 'Active'),
-('sm-2', 'EMP-02', 'Tanvir Hasan', '+880 1819-776622', 'tanvir.sales@telecorp.com', 2000000.00, 1680000.00, 1.25, ARRAY['Motijheel', 'Elephant Road', 'Old Dhaka'], 'Dhaka South Zone', 'Active'),
-('sm-3', 'EMP-03', 'Kamrul Ahsan', '+880 1914-332211', 'kamrul.sales@telecorp.com', 3000000.00, 2420000.00, 1.50, ARRAY['Agrabad', 'GEC Circle', 'Coxs Bazar'], 'Chittagong Division', 'Active'),
-('sm-4', 'EMP-04', 'Shahriar Kabir', '+880 1612-445566', 'shahriar.sales@telecorp.com', 1500000.00, 1150000.00, 1.25, ARRAY['Zindabazar', 'Amberkhana', 'Moulvibazar'], 'Sylhet Division', 'Active');
+('sm-1', 'EMP-01', 'Md. Rafiqul Islam', '+880 1711-998811', 'rafiq.sales@firoza-enterprise.com', 2500000.00, 1950000.00, 1.25, ARRAY['Uttara', 'Mirpur', 'Gazipur'], 'Dhaka North Zone', 'Active'),
+('sm-2', 'EMP-02', 'Tanvir Hasan', '+880 1819-776622', 'tanvir.sales@firoza-enterprise.com', 2000000.00, 1680000.00, 1.25, ARRAY['Motijheel', 'Elephant Road', 'Old Dhaka'], 'Dhaka South Zone', 'Active'),
+('sm-3', 'EMP-03', 'Kamrul Ahsan', '+880 1914-332211', 'kamrul.sales@firoza-enterprise.com', 3000000.00, 2420000.00, 1.50, ARRAY['Agrabad', 'GEC Circle', 'Coxs Bazar'], 'Chittagong Division', 'Active'),
+('sm-4', 'EMP-04', 'Shahriar Kabir', '+880 1612-445566', 'shahriar.sales@firoza-enterprise.com', 1500000.00, 1150000.00, 1.25, ARRAY['Zindabazar', 'Amberkhana', 'Moulvibazar'], 'Sylhet Division', 'Active');
 
 -- PRODUCTS
 INSERT INTO products (id, brand_id, brand_name, model, category, network_region, warranty_period_months, description, status) VALUES
@@ -1010,10 +922,10 @@ INSERT INTO imeis (id, imei1, imei2, serial_number, product_id, product_name, va
 
 -- BANK ACCOUNTS
 INSERT INTO bank_accounts (id, bank_name, account_name, account_number, branch_name, routing_number, account_type, opening_balance, current_balance, status) VALUES
-('bank-1', 'BRAC Bank PLC', 'TeleCorp Distribution Ltd', '1501203948201001', 'Motijheel Corporate Branch', '060271928', 'Current', 5000000.00, 12450000.00, 'Active'),
-('bank-2', 'The City Bank Ltd', 'TeleCorp Distribution Ltd', '1102938475001', 'Gulshan Avenue Branch', '225271829', 'Current', 3000000.00, 8920000.00, 'Active'),
-('bank-3', 'Dutch-Bangla Bank Ltd', 'TeleCorp Distribution Ltd', '105110294812', 'Foreign Exchange Branch', '090271182', 'Current', 2000000.00, 4310000.00, 'Active'),
-('bank-4', 'bKash Merchant Vault', 'TeleCorp Trade Hub', '01888-990011', 'bKash Tokenized Merchant', 'BKASH001', 'MFS Merchant (bKash/Nagad)', 200000.00, 540000.00, 'Active');
+('bank-1', 'BRAC Bank PLC', 'FIROZA ENTERPRISE', '1501203948201001', 'Motijheel Corporate Branch', '060271928', 'Current', 5000000.00, 12450000.00, 'Active'),
+('bank-2', 'The City Bank Ltd', 'FIROZA ENTERPRISE', '1102938475001', 'Gulshan Avenue Branch', '225271829', 'Current', 3000000.00, 8920000.00, 'Active'),
+('bank-3', 'Dutch-Bangla Bank Ltd', 'FIROZA ENTERPRISE', '105110294812', 'Foreign Exchange Branch', '090271182', 'Current', 2000000.00, 4310000.00, 'Active'),
+('bank-4', 'bKash Merchant Vault', 'FIROZA ENTERPRISE', '01888-990011', 'bKash Tokenized Merchant', 'BKASH001', 'MFS Merchant (bKash/Nagad)', 200000.00, 540000.00, 'Active');
 
 -- CHART OF ACCOUNTS (COA Double-Entry Foundation)
 INSERT INTO chart_of_accounts (id, code, name, type, nature, balance, description, is_system) VALUES
@@ -1119,9 +1031,9 @@ INSERT INTO salesman_visits (id, salesman_id, salesman_name, customer_id, custom
 
 -- SMS MARKETING LOGS
 INSERT INTO sms_logs (id, recipient_phone, recipient_name, message_type, message_body, sent_at, status, masking, sms_units) VALUES
-('sms-001', '+8801711234567', 'Popular Telecom', 'Invoice Alert', 'Dear Popular Telecom, your invoice INV-2026-0042 of BDT 90,000 has been generated. Thank you for choosing TeleCorp.', NOW(), 'Delivered', 'TELECORP', 1),
-('sms-002', '+8801819876543', 'Trust Mobile World', 'Payment Receipt', 'Dear Trust Mobile World, we have received BDT 63,600 via Bank Transfer. Your current due is BDT 0. TeleCorp.', NOW(), 'Delivered', 'TELECORP', 1),
-('sms-003', '+8801715667788', 'Rajdhani Gadget', 'Due Reminder', 'Dear Valued Dealer, payment of BDT 72,000 for INV-2026-0044 is due on 2026-10-13. Please deposit on time to maintain credit rating.', NOW(), 'Sent', 'TELECORP', 1);
+('sms-001', '+8801711234567', 'Popular Telecom', 'Invoice Alert', 'Dear Popular Telecom, your invoice INV-2026-0042 of BDT 90,000 has been generated. Thank you for choosing FIROZA ENTERPRISE.', NOW(), 'Delivered', 'FIROZA', 1),
+('sms-002', '+8801819876543', 'Trust Mobile World', 'Payment Receipt', 'Dear Trust Mobile World, we have received BDT 63,600 via Bank Transfer. Your current due is BDT 0. FIROZA ENTERPRISE.', NOW(), 'Delivered', 'FIROZA', 1),
+('sms-003', '+8801715667788', 'Rajdhani Gadget', 'Due Reminder', 'Dear Valued Dealer, payment of BDT 72,000 for INV-2026-0044 is due on 2026-10-13. Please deposit on time to maintain credit rating.', NOW(), 'Sent', 'FIROZA', 1);
 
 -- SYSTEM ALERTS
 INSERT INTO system_alerts (id, type, title, message, timestamp, read, link_module, reference_id) VALUES
@@ -1131,13 +1043,13 @@ INSERT INTO system_alerts (id, type, title, message, timestamp, read, link_modul
 
 -- GATEWAY CONFIGS
 INSERT INTO gateway_configs (id, service_name, provider, credentials, is_active, environment) VALUES
-('gw-sms', 'sms', 'Greenweb Bangladesh SMS Gateway', '{"apiUrl":"https://api.greenweb.com.bd/api.php","token":"GW_LIVE_TOKEN_99281","senderId":"TELECORP"}'::jsonb, true, 'Live'),
+('gw-sms', 'sms', 'Greenweb Bangladesh SMS Gateway', '{"apiUrl":"https://api.greenweb.com.bd/api.php","token":"GW_LIVE_TOKEN_99281","senderId":"FIROZA"}'::jsonb, true, 'Live'),
 ('gw-bkash', 'bkash', 'bKash Tokenized Checkout API', '{"appKey":"bKash_prod_app_key_88192","merchantNumber":"01888990011"}'::jsonb, true, 'Live'),
 ('gw-courier', 'steadfast', 'Steadfast Courier API', '{"apiKey":"st_live_key_99281928","secretKey":"st_sec_00291"}'::jsonb, true, 'Live');
 
 -- JOURNAL ENTRIES (Opening Balance Ledger Check)
 INSERT INTO journal_entries (id, voucher_no, date, voucher_type, reference_no, description, lines, total_debit, total_credit, created_by) VALUES
-('jv-001', 'JV-2026-0001', '2026-10-01', 'Journal Voucher', 'OP-BAL-2026', 'Opening balanced trial ledger for TeleCorp Enterprise Cloud', '[{"accountCode":"1020","accountName":"Bank Operating Accounts","debit":25680000,"credit":0,"memo":"Opening bank balance"},{"accountCode":"1040","accountName":"Merchandise Inventory Asset","debit":18450000,"credit":0,"memo":"Opening handset inventory"},{"accountCode":"3010","accountName":"Shareholder Paid-Up Capital","debit":0,"credit":30000000,"memo":"Equity capital"},{"accountCode":"3020","accountName":"Retained Earnings","debit":0,"credit":14130000,"memo":"Retained earnings"}]'::jsonb, 44130000.00, 44130000.00, 'Shabbir Ahmed');
+('jv-001', 'JV-2026-0001', '2026-10-01', 'Journal Voucher', 'OP-BAL-2026', 'Opening balanced trial ledger for FIROZA ENTERPRISE Cloud', '[{"accountCode":"1020","accountName":"Bank Operating Accounts","debit":25680000,"credit":0,"memo":"Opening bank balance"},{"accountCode":"1040","accountName":"Merchandise Inventory Asset","debit":18450000,"credit":0,"memo":"Opening handset inventory"},{"accountCode":"3010","accountName":"Shareholder Paid-Up Capital","debit":0,"credit":30000000,"memo":"Equity capital"},{"accountCode":"3020","accountName":"Retained Earnings","debit":0,"credit":14130000,"memo":"Retained earnings"}]'::jsonb, 44130000.00, 44130000.00, 'Shabbir Ahmed');
 `;
 
 fs.writeFileSync(path.join(__dirname, '..', 'supabase_schema.sql'), schemaSql, 'utf8');

@@ -29,8 +29,8 @@ export const SmsMarketingView: React.FC = () => {
   const [customPhone, setCustomPhone] = useState('');
   const [customName, setCustomName] = useState('');
   const [messageType, setMessageType] = useState<'Promotional Campaign' | 'Due Reminder' | 'Invoice Alert'>('Promotional Campaign');
-  const [messageText, setMessageText] = useState('Eid & Puja Special Offer: Flat 2.5% extra cash rebate on purchasing 10+ Samsung Galaxy units this week. Contact TeleCorp Hotlines: 01711-002233.');
-  const [maskingName, setMaskingName] = useState('TeleCorp');
+  const [messageText, setMessageText] = useState('Eid & Puja Special Offer: Flat 2.5% extra cash rebate on purchasing 10+ Samsung Galaxy units this week. Contact FIROZA ENTERPRISE: 01711-002233.');
+  const [maskingName, setMaskingName] = useState('FIROZA');
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   // Gateway status
@@ -153,7 +153,7 @@ export const SmsMarketingView: React.FC = () => {
           <div className="text-[10px] uppercase font-bold text-indigo-700 flex items-center gap-1">
             <Settings className="w-3.5 h-3.5" /> Sender Masking
           </div>
-          <div className="text-xl font-black text-indigo-900 mt-1 font-mono">TeleCorp</div>
+          <div className="text-xl font-black text-indigo-900 mt-1 font-mono">FIROZA</div>
           <div className="text-[10px] text-indigo-600 mt-0.5">BTRC Approved Masking</div>
         </div>
       </div>
@@ -188,7 +188,7 @@ export const SmsMarketingView: React.FC = () => {
                   type="button"
                   onClick={() => {
                     setRecipientGroup('dueOnly');
-                    setMessageText('Dear {shop_name}, your current due with TeleCorp is BDT {due_amount}. Kindly settle via bank deposit to continue smooth delivery.');
+                    setMessageText('Dear {shop_name}, your current due with FIROZA ENTERPRISE is BDT {due_amount}. Kindly settle via bank deposit to continue smooth delivery.');
                     setMessageType('Due Reminder');
                   }}
                   className={`p-2 rounded-xl border text-center transition ${

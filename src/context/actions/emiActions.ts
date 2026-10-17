@@ -1,3 +1,4 @@
+import { addMonthsToDate, getLocalDateString } from '../../utils/dateUtils';
 import type React from 'react';
 import type {
   EMIPlan,
@@ -42,16 +43,7 @@ export interface EMIContextBundle {
   currentUser: AuthUser | null;
 }
 
-const todayStr = () => new Date().toISOString().split('T')[0];
-
-/**
- * Add months to a date string (YYYY-MM-DD)
- */
-const addMonthsToDate = (dateStr: string, monthsToAdd: number): string => {
-  const d = new Date(dateStr);
-  d.setMonth(d.getMonth() + monthsToAdd);
-  return d.toISOString().split('T')[0];
-};
+const todayStr = () => getLocalDateString();
 
 /**
  * Create a new Hire-Purchase / EMI Plan
@@ -181,7 +173,9 @@ export const executeCreateEMIPlan = (
       amount: planInput.downPayment,
       description: `ইএমআই ডাউন পেমেন্ট গ্রহণ - প্ল্যান #${planNo} (${planInput.customerName})`,
       referenceNo: planNo,
-      performedBy: currentUser?.name || currentUserRole
+      performedBy: currentUser?.name || currentUserRole,
+      warehouseId: planInput.warehouseId || targetImei.warehouseId,
+      customerId: planInput.customerId
     };
     setCashTransactions(prev => [cashTx, ...prev]);
     enqueueChange('cash_transactions', 'INSERT', cashTx.id, cashTx, `ইএমআই ডাউন পেমেন্ট (${planNo})`);
@@ -342,6 +336,7 @@ export const executeCollectInstallmentPayment = (
     paidAmount: number;
     lateFee?: number;
     paymentMethod: PaymentMethodType;
+    bankAccountId?: string;
     transactionRef?: string;
   },
   ctx: EMIContextBundle
@@ -428,17 +423,21 @@ export const executeCollectInstallmentPayment = (
       amount: totalAmountReceived,
       description: `ইএমআই কিস্তি #${installmentNo} আদায় - প্ল্যান #${plan.planNo} (${plan.customerName})`,
       referenceNo: receiptNo,
-      performedBy: currentUser?.name || currentUserRole
+      performedBy: currentUser?.name || currentUserRole,
+      warehouseId: (plan as any).warehouseId,
+      customerId: plan.customerId
     };
     setCashTransactions(prev => [cashTx, ...prev]);
     enqueueChange('cash_transactions', 'INSERT', cashTx.id, cashTx, `ইএমআই কিস্তি আদায় (${receiptNo})`);
   } else {
-    // Deposit to first bank
+    // Deposit to specified bank or first bank
     setBankAccounts(prev => {
       if (prev.length === 0) return prev;
+      const targetIndex = payment.bankAccountId ? prev.findIndex(b => b.id === payment.bankAccountId) : 0;
+      const idx = targetIndex >= 0 ? targetIndex : 0;
       const updated = [...prev];
-      updated[0] = { ...updated[0], currentBalance: updated[0].currentBalance + totalAmountReceived };
-      enqueueChange('bank_accounts', 'UPDATE', updated[0].id, updated[0], `ইএমআই ব্যাংক জমা (${updated[0].bankName})`);
+      updated[idx] = { ...updated[idx], currentBalance: updated[idx].currentBalance + totalAmountReceived };
+      enqueueChange('bank_accounts', 'UPDATE', updated[idx].id, updated[idx], `ইএমআই ব্যাংক জমা (${updated[idx].bankName})`);
       return updated;
     });
   }
@@ -580,7 +579,7 @@ export const executeSendEMIReminderSMS = (
   const inst = plan.installments.find(i => i.installmentNo === installmentNo);
   if (!inst) return { success: false, error: 'কিস্তি পাওয়া যায়নি' };
 
-  const msgBody = `প্রিয় ${plan.customerName}, আপনার স্মার্টফোন কিস্তি #${plan.planNo}-এর কিস্তি নং ${installmentNo} (টাকা: ${inst.amount.toLocaleString()}) আগামী ${inst.dueDate} তারিখের মধ্যে পরিশোধের জন্য অনুরোধ করা হচ্ছে। হটলাইন: 01711-002233। টেলিকর্প।`;
+  const msgBody = `প্রিয় ${plan.customerName}, আপনার স্মার্টফোন কিস্তি #${plan.planNo}-এর কিস্তি নং ${installmentNo} (টাকা: ${inst.amount.toLocaleString()}) আগামী ${inst.dueDate} তারিখের মধ্যে পরিশোধের জন্য অনুরোধ করা হচ্ছে। হটলাইন: 01711-002233। FIROZA ENTERPRISE।`;
 
   const newSms: SmsLog = {
     id: `sms-emi-${Date.now()}`,
@@ -590,7 +589,7 @@ export const executeSendEMIReminderSMS = (
     messageBody: msgBody,
     sentAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
     status: 'Delivered',
-    masking: 'TeleCorp',
+    masking: 'FIROZA',
     smsUnits: 1
   };
 
@@ -608,7 +607,7 @@ export const executeDeleteEMIPlan = (
   planId: string,
   ctx: EMIContextBundle
 ): { success: boolean; error?: string } => {
-  const { emiPlans, setEmiPlans, imeis, setImeis, enqueueChange, addAudit } = ctx;
+  const { emiPlans, setEmiPlans, imeis, setImeis, customers, setCustomers, salesInvoices, setSalesInvoices, enqueueChange, addAudit } = ctx;
 
   const plan = emiPlans.find(p => p.id === planId);
   if (!plan) return { success: false, error: 'প্ল্যান পাওয়া যায়নি' };
@@ -616,10 +615,38 @@ export const executeDeleteEMIPlan = (
   // Revert IMEI back to In Stock
   setImeis(prev => prev.map(i => {
     if (i.imei1 === plan.imei) {
-      return { ...i, status: 'In Stock' as const };
+      return {
+        ...i,
+        status: 'In Stock' as const,
+        customerId: undefined,
+        customerName: undefined,
+        salesInvoiceNo: undefined
+      };
     }
     return i;
   }));
+
+  // Revert customer outstanding due for the uncollected portion
+  if (setCustomers && plan.totalRemaining > 0) {
+    setCustomers(prev => prev.map(c => {
+      if (c.id === plan.customerId) {
+        const updatedCust = { ...c, currentDue: Math.max(0, c.currentDue - plan.totalRemaining) };
+        enqueueChange('customers', 'UPDATE', c.id, updatedCust, `ইএমআই বাতিল: বকেয়া রিভার্সাল (${c.shopName})`);
+        return updatedCust;
+      }
+      return c;
+    }));
+  }
+
+  // Cancel associated sales invoice
+  if (setSalesInvoices && plan.invoiceNo) {
+    setSalesInvoices(prev => prev.map(inv => {
+      if (inv.invoiceNo === plan.invoiceNo) {
+        return { ...inv, status: 'Cancelled' as const, dueAmount: 0 };
+      }
+      return inv;
+    }));
+  }
 
   setEmiPlans(prev => prev.filter(p => p.id !== planId));
   enqueueChange('emi_plans', 'DELETE', planId, undefined, `ইএমআই প্ল্যান বাতিল (#${plan.planNo})`);

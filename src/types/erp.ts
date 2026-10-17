@@ -75,7 +75,7 @@ export interface Product {
   brandId: string;
   brandName: string;
   model: string;
-  category: 'Smartphone' | 'Feature Phone' | 'Tablet' | 'Accessories';
+  category: string;
   networkRegion: string; // e.g. "Global / BTRC Approved", "Official BD", "Unofficial"
   warrantyPeriodMonths: number;
   description: string;
@@ -459,6 +459,10 @@ export interface CashTransaction {
   voucherNo?: string;
   description: string;
   performedBy: string;
+  bankAccountId?: string;
+  warehouseId?: string;
+  customerId?: string;
+  supplierId?: string;
 }
 
 export interface ExpenseCategory {
@@ -476,6 +480,7 @@ export interface Expense {
   amount: number;
   paymentMethod: PaymentMethodType;
   bankAccountId?: string;
+  warehouseId?: string;
   description: string;
   approvedBy: string;
   recipientName?: string;

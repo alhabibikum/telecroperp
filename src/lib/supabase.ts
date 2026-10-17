@@ -1,13 +1,14 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Default Supabase project credentials for TeleCorp ERP
-export const DEFAULT_SUPABASE_URL = 'https://pghjefdamuzlishnidac.supabase.co';
-export const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnaGplZmRhbXV6bGlzaG5pZGFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTExMjI2OTMsImV4cCI6MjEwNjY5ODY5M30.902pBXobWEi51vPDP7BQg6VxLM24nuiPBIxk8UQoHMM';
+/** Cloud URL/key come from env or Settings — never ship project secrets in source. */
+export const DEFAULT_SUPABASE_URL = '';
+export const DEFAULT_SUPABASE_ANON_KEY = '';
 
 // Local storage keys for runtime configuration overrides
 const SUPABASE_URL_KEY = 'telecorp_supabase_url';
 const SUPABASE_KEY_KEY = 'telecorp_supabase_anon_key';
 const SUPABASE_ENABLED_KEY = 'telecorp_supabase_enabled';
+const SUPABASE_CONFIGURED_KEY = 'telecorp_supabase_configured';
 
 export interface SupabaseConfig {
   url: string;
@@ -19,24 +20,35 @@ export const getSupabaseConfig = (): SupabaseConfig => {
   const envUrl = import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
   const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
 
-  const storedUrl = localStorage.getItem(SUPABASE_URL_KEY) || envUrl;
-  const storedKey = localStorage.getItem(SUPABASE_KEY_KEY) || envKey;
+  const storedUrl = localStorage.getItem(SUPABASE_URL_KEY);
+  const storedKey = localStorage.getItem(SUPABASE_KEY_KEY);
+  const resolvedUrl = storedUrl ?? envUrl;
+  const resolvedKey = storedKey ?? envKey;
   const storedEnabled = localStorage.getItem(SUPABASE_ENABLED_KEY);
 
   // Enabled by default if URL and key are present
-  const enabled = storedEnabled !== null ? storedEnabled === 'true' : Boolean(storedUrl && storedKey);
+  const enabled = storedEnabled !== null ? storedEnabled === 'true' : Boolean(resolvedUrl && resolvedKey);
 
   return {
-    url: storedUrl,
-    anonKey: storedKey,
+    url: resolvedUrl,
+    anonKey: resolvedKey,
     enabled
   };
+};
+
+export const hasSupabaseConfigBeenSaved = (): boolean => {
+  if (localStorage.getItem(SUPABASE_CONFIGURED_KEY) === 'true') return true;
+  const config = getSupabaseConfig();
+  return Boolean(config.url && config.anonKey);
 };
 
 export const saveSupabaseConfig = (url: string, anonKey: string, enabled: boolean) => {
   localStorage.setItem(SUPABASE_URL_KEY, url.trim());
   localStorage.setItem(SUPABASE_KEY_KEY, anonKey.trim());
   localStorage.setItem(SUPABASE_ENABLED_KEY, String(enabled));
+  if (url.trim() && anonKey.trim()) {
+    localStorage.setItem(SUPABASE_CONFIGURED_KEY, 'true');
+  }
   // Reset client instance so it re-initializes with the new configuration
   clientInstance = null;
 };
@@ -94,6 +106,13 @@ export const testSupabaseConnection = async (url?: string, key?: string): Promis
     const latencyMs = Date.now() - startTime;
 
     if (error) {
+      if (error.code === '42501') {
+        return {
+          success: true,
+          latencyMs,
+          message: `Supabase connected; database access is protected by RLS. Auth login is available. Ping latency: ${latencyMs}ms.`
+        };
+      }
       // If table doesn't exist yet, but authentication reached Supabase
       if (error.code === 'PGRST116' || error.message.includes('relation "app_users" does not exist')) {
         return {

@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -38,7 +39,7 @@ interface RetailPOSViewProps {
 }
 
 export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) => {
-  const { products, imeis, warehouses, customers, createSale } = useERP();
+  const { products, imeis, warehouses, customers, bankAccounts, createSale } = useERP();
   const { showSuccess } = useToast();
 
   const retailOutlet = warehouses.find(w => w.type === 'Retail Outlet') || warehouses[0];
@@ -47,6 +48,7 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
   const [customerName, setCustomerName] = useState('Walk-in Customer');
   const [customerPhone, setCustomerPhone] = useState('01700-000000');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('Cash');
+  const [posBankAccountId, setPosBankAccountId] = useState(bankAccounts[0]?.id || '');
 
   // Direct Hardware Thermal Printer State
   const [connectedPrinter, setConnectedPrinter] = useState<{
@@ -172,8 +174,8 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
       customerPhone: customerPhone.trim() || '01700-000000',
       warehouseId: retailOutlet.id,
       warehouseName: retailOutlet.name,
-      invoiceDate: new Date().toISOString().split('T')[0],
-      dueDate: new Date().toISOString().split('T')[0],
+      invoiceDate: getLocalDateString(),
+      dueDate: getLocalDateString(),
       items: saleItems,
       subTotal: totalBill,
       discountTotal: 0,
@@ -184,7 +186,8 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
       payments: [
         {
           method: paymentMethod,
-          amount: totalBill
+          amount: totalBill,
+          bankAccountId: paymentMethod !== 'Cash' ? (posBankAccountId || bankAccounts[0]?.id) : undefined
         }
       ],
       status: 'Paid',
@@ -212,7 +215,7 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
         try {
           const receiptBytes = generateESCPOSReceipt({
             invoiceNo: invNo,
-            date: new Date().toISOString().split('T')[0],
+            date: getLocalDateString(),
             customerName,
             customerPhone,
             warehouseName: retailOutlet.name,
@@ -532,6 +535,25 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
                 </button>
               ))}
             </div>
+
+            {paymentMethod !== 'Cash' && (
+              <div className="pt-1.5">
+                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                  Settlement Account / Terminal *
+                </label>
+                <select
+                  value={posBankAccountId}
+                  onChange={(e) => setPosBankAccountId(e.target.value)}
+                  className="w-full p-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200"
+                >
+                  {bankAccounts.map(b => (
+                    <option key={b.id} value={b.id}>
+                      {b.bankName} ({b.accountNumber})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Checkout Button */}

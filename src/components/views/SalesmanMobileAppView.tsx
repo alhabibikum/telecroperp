@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -93,8 +94,8 @@ export const SalesmanMobileAppView: React.FC = () => {
       salesmanName: activeSalesman.name,
       warehouseId: warehouses[0]?.id || '',
       warehouseName: warehouses[0]?.name || '',
-      invoiceDate: new Date().toISOString().split('T')[0],
-      dueDate: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+      invoiceDate: getLocalDateString(),
+      dueDate: getLocalDateString(new Date(Date.now() + 15 * 86400000)),
       items: [
         {
           id: `mob-item-${Date.now()}`,

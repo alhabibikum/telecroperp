@@ -50,7 +50,7 @@ export const AppUpdaterModal: React.FC<AppUpdaterModalProps> = ({
 
   return (
     <WindowsModalFrame
-      title="TeleCorp ERP - সফটওয়্যার অটো-আপডেট"
+      title="FIROZA ERP - সফটওয়্যার অটো-আপডেট"
       isOpen={isOpen}
       onClose={isBusy ? () => {} : onClose}
       maxWidth="max-w-xl"

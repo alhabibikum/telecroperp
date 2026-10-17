@@ -99,7 +99,6 @@ export const SettingsView: React.FC = () => {
   const [companyPhone, setCompanyPhone] = useState(settings.companyPhone);
   const [companyEmail, setCompanyEmail] = useState(settings.companyEmail);
   const [vatTaxNumber, setVatTaxNumber] = useState(settings.vatTaxNumber);
-  const [valuationMethod, setValuationMethod] = useState(settings.valuationMethod);
   const [creditLimitHardBlock, setCreditLimitHardBlock] = useState(settings.creditLimitHardBlock);
 
   // Sync profile fields when settings change (e.g. after reset or backup restore)
@@ -109,7 +108,6 @@ export const SettingsView: React.FC = () => {
     setCompanyPhone(settings.companyPhone);
     setCompanyEmail(settings.companyEmail);
     setVatTaxNumber(settings.vatTaxNumber);
-    setValuationMethod(settings.valuationMethod);
     setCreditLimitHardBlock(settings.creditLimitHardBlock);
   }, [settings]);
 
@@ -173,21 +171,18 @@ export const SettingsView: React.FC = () => {
   const handleCopySchemaNotice = async () => {
     try {
       const resp = await fetch('/supabase_schema.sql');
-      if (resp.ok) {
-        const text = await resp.text();
-        await navigator.clipboard.writeText(text);
-        setCopiedSchema(true);
-        setMessage('সম্পূর্ণ supabase_schema.sql কোড ক্লিপবোর্ডে কপি হয়েছে! Supabase SQL Editor-এ পেস্ট করে Run করুন।');
-        setTimeout(() => setCopiedSchema(false), 3000);
-        setTimeout(() => setMessage(null), 5000);
-        return;
-      }
-    } catch (e) {
-      console.error('Failed to fetch schema sql for clipboard', e);
+      if (!resp.ok) throw new Error(`Schema download failed with HTTP ${resp.status}.`);
+      const text = await resp.text();
+      await navigator.clipboard.writeText(text);
+      setCopiedSchema(true);
+      setMessage('Base schema কপি হয়েছে। চালানোর আগে supabase/AUTH_SETUP.md অনুসরণ করুন।');
+      setTimeout(() => setCopiedSchema(false), 3000);
+      setTimeout(() => setMessage(null), 5000);
+    } catch (error) {
+      console.error('Failed to copy the base schema:', error);
+      setMessage('Base schema কপি করা যায়নি। Download button ব্যবহার করুন।');
+      setTimeout(() => setMessage(null), 5000);
     }
-    navigator.clipboard.writeText('supabase_schema.sql');
-    setCopiedSchema(true);
-    setTimeout(() => setCopiedSchema(false), 3000);
   };
 
   const [newUserForm, setNewUserForm] = useState<{
@@ -247,14 +242,14 @@ export const SettingsView: React.FC = () => {
     setShowAddUserModal(true);
   };
 
-  const handleCreateUserSubmit = (e: React.FormEvent) => {
+  const handleCreateUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newUserForm.name.trim() || !newUserForm.email.trim() || !newUserForm.password.trim()) {
+    if (!newUserForm.name.trim() || !newUserForm.email.trim() || newUserForm.password.length < 6) {
       setErrorMsg('নাম, ইমেইল ও পাসওয়ার্ড প্রদান করা আবশ্যক।');
       setTimeout(() => setErrorMsg(null), 3500);
       return;
     }
-    const res = createUser(newUserForm);
+    const res = await createUser(newUserForm);
     if (!res.success) {
       setErrorMsg(res.error || 'Failed to create user');
       setTimeout(() => setErrorMsg(null), 4000);
@@ -280,10 +275,10 @@ export const SettingsView: React.FC = () => {
     setShowEditUserModal(true);
   };
 
-  const handleEditUserSubmit = (e: React.FormEvent) => {
+  const handleEditUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
-    const res = updateUser(selectedUser.id, editUserForm);
+    const res = await updateUser(selectedUser.id, editUserForm);
     if (!res.success) {
       setErrorMsg(res.error || 'Failed to update user');
       setTimeout(() => setErrorMsg(null), 4000);
@@ -301,10 +296,10 @@ export const SettingsView: React.FC = () => {
     setShowResetPasswordModal(true);
   };
 
-  const handleResetPasswordSubmit = (e: React.FormEvent) => {
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
-    const res = resetUserPassword(selectedUser.id, userPasswordReset);
+    const res = await resetUserPassword(selectedUser.id, userPasswordReset);
     if (!res.success) {
       setErrorMsg(res.error || 'Password reset failed');
       setTimeout(() => setErrorMsg(null), 4000);
@@ -316,8 +311,8 @@ export const SettingsView: React.FC = () => {
     setTimeout(() => setMessage(null), 3500);
   };
 
-  const handleToggleStatus = (user: AuthUser) => {
-    const res = toggleUserStatus(user.id);
+  const handleToggleStatus = async (user: AuthUser) => {
+    const res = await toggleUserStatus(user.id);
     if (!res.success) {
       setErrorMsg(res.error || 'Status change failed');
       setTimeout(() => setErrorMsg(null), 4000);
@@ -327,9 +322,9 @@ export const SettingsView: React.FC = () => {
     setTimeout(() => setMessage(null), 3000);
   };
 
-  const handleDeleteUser = (user: AuthUser) => {
+  const handleDeleteUser = async (user: AuthUser) => {
     if (confirm(`আপনি কি নিশ্চিত যে "${user.name} (${user.role})" এর অ্যাকাউন্টটি মুছে ফেলতে চান?`)) {
-      const res = deleteUser(user.id);
+      const res = await deleteUser(user.id);
       if (!res.success) {
         setErrorMsg(res.error || 'Failed to delete user');
         setTimeout(() => setErrorMsg(null), 4000);
@@ -348,11 +343,10 @@ export const SettingsView: React.FC = () => {
       companyPhone,
       companyEmail,
       vatTaxNumber,
-      valuationMethod,
       creditLimitHardBlock
     });
-    setMessage('System configuration saved successfully!');
-    setTimeout(() => setMessage(null), 3500);
+    setMessage('কোম্পানির তথ্য ও কনফিগারেশন সফলভাবে সংরক্ষিত হয়েছে এবং ক্লাউডে (Supabase) সিঙ্ক করা হয়েছে!');
+    setTimeout(() => setMessage(null), 4000);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -378,7 +372,7 @@ export const SettingsView: React.FC = () => {
               setErrorMsg('Invalid backup file schema: Missing essential ERP tables.');
             }
           } catch (err) {
-            setErrorMsg('Failed to parse JSON file. Please ensure it is a valid TeleCorp backup file.');
+            setErrorMsg('Failed to parse JSON file. Please ensure it is a valid FIROZA ERP backup file.');
           }
         }
       };
@@ -828,7 +822,7 @@ export const SettingsView: React.FC = () => {
               </h3>
             </div>
             <p className="text-xs text-slate-500">
-              টেলিকর্প ইআরপিতে প্রতিটি রোলের জন্য আলাদা প্রিভিলেজ ও মডিউল পারমিশন রিয়েলটাইমে কনফিগার করা হয়েছে:
+              FIROZA ERP-তে প্রতিটি রোলের জন্য আলাদা প্রিভিলেজ ও মডিউল পারমিশন রিয়েলটাইমে কনফিগার করা হয়েছে:
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs pt-1">
@@ -1038,14 +1032,14 @@ export const SettingsView: React.FC = () => {
                 </div>
 
                 <p className="text-slate-600 text-[11px] leading-relaxed mt-3">
-                  আমরা আপনার প্রজেক্টের জন্য একটি সম্পূর্ণ রেডি-টু-ইউজ SQL ফাইল <strong className="font-mono text-slate-900">supabase_schema.sql</strong> তৈরি করেছি। এতে ২৪টি টেবিল, ফরেন কি, ডুয়াল-IMEI ইনডেক্স এবং স্টোর্ড প্রসিডিউর (<strong className="font-mono">process_wholesale_sale</strong>, <strong className="font-mono">void_wholesale_sale</strong>) যুক্ত রয়েছে।
+                  <strong className="font-mono text-slate-900">supabase_schema.sql</strong> একটি খালি Supabase প্রজেক্টের জন্য base schema; এটি existing database-এ চালাবেন না এবং এটি একা চালালে Auth/RLS setup সম্পূর্ণ হয় না। লগইন চালুর আগে Auth setup নির্দেশিকা অনুসরণ করুন।
                 </p>
 
                 <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200/80 font-mono text-[11px] text-slate-700 space-y-1">
                   <div>✓ app_users, brands, warehouses, products, imeis</div>
                   <div>✓ sales_invoices, purchase_invoices, stock_transfers</div>
                   <div>✓ journal_entries, chart_of_accounts, cash_transactions</div>
-                  <div>✓ Row Level Security (RLS) & Atomic Stored Procedures</div>
+                  <div>✓ API roles locked until Auth/RLS migrations are applied</div>
                 </div>
               </div>
 
@@ -1073,7 +1067,7 @@ export const SettingsView: React.FC = () => {
             {/* Quick 4-Step Setup Guide */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
               <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
-                <span>৪টি সহজ ধাপে ক্লাউড ডাটাবেজ চালু করার নিয়ম:</span>
+                <span>নিরাপদ ক্লাউড সেটআপ:</span>
               </h4>
 
               <div className="space-y-3 text-[11px] text-slate-600">
@@ -1090,21 +1084,21 @@ export const SettingsView: React.FC = () => {
                 <div className="flex items-start gap-2.5 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
                   <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">2</span>
                   <div>
-                    <strong className="text-slate-900">SQL Editor-এ স্কিমা চালান:</strong> বাম পাশের মেনু থেকে <strong>SQL Editor</strong>-এ গিয়ে বামের ডাউনলোড করা <code className="font-mono bg-white px-1 py-0.5 rounded border border-slate-200">supabase_schema.sql</code> ফাইলের সব কোড পেস্ট করে <strong>Run</strong> করুন।
+                    <strong className="text-slate-900">খালি প্রজেক্টে base schema:</strong> শুধু নতুন, খালি database-এ একবার চালান। Existing database-এ এই schema চালাবেন না।
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
                   <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">3</span>
                   <div>
-                    <strong className="text-slate-900">API Credentials কপি করুন:</strong> প্রজেক্টের <strong>Project Settings $\rightarrow$ Data API</strong>-তে গিয়ে <strong>Project URL</strong> এবং <strong>anon public key</strong> কপি করুন।
+                    <strong className="text-slate-900">Auth/RLS সেটআপ:</strong> <code>supabase/AUTH_SETUP.md</code> অনুসারে initial admin তৈরি করে migration <code>001</code> ও <code>002</code> ক্রমানুসারে চালান।
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
                   <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">4</span>
                   <div>
-                    <strong className="text-slate-900">কানেকশন টেস্ট ও উপভোগ করুন:</strong> ওপরের ফর্মে পেস্ট করে <strong>Ping & Test Connection</strong> দিয়ে কানেক্ট করুন। আপনার ইআরপি এখন সম্পূর্ণ ক্লাউডে চলবে!
+                    <strong className="text-slate-900">Public project config:</strong> শুধু Project URL ও anon public key অ্যাপের environment/settings-এ দিন। RLS migration না হওয়া পর্যন্ত অ্যাপে লগইন চালু করবেন না।
                   </div>
                 </div>
               </div>
@@ -1465,6 +1459,17 @@ export const SettingsView: React.FC = () => {
                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono"
               />
             </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 mb-1">Corporate Official Email</label>
+              <input
+                type="email"
+                value={companyEmail}
+                onChange={(e) => setCompanyEmail(e.target.value)}
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono"
+                placeholder="operations@firoza-enterprise.com"
+              />
+            </div>
           </div>
 
           <h3 className="font-bold text-slate-900 text-sm border-b border-slate-200 pb-2 pt-4">
@@ -1474,14 +1479,9 @@ export const SettingsView: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block font-semibold text-slate-700 mb-1">Inventory Valuation Model</label>
-              <select
-                value={valuationMethod}
-                onChange={(e) => setValuationMethod(e.target.value as any)}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
-              >
-                <option value="FIFO">FIFO (First In First Out) — Mobile Standard</option>
-                <option value="Weighted Average">Weighted Average Costing</option>
-              </select>
+              <div className="w-full p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-sm">
+                FIFO and weighted-average costing are not implemented. Inventory currently reports recorded IMEI purchase costs only.
+              </div>
             </div>
 
             <div>
@@ -1529,7 +1529,7 @@ export const SettingsView: React.FC = () => {
                     </span>
                   </div>
                   <h3 className="text-xl font-black text-white mt-1.5">
-                    TeleCorp ERP - ডেস্কটপ অটো-আপডেট ইঞ্জিন
+                    FIROZA ERP - ডেস্কটপ অটো-আপডেট ইঞ্জিন
                   </h3>
                   <p className="text-xs text-slate-400 mt-1 max-w-xl leading-relaxed">
                     গিটহাবে নতুন .exe রিলিজ তৈরি হওয়া মাত্রই সফ্টওয়্যারটি স্বয়ংক্রিয়ভাবে নোটিফিকেশন পাঠাবে এবং ১-ক্লিক করলে কোনো অতিরিক্ত ইনস্টলার উইজার্ড বা ক্লিক ছাড়াই সম্পূর্ণ ইনস্টল ও রিস্টার্ট হবে।
@@ -1570,7 +1570,7 @@ export const SettingsView: React.FC = () => {
               <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60">
                 <span className="text-xs text-slate-400 block mb-1">রিলিজ চ্যানেল ও রেপো</span>
                 <div className="text-sm font-bold text-slate-200 font-mono truncate">
-                  alhabibikum/telecroperp
+                  FIROZA ERP Releases
                 </div>
                 <span className="text-[10px] text-cyan-400 mt-1 block">
                   GitHub Actions অটো বিল্ড (.exe)
@@ -1864,7 +1864,7 @@ export const SettingsView: React.FC = () => {
                   <input
                     type="email"
                     required
-                    placeholder="abrar@telecorp.com"
+                    placeholder="name@firoza-enterprise.com"
                     value={newUserForm.email}
                     onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white"
@@ -1893,10 +1893,12 @@ export const SettingsView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">লগইন পাসওয়ার্ড (Password) *</label>
+                  <label className="block font-bold text-slate-700 mb-1">লগইন পাসওয়ার্ড (Password) * — কমপক্ষে ৬ অক্ষর</label>
                   <input
-                    type="text"
+                    type="password"
                     required
+                    minLength={6}
+                    autoComplete="new-password"
                     placeholder="পাসওয়ার্ড লিখুন..."
                     value={newUserForm.password}
                     onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
@@ -2122,9 +2124,11 @@ export const SettingsView: React.FC = () => {
               <div>
                 <label className="block font-bold text-slate-700 mb-1">নতুন পাসওয়ার্ড (New Password) *</label>
                 <input
-                  type="text"
+                  type="password"
                   required
-                  placeholder="কমপক্ষে ৪ অক্ষরের পাসওয়ার্ড..."
+                  minLength={6}
+                  autoComplete="new-password"
+                  placeholder="কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড..."
                   value={userPasswordReset}
                   onChange={(e) => setUserPasswordReset(e.target.value)}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono focus:ring-2 focus:ring-blue-500 focus:bg-white"

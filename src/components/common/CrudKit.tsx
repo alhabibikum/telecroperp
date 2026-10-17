@@ -3,14 +3,18 @@ import { Pencil, Trash2, Ban, X, AlertTriangle, CheckCircle2 } from 'lucide-reac
 import type { CrudResult } from '../../context/ERPContext';
 import { useFormKeyboardNavigation } from '../../hooks/useFormKeyboardNavigation';
 import { HistoryInput, HistoryTextarea } from './HistoryInput';
+import { DateInput } from './DateInput';
 import { recordFormHistory } from '../../services/formHistoryService';
 import { useToast } from './ToastNotificationSystem';
+import { useQuickCreateMasterData } from './QuickCreateMasterDataModal';
+import type { QuickCreateKind } from './QuickCreateMasterDataModal';
 
 export interface FieldDef {
   key: string;
   label: string;
   type?: 'text' | 'number' | 'select' | 'textarea' | 'date' | 'email';
   options?: Array<string | { value: string; label: string }>;
+  quickCreate?: QuickCreateKind;
   required?: boolean;
   readOnly?: boolean;
   half?: boolean;
@@ -29,6 +33,7 @@ interface EditModalProps {
 /** Generic form modal. Numbers are converted back to numbers on save. */
 export const EditModal: React.FC<EditModalProps> = ({ title, fields, initial, onSave, onClose, saveLabel = 'Save Changes' }) => {
   const { showSuccess } = useToast();
+  const { onQuickCreateKeyDown, quickCreateModal } = useQuickCreateMasterData();
   const [values, setValues] = useState<Record<string, any>>({ ...initial });
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -79,6 +84,7 @@ export const EditModal: React.FC<EditModalProps> = ({ title, fields, initial, on
   const inputCls = 'w-full p-2 bg-slate-50 border border-slate-300 rounded-lg text-xs disabled:opacity-60';
 
   return (
+    <>
     <div
       className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
       role="dialog"
@@ -129,6 +135,9 @@ export const EditModal: React.FC<EditModalProps> = ({ title, fields, initial, on
                     value={values[f.key] ?? ''}
                     disabled={f.readOnly}
                     onChange={ev => setValues(v => ({ ...v, [f.key]: ev.target.value }))}
+                    onKeyDown={f.quickCreate
+                      ? onQuickCreateKeyDown(f.quickCreate, value => setValues(current => ({ ...current, [f.key]: value })))
+                      : undefined}
                   >
                     {(f.options || []).map(o => {
                       const val = typeof o === 'string' ? o : o.value;
@@ -144,6 +153,13 @@ export const EditModal: React.FC<EditModalProps> = ({ title, fields, initial, on
                   <HistoryTextarea
                     historyKey={f.key}
                     rows={3}
+                    className={inputCls}
+                    value={values[f.key] ?? ''}
+                    disabled={f.readOnly}
+                    onChange={ev => setValues(v => ({ ...v, [f.key]: ev.target.value }))}
+                  />
+                ) : f.type === 'date' ? (
+                  <DateInput
                     className={inputCls}
                     value={values[f.key] ?? ''}
                     disabled={f.readOnly}
@@ -196,6 +212,8 @@ export const EditModal: React.FC<EditModalProps> = ({ title, fields, initial, on
         </form>
       </div>
     </div>
+    {quickCreateModal}
+    </>
   );
 };
 

@@ -1,7 +1,8 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import { CrudResult, JournalEntry, CashTransaction } from '../../types/erp';
 import { generateDocNumber } from '../../utils/formatters';
 
-export const todayStr = () => new Date().toISOString().split('T')[0];
+export const todayStr = () => getLocalDateString();
 export const fail = (error: string): CrudResult => ({ success: false, error });
 export const ok = (id?: string): CrudResult => ({ success: true, id });
 
@@ -38,7 +39,13 @@ export const pushCashHelper = (
   amount: number,
   referenceNo: string,
   description: string,
-  currentUserRole: string
+  currentUserRole: string,
+  extra?: {
+    warehouseId?: string;
+    customerId?: string;
+    supplierId?: string;
+    bankAccountId?: string;
+  }
 ) => {
   setCashTransactions(prev => [
     {
@@ -49,7 +56,11 @@ export const pushCashHelper = (
       amount,
       referenceNo,
       description,
-      performedBy: currentUserRole
+      performedBy: currentUserRole,
+      warehouseId: extra?.warehouseId,
+      customerId: extra?.customerId,
+      supplierId: extra?.supplierId,
+      bankAccountId: extra?.bankAccountId
     },
     ...prev
   ]);

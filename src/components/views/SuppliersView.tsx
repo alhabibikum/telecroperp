@@ -23,9 +23,10 @@ import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 import { HistoryInput } from '../common/HistoryInput';
 import { recordFieldHistory } from '../../services/formHistoryService';
 import { useToast } from '../common/ToastNotificationSystem';
+import { ExcelImportExportActions } from '../common/ExcelImportExportActions';
 
 export const SuppliersView: React.FC = () => {
-  const { suppliers, bankAccounts, imeis, paySupplier, addSupplier, updateSupplier, deleteSupplier } = useERP();
+  const { suppliers, bankAccounts, imeis, paySupplier, addSupplier, updateSupplier, deleteSupplier, importPartyProfiles } = useERP();
   const { showSuccess } = useToast();
   const [editing, setEditing] = useState<Supplier | null>(null);
 
@@ -48,6 +49,8 @@ export const SuppliersView: React.FC = () => {
   const [newMobile, setNewMobile] = useState('');
   const [newDistrict, setNewDistrict] = useState('Dhaka');
   const [newCreditLimit, setNewCreditLimit] = useState<number>(5000000);
+  const [newTaxVatNumber, setNewTaxVatNumber] = useState('');
+  const [newTradeLicense, setNewTradeLicense] = useState('');
 
   const filtered = suppliers.filter(s => {
     const q = searchTerm.trim().toLowerCase();
@@ -103,8 +106,8 @@ export const SuppliersView: React.FC = () => {
       email: '',
       address: 'Commercial Area',
       district: newDistrict,
-      taxVatNumber: 'BIN-0091223-0101',
-      tradeLicense: 'TRAD-2026-9921',
+      taxVatNumber: newTaxVatNumber.trim(),
+      tradeLicense: newTradeLicense.trim(),
       openingBalance: 0,
       creditLimit: newCreditLimit,
       paymentTermsDays: 15,
@@ -118,6 +121,8 @@ export const SuppliersView: React.FC = () => {
     recordFieldHistory('contactPerson', newContact || supplierDisplayName);
     recordFieldHistory('mobile', newMobile);
     recordFieldHistory('district', newDistrict);
+    recordFieldHistory('taxVatNumber', newTaxVatNumber);
+    recordFieldHistory('tradeLicense', newTradeLicense);
 
     setAddSuccessMsg(`✓ সাপ্লায়ার "${supplierDisplayName}" সফলভাবে সিস্টেমে যুক্ত হয়েছে! উইন্ডো খোলা রয়েছে পরবর্তী এন্ট্রির জন্য।`);
     showSuccess(
@@ -130,6 +135,8 @@ export const SuppliersView: React.FC = () => {
     setNewCompany('');
     setNewContact('');
     setNewMobile('');
+    setNewTaxVatNumber('');
+    setNewTradeLicense('');
   };
 
   return (
@@ -148,13 +155,27 @@ export const SuppliersView: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-xs transition"
-        >
-          <PlusCircle className="w-4 h-4" />
-          + Add New Supplier
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <ExcelImportExportActions
+            entityName="সাপ্লায়ার"
+            fileName="FIROZA_Suppliers.xlsx"
+            sheetName="Suppliers"
+            columns={[
+              'id', 'supplierCode', 'name', 'companyName', 'contactPerson', 'mobile', 'alternativeMobile',
+              'email', 'address', 'district', 'taxVatNumber', 'tradeLicense', 'openingBalance',
+              'creditLimit', 'paymentTermsDays', 'currentDue', 'bankInfo', 'status', 'notes'
+            ]}
+            records={suppliers}
+            onImport={rows => importPartyProfiles('suppliers', rows)}
+          />
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-xs transition"
+          >
+            <PlusCircle className="w-4 h-4" />
+            + Add New Supplier
+          </button>
+        </div>
       </div>
 
       {message && (
@@ -418,6 +439,29 @@ export const SuppliersView: React.FC = () => {
                     onChange={(e) => setNewMobile(e.target.value)}
                     className="w-full p-2 bg-slate-50 border rounded-lg"
                     required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">BIN / VAT Number</label>
+                  <HistoryInput
+                    historyKey="taxVatNumber"
+                    type="text"
+                    value={newTaxVatNumber}
+                    onChange={(e) => setNewTaxVatNumber(e.target.value)}
+                    className="w-full p-2 bg-slate-50 border rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Trade License Number</label>
+                  <HistoryInput
+                    historyKey="tradeLicense"
+                    type="text"
+                    value={newTradeLicense}
+                    onChange={(e) => setNewTradeLicense(e.target.value)}
+                    className="w-full p-2 bg-slate-50 border rounded-lg"
                   />
                 </div>
               </div>

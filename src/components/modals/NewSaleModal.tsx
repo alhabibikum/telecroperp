@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState, useEffect } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -27,8 +28,10 @@ import { WindowsModalFrame } from '../common/WindowsModalFrame';
 import { playScanSuccessSound, playWarningBuzzer, playCashRegisterSound } from '../../utils/audioAlertUtils';
 import { shareInvoiceViaWhatsApp } from '../../utils/whatsappUtils';
 import { HistoryInput } from '../common/HistoryInput';
+import { DateInput } from '../common/DateInput';
 import { recordFieldHistory } from '../../services/formHistoryService';
 import { useToast } from '../common/ToastNotificationSystem';
+import { useQuickCreateMasterData } from '../common/QuickCreateMasterDataModal';
 
 interface NewSaleModalProps {
   isOpen: boolean;
@@ -56,12 +59,13 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
     createSale,
     settings
   } = useERP();
+  const { onQuickCreateKeyDown, quickCreateModal } = useQuickCreateMasterData();
 
   const [invoiceType, setInvoiceType] = useState<'Wholesale' | 'Retail POS'>(defaultType);
   const [customerId, setCustomerId] = useState<string>(customers[0]?.id || '');
   const [warehouseId, setWarehouseId] = useState<string>(warehouses[0]?.id || '');
   const [salesmanId, setSalesmanId] = useState<string>(salesmen[0]?.id || '');
-  const [invoiceDate, setInvoiceDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [invoiceDate, setInvoiceDate] = useState<string>(getLocalDateString());
   const [notes, setNotes] = useState('');
 
   // Items
@@ -276,7 +280,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
   const dueDays = selectedCustomer?.allowedDueDays || 15;
   const dueDateObj = new Date(invoiceDate);
   dueDateObj.setDate(dueDateObj.getDate() + dueDays);
-  const calculatedDueDate = dueDateObj.toISOString().split('T')[0];
+  const calculatedDueDate = getLocalDateString(dueDateObj);
 
   // Totals
   const subTotal = items.reduce((acc, it) => acc + (it.unitPrice * it.quantity), 0);
@@ -597,6 +601,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
               <select
                 value={customerId}
                 onChange={(e) => setCustomerId(e.target.value)}
+                onKeyDown={onQuickCreateKeyDown('customer', setCustomerId)}
                 className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:bg-white dark:focus:bg-slate-800"
                 required
               >
@@ -615,6 +620,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
               <select
                 value={warehouseId}
                 onChange={(e) => setWarehouseId(e.target.value)}
+                onKeyDown={onQuickCreateKeyDown('warehouse', setWarehouseId)}
                 className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:bg-white dark:focus:bg-slate-800"
                 required
               >
@@ -633,6 +639,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
               <select
                 value={salesmanId}
                 onChange={(e) => setSalesmanId(e.target.value)}
+                onKeyDown={onQuickCreateKeyDown('salesman', setSalesmanId)}
                 className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:bg-white dark:focus:bg-slate-800"
               >
                 <option value="">Direct House Sale (No Commission)</option>
@@ -648,8 +655,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Invoice Date *
               </label>
-              <input
-                type="date"
+              <DateInput
                 value={invoiceDate}
                 onChange={(e) => setInvoiceDate(e.target.value)}
                 className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:bg-white dark:focus:bg-slate-800"
@@ -741,6 +747,18 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
                         <select
                           value={item.productId}
                           onChange={(e) => handleProductChange(idx, e.target.value)}
+                          onKeyDown={onQuickCreateKeyDown('product', (id, variant) => {
+                            if (!variant) return;
+                            setItems(prev => prev.map((line, lineIndex) => lineIndex === idx
+                              ? {
+                                  ...line,
+                                  productId: id,
+                                  variantId: variant.id,
+                                  unitPrice: invoiceType === 'Wholesale' ? variant.wholesalePrice : variant.retailPrice,
+                                  selectedImeis: []
+                                }
+                              : line));
+                          })}
                           className="w-full text-xs p-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100"
                         >
                           {products.map(p => (
@@ -757,6 +775,17 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
                         <select
                           value={item.variantId}
                           onChange={(e) => handleVariantChange(idx, e.target.value)}
+                          onKeyDown={onQuickCreateKeyDown('variant', (id, variant) => {
+                            if (!variant) return;
+                            setItems(prev => prev.map((line, lineIndex) => lineIndex === idx
+                              ? {
+                                  ...line,
+                                  variantId: id,
+                                  unitPrice: invoiceType === 'Wholesale' ? variant.wholesalePrice : variant.retailPrice,
+                                  selectedImeis: []
+                                }
+                              : line));
+                          }, item.productId)}
                           className="w-full text-xs p-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100"
                         >
                           {prod?.variants.map(v => (
@@ -934,6 +963,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
                   <select
                     value={bankAccountId}
                     onChange={(e) => setBankAccountId(e.target.value)}
+                    onKeyDown={onQuickCreateKeyDown('bankAccount', setBankAccountId)}
                     className="w-full text-xs p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100"
                   >
                     {bankAccounts.map(b => (
@@ -1063,6 +1093,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
         title="সেল ইনভয়েস বাতিল করবেন? (Discard Sale Invoice?)"
         message="আপনি ইতিমধ্যে আইটেম বা আইএমইআই সিলেক্ট করেছেন। এখন বন্ধ করলে সম্পূর্ণ ইনভয়েস ড্রাফট মুছে যাবে।"
       />
+      {quickCreateModal}
     </>
   );
 };

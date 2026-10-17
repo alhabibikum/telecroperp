@@ -18,7 +18,7 @@ export function generateWhatsAppInvoiceMessage(data: WhatsAppInvoiceData): strin
     year: 'numeric'
   });
 
-  let message = `*টেলিকর্প ইআরপি - ক্যাশ মেমো / ইনভয়েস* 📱\n`;
+  let message = `*FIROZA ENTERPRISE - ক্যাশ মেমো / ইনভয়েস* 📱\n`;
   message += `━━━━━━━━━━━━━━━━━━━━\n`;
   message += `📄 *মেমো নং:* ${data.invoiceNo}\n`;
   message += `👤 *গ্রাহক / ডিলার:* ${data.customerName}\n`;
