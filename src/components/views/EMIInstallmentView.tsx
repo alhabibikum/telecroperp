@@ -1,3 +1,4 @@
+import { addMonthsToDate, getLocalDateString } from '../../utils/dateUtils';
 import React, { useState, useMemo } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -76,7 +77,7 @@ export const EMIInstallmentView: React.FC = () => {
   const [calcDownPayment, setCalcDownPayment] = useState<number>(20000);
   const [calcTenureMonths, setCalcTenureMonths] = useState<number>(6);
   const [calcInterestRate, setCalcInterestRate] = useState<number>(0); // 0% zero EMI
-  const [calcStartDate, setCalcStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [calcStartDate, setCalcStartDate] = useState(getLocalDateString());
 
   // Guarantor & Document Vault state
   const [guarantorName, setGuarantorName] = useState('');
@@ -987,9 +988,7 @@ export const EMIInstallmentView: React.FC = () => {
             <div className="space-y-1.5 text-xs max-h-64 overflow-y-auto pr-1">
               <div className="text-[11px] font-bold text-slate-400 mb-1">মাসিক কিস্তির তারিখসমূহ:</div>
               {Array.from({ length: calcTenureMonths }).map((_, idx) => {
-                const d = new Date(calcStartDate);
-                d.setMonth(d.getMonth() + idx + 1);
-                const dueStr = d.toISOString().split('T')[0];
+                const dueStr = addMonthsToDate(calcStartDate, idx + 1);
 
                 return (
                   <div key={idx} className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 text-[11px]">

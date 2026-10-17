@@ -22,6 +22,7 @@ import { NewProductModal } from '../modals/NewProductModal';
 import { RowActions, EditModal } from '../common/CrudKit';
 import type { Product, ProductVariant, IMEIStatus } from '../../types/erp';
 import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
+import { ExcelImportExportActions } from '../common/ExcelImportExportActions';
 
 interface InventoryViewProps {
   onOpenStockTransfer: () => void;
@@ -34,7 +35,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   onOpenIMEILookup,
   onSelectView
 }) => {
-  const { products, imeis, warehouses, brands, settings, updateProduct, deleteProduct, adjustStockIMEIs } = useERP();
+  const { products, imeis, warehouses, brands, settings, updateProduct, deleteProduct, adjustStockIMEIs, importProducts } = useERP();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('All');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -97,6 +98,43 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <ExcelImportExportActions
+            entityName="Product variants"
+            fileName="FIROZA_Inventory_Products.xlsx"
+            sheetName="Products"
+            columns={[
+              'productId', 'variantId', 'brandId', 'brandName', 'model', 'category',
+              'networkRegion', 'warrantyPeriodMonths', 'description', 'status', 'sku',
+              'ram', 'storage', 'color', 'purchasePrice', 'dealerPrice', 'wholesalePrice',
+              'retailPrice', 'minSellingPrice', 'maxDiscount', 'reorderLevel', 'currentStock'
+            ]}
+            records={products.flatMap(product => product.variants.map(variant => ({
+              productId: product.id,
+              variantId: variant.id,
+              brandId: product.brandId,
+              brandName: product.brandName,
+              model: product.model,
+              category: product.category,
+              networkRegion: product.networkRegion,
+              warrantyPeriodMonths: product.warrantyPeriodMonths,
+              description: product.description,
+              status: product.status,
+              sku: variant.sku,
+              ram: variant.ram,
+              storage: variant.storage,
+              color: variant.color,
+              purchasePrice: variant.purchasePrice,
+              dealerPrice: variant.dealerPrice,
+              wholesalePrice: variant.wholesalePrice,
+              retailPrice: variant.retailPrice,
+              minSellingPrice: variant.minSellingPrice,
+              maxDiscount: variant.maxDiscount,
+              reorderLevel: variant.reorderLevel,
+              currentStock: variant.currentStock
+            })))}
+            onImport={importProducts}
+            helpText="একটি ভ্যারিয়েন্ট প্রতি সারি। Import-এ বর্তমান স্টক পরিবর্তন হবে না; নতুন পণ্য যোগ করতে productId ও variantId ফাঁকা রাখুন।"
+          />
           <button
             onClick={() => {
               setScannerMode('lookup');

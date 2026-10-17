@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState, useMemo } from 'react';
 import { useERP } from '../../context/ERPContext';
 import * as XLSX from 'xlsx';
@@ -94,13 +95,13 @@ export const DynamicBusinessReportView: React.FC = () => {
   // ==============================================================
   // 1. FILTER CONTROLS STATE
   // ==============================================================
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDateString();
 
   const [timeframe, setTimeframe] = useState<TimeframePreset>('monthly');
   const [fromDate, setFromDate] = useState<string>(() => {
     const d = new Date();
     d.setDate(1); // First of current month
-    return d.toISOString().split('T')[0];
+    return getLocalDateString(d);
   });
   const [toDate, setToDate] = useState<string>(todayStr);
 
@@ -163,7 +164,7 @@ export const DynamicBusinessReportView: React.FC = () => {
   const handleTimeframeChange = (preset: TimeframePreset) => {
     setTimeframe(preset);
     const now = new Date();
-    const endStr = now.toISOString().split('T')[0];
+    const endStr = getLocalDateString(now);
     setToDate(endStr);
 
     if (preset === 'daily') {
@@ -172,17 +173,17 @@ export const DynamicBusinessReportView: React.FC = () => {
       const start = new Date(now);
       const day = start.getDay(); // 0 is Sunday
       start.setDate(start.getDate() - day);
-      setFromDate(start.toISOString().split('T')[0]);
+      setFromDate(getLocalDateString(start));
     } else if (preset === 'monthly') {
       const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      setFromDate(start.toISOString().split('T')[0]);
+      setFromDate(getLocalDateString(start));
     } else if (preset === 'quarterly') {
       const quarter = Math.floor(now.getMonth() / 3);
       const start = new Date(now.getFullYear(), quarter * 3, 1);
-      setFromDate(start.toISOString().split('T')[0]);
+      setFromDate(getLocalDateString(start));
     } else if (preset === 'yearly') {
       const start = new Date(now.getFullYear(), 0, 1);
-      setFromDate(start.toISOString().split('T')[0]);
+      setFromDate(getLocalDateString(start));
     }
   };
 
@@ -200,8 +201,8 @@ export const DynamicBusinessReportView: React.FC = () => {
     prevStart.setDate(prevStart.getDate() - diffDays + 1);
 
     return {
-      prevFrom: prevStart.toISOString().split('T')[0],
-      prevTo: prevEnd.toISOString().split('T')[0]
+      prevFrom: getLocalDateString(prevStart),
+      prevTo: getLocalDateString(prevEnd)
     };
   }, [fromDate, toDate]);
 

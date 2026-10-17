@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState, useMemo } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -150,7 +151,7 @@ export const CashBankView: React.FC = () => {
     const finalRef = cashRef.trim() || `CSH-${Date.now().toString().slice(-6)}`;
     const finalDesc = cashDesc.trim() || `${cashType} Entry`;
     const res = addCashTransaction({
-      date: `${new Date().toISOString().split('T')[0]} ${new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}`,
+      date: `${getLocalDateString()} ${new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}`,
       type: cashType,
       category: cashCategory,
       amount: amt,
@@ -193,7 +194,7 @@ export const CashBankView: React.FC = () => {
     return cashTransactions.filter(tx => {
       // Period filter
       if (cashFilterPeriod !== 'all') {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateString();
         if (cashFilterPeriod === 'today' && !tx.date.startsWith(today)) return false;
         if (cashFilterPeriod === 'this_month') {
           const currentMonth = today.slice(0, 7);

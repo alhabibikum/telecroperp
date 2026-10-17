@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../utils/dateUtils';
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { erpStorage } from '../services/storageService';
 import { sanitizePartialSystemSettings, sanitizeSystemSettings } from '../utils/sanitizeApiIntegrations';
@@ -171,6 +172,8 @@ import {
   executeAddBrandIncentiveScheme,
   executeUpdateBrandIncentiveStatus,
   executeBulkImportData,
+  executeImportPartyProfiles,
+  executeImportProducts,
   executeSendSmsNotification,
   executeAdjustStockIMEIs
 } from './actions/masterDataActions';
@@ -489,6 +492,8 @@ interface ERPContextType {
   performDayClosing: (data: Omit<DayClosingRecord, 'id' | 'closingNo' | 'createdAt'>) => { success: boolean; closingNo: string };
   processPhoneExchange: (data: Omit<PhoneExchangeTransaction, 'id' | 'exchangeNo' | 'createdAt'>) => { success: boolean; exchangeNo?: string; error?: string };
   bulkImportData: (entityType: 'customers' | 'suppliers' | 'products' | 'imeis', rows: any[]) => { success: boolean; count: number; error?: string };
+  importPartyProfiles: (entityType: 'customers' | 'suppliers', rows: Record<string, unknown>[]) => { success: boolean; count: number; error?: string };
+  importProducts: (rows: Record<string, unknown>[]) => { success: boolean; count: number; error?: string };
   addWarrantyClaim: (claim: Omit<WarrantyClaim, 'id' | 'rmaNumber'>) => { success: boolean; rmaNumber: string };
   updateWarrantyStatus: (id: string, status: WarrantyClaim['status'], updates?: Partial<WarrantyClaim>) => void;
   addBrandIncentiveScheme: (scheme: Omit<BrandIncentiveScheme, 'id'>) => void;
@@ -1091,7 +1096,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           supplierId: i.supplier_id || 'sup-1',
           supplierName: i.supplier_name || '',
           purchaseInvoiceNo: i.purchase_invoice_no || '',
-          purchaseDate: i.purchase_date || new Date().toISOString().split('T')[0],
+          purchaseDate: i.purchase_date || getLocalDateString(),
           warehouseId: i.warehouse_id,
           warehouseName: i.warehouse_name,
           status: i.status || 'In Stock',
@@ -2394,7 +2399,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteSalesman = (id: string) => executeDeleteSalesman(id, masterDataBundle);
 
   const disburseSalesmanCommission = (data: Omit<CommissionDisbursement, 'id' | 'disbursementNo' | 'status' | 'paidAt'>) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const disbursementNo = `COM-${data.month.replace('-', '')}-${String(commissionDisbursements.length + 1).padStart(3, '0')}`;
     const newRecord: CommissionDisbursement = {
       ...data,
@@ -2477,6 +2482,10 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const bulkImportData = (entityType: 'customers' | 'suppliers' | 'products' | 'imeis', rows: any[]) =>
     executeBulkImportData(entityType, rows, masterDataBundle);
+  const importPartyProfiles = (entityType: 'customers' | 'suppliers', rows: Record<string, unknown>[]) =>
+    executeImportPartyProfiles(entityType, rows, masterDataBundle);
+  const importProducts = (rows: Record<string, unknown>[]) =>
+    executeImportProducts(rows, masterDataBundle);
 
   const sendSmsNotification = (sms: Omit<SmsLog, 'id' | 'sentAt' | 'status'>) => executeSendSmsNotification(sms, masterDataBundle);
   const adjustStockIMEIs = (data: {
@@ -2640,7 +2649,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const waiver = Number(data.discountWaiver) || 0;
     const totalDeduction = data.amount + waiver;
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const nowTime = new Date().toISOString().replace('T', ' ').substring(0, 16);
 
     // Generate unique MR No: e.g. MR-2026-0004
@@ -2871,7 +2880,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const rollbackWarehouseId = targetInvoice?.warehouseId || (warehouses[0]?.id || 'wh-1');
 
     if (target.paymentMethod === 'Cash') {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDateString();
       const voidCashTx: CashTransaction = {
         id: `cash-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
         date: `${today} 15:30`,
@@ -3301,6 +3310,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         performDayClosing,
         processPhoneExchange,
         bulkImportData,
+        importPartyProfiles,
+        importProducts,
         addWarrantyClaim,
         updateWarrantyStatus,
         addBrandIncentiveScheme,

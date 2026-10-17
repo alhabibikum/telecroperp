@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -48,7 +49,7 @@ export const FieldVisitsView: React.FC = () => {
 
   // New Follow-up Form
   const [fupCustomerId, setFupCustomerId] = useState(customers[0]?.id || '');
-  const [fupScheduledDate, setFupScheduledDate] = useState(new Date().toISOString().split('T')[0]);
+  const [fupScheduledDate, setFupScheduledDate] = useState(getLocalDateString());
   const [fupPurpose, setFupPurpose] = useState<any>('Due Payment Follow-up');
   const [fupNotes, setFupNotes] = useState('');
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { useERP } from '../../context/ERPContext';
+import { getLocalDateString } from '../../utils/dateUtils';
 import type { ProductVariant } from '../../types/erp';
 
 export type QuickCreateKind =
@@ -274,7 +275,7 @@ export const QuickCreateMasterDataModal: React.FC<QuickCreateModalProps> = ({
           mobile: values.mobile.trim(),
           email: '',
           address: '',
-          joiningDate: new Date().toISOString().slice(0, 10),
+          joiningDate: getLocalDateString(),
           basicSalary: 0,
           commissionType: 'Percentage of Sales',
           commissionRate: 0,

@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState, useMemo } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -70,7 +71,7 @@ export const AccountingView: React.FC = () => {
 
   // Manual Journal Voucher Modal State
   const [showAddJvModal, setShowAddJvModal] = useState(false);
-  const [jvDate, setJvDate] = useState(new Date().toISOString().split('T')[0]);
+  const [jvDate, setJvDate] = useState(getLocalDateString());
   const [jvRef, setJvRef] = useState('');
   const [jvDescription, setJvDescription] = useState('');
   const [jvLines, setJvLines] = useState<Array<{ accountCode: string; memo: string; debit: number; credit: number }>>([
@@ -83,7 +84,7 @@ export const AccountingView: React.FC = () => {
   const isDateInPeriod = (dateStr?: string) => {
     if (!dateStr) return true;
     if (periodFilter === 'all') return true;
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     if (periodFilter === 'today') return dateStr.startsWith(today);
     if (periodFilter === 'this_month') return dateStr.startsWith(today.slice(0, 7));
     if (periodFilter === 'this_year') return dateStr.startsWith(today.slice(0, 4));
@@ -237,7 +238,7 @@ export const AccountingView: React.FC = () => {
 
   const currentPeriodLabel =
     periodFilter === 'all' ? 'All Transactions (সর্বমোট)' :
-    periodFilter === 'today' ? `Today (${formatDate(new Date().toISOString().split('T')[0])})` :
+    periodFilter === 'today' ? `Today (${formatDate(getLocalDateString())})` :
     periodFilter === 'this_month' ? 'Current Month (চলতি মাস)' : 'Current Financial Year (চলতি বছর)';
 
   return (
@@ -403,7 +404,7 @@ export const AccountingView: React.FC = () => {
               <h3 className="font-extrabold text-sm text-slate-900 uppercase tracking-wider">
                 Statement of Financial Position (Balance Sheet - উদ্বৃত্ত পত্র)
               </h3>
-              <p className="text-xs text-slate-500">As of: {formatDate(new Date().toISOString().split('T')[0])} (BDT ৳)</p>
+              <p className="text-xs text-slate-500">As of: {formatDate(getLocalDateString())} (BDT ৳)</p>
             </div>
             <button
               onClick={() => window.print()}

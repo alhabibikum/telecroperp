@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -50,11 +51,11 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
 
   const [supplierId, setSupplierId] = useState<string>(suppliers[0]?.id || '');
   const [warehouseId, setWarehouseId] = useState<string>(warehouses[0]?.id || '');
-  const [purchaseDate, setPurchaseDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [purchaseDate, setPurchaseDate] = useState<string>(getLocalDateString());
   const [dueDate, setDueDate] = useState<string>(() => {
     const d = new Date();
     d.setDate(d.getDate() + 21);
-    return d.toISOString().split('T')[0];
+    return getLocalDateString(d);
   });
 
   const [items, setItems] = useState<Array<{

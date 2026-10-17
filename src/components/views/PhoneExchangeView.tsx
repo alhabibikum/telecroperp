@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -76,7 +77,7 @@ export const PhoneExchangeView: React.FC = () => {
     const selectedWh = warehouses.find(w => w.id === exchangeWarehouseId) || warehouses[0];
 
     const res = processPhoneExchange({
-      date: new Date().toISOString().split('T')[0],
+      date: getLocalDateString(),
       customerId: cust.id,
       customerName: cust.shopName,
       customerPhone: cust.mobile,

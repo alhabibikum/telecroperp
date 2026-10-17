@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -31,7 +32,7 @@ export const DayClosingView: React.FC = () => {
     currentUserRole
   } = useERP();
 
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getLocalDateString());
   const [warehouseId, setWarehouseId] = useState(warehouses[0]?.id || '');
   const [cashierName, setCashierName] = useState('Farhana Akhter (Cashier)');
   const [closingNotes, setClosingNotes] = useState('');

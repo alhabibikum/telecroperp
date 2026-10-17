@@ -1,7 +1,8 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import { CrudResult, JournalEntry, CashTransaction } from '../../types/erp';
 import { generateDocNumber } from '../../utils/formatters';
 
-export const todayStr = () => new Date().toISOString().split('T')[0];
+export const todayStr = () => getLocalDateString();
 export const fail = (error: string): CrudResult => ({ success: false, error });
 export const ok = (id?: string): CrudResult => ({ success: true, id });
 

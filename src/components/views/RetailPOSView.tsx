@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -173,8 +174,8 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
       customerPhone: customerPhone.trim() || '01700-000000',
       warehouseId: retailOutlet.id,
       warehouseName: retailOutlet.name,
-      invoiceDate: new Date().toISOString().split('T')[0],
-      dueDate: new Date().toISOString().split('T')[0],
+      invoiceDate: getLocalDateString(),
+      dueDate: getLocalDateString(),
       items: saleItems,
       subTotal: totalBill,
       discountTotal: 0,
@@ -214,7 +215,7 @@ export const RetailPOSView: React.FC<RetailPOSViewProps> = ({ onPrintInvoice }) 
         try {
           const receiptBytes = generateESCPOSReceipt({
             invoiceNo: invNo,
-            date: new Date().toISOString().split('T')[0],
+            date: getLocalDateString(),
             customerName,
             customerPhone,
             warehouseName: retailOutlet.name,

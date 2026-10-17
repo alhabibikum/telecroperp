@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
 import { calculateRecordedCOGS } from '../../utils/financialMetrics';
@@ -196,7 +197,7 @@ export const ReportsView: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `FIROZA_${reportTitle}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `FIROZA_${reportTitle}_${getLocalDateString()}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

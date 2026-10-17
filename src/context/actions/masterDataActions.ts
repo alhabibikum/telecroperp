@@ -2,6 +2,7 @@ import type React from 'react';
 import type {
   Brand,
   Product,
+  ProductVariant,
   IMEIRecord,
   IMEIStatus,
   Warehouse,
@@ -970,6 +971,478 @@ export const executeBulkImportData = (
   }
   addAudit(`Bulk Imported ${count} ${entityType}`, 'Bulk Import', 'IMPORT', undefined, `Added ${count} records`);
   return { success: true, count };
+};
+
+export type PartyProfileImportContext = Pick<
+  MasterDataContextBundle,
+  'customers' | 'setCustomers' | 'suppliers' | 'setSuppliers' | 'salesmen' | 'enqueueChange' | 'addAudit'
+>;
+
+export const executeImportPartyProfiles = (
+  entityType: 'customers' | 'suppliers',
+  rows: Record<string, unknown>[],
+  ctx: PartyProfileImportContext
+): { success: boolean; count: number; error?: string } => {
+  const normalizeText = (value: unknown): string => String(value ?? '').trim();
+  const normalizeMobile = (value: unknown): string => normalizeText(value).replace(/[\s()-]/g, '');
+  const readNumber = (value: unknown, fallback: number, rowNumber: number, field: string): number => {
+    if (value === '' || value === undefined || value === null) return fallback;
+    const number = typeof value === 'number' ? value : Number(String(value).replace(/,/g, ''));
+    if (!Number.isFinite(number) || number < 0) {
+      throw new Error(`Row ${rowNumber}: ${field} must be a non-negative number.`);
+    }
+    return number;
+  };
+
+  if (rows.length === 0) return { success: false, count: 0, error: 'Excel worksheet contains no profile rows.' };
+
+  try {
+    if (entityType === 'customers') {
+      const { customers, salesmen, setCustomers, enqueueChange, addAudit } = ctx;
+      const usedKeys = new Set<string>();
+      const incoming = rows.map((row, index) => {
+        const rowNumber = index + 2;
+        const shopName = normalizeText(row.shopName);
+        const mobile = normalizeText(row.mobile);
+        if (!shopName || !mobile) {
+          throw new Error(`Row ${rowNumber}: Shop / Outlet Name and Mobile are required.`);
+        }
+        const customerType = normalizeText(row.customerType) || 'Wholesale Dealer';
+        const status = normalizeText(row.status) || 'Active';
+        if (!['Wholesale Dealer', 'Sub-Dealer', 'Retail Shop', 'Corporate', 'Walk-in'].includes(customerType)) {
+          throw new Error(`Row ${rowNumber}: invalid Customer Type "${customerType}".`);
+        }
+        if (!['Active', 'Suspended', 'Blocked'].includes(status)) {
+          throw new Error(`Row ${rowNumber}: invalid Status "${status}".`);
+        }
+
+        const code = normalizeText(row.customerCode);
+        const mobileKey = normalizeMobile(mobile);
+        const key = code ? `code:${code.toLowerCase()}` : `mobile:${mobileKey}`;
+        if (usedKeys.has(key)) throw new Error(`Row ${rowNumber}: duplicate customer code or mobile in this file.`);
+        usedKeys.add(key);
+
+        const salesmanIdFromRow = normalizeText(row.salesmanId);
+        const salesmanNameFromRow = normalizeText(row.salesmanName);
+        const salesman = (salesmanIdFromRow
+          ? salesmen.find(item => item.id === salesmanIdFromRow)
+          : undefined) || (salesmanNameFromRow
+            ? salesmen.find(item => item.name.trim().toLowerCase() === salesmanNameFromRow.toLowerCase())
+            : undefined);
+        if ((salesmanIdFromRow || salesmanNameFromRow) && !salesman) {
+          throw new Error(`Row ${rowNumber}: assigned salesman was not found.`);
+        }
+
+        return {
+          rowNumber,
+          code,
+          mobileKey,
+          values: {
+            shopName,
+            ownerName: normalizeText(row.ownerName),
+            mobile,
+            alternativeMobile: normalizeText(row.alternativeMobile),
+            email: normalizeText(row.email),
+            address: normalizeText(row.address),
+            area: normalizeText(row.area),
+            district: normalizeText(row.district),
+            tradeLicense: normalizeText(row.tradeLicense),
+            nid: normalizeText(row.nid),
+            creditLimit: readNumber(row.creditLimit, 200000, rowNumber, 'Credit Limit'),
+            allowedDueDays: readNumber(row.allowedDueDays, 15, rowNumber, 'Allowed Due Days'),
+            salesmanId: salesman?.id,
+            salesmanName: salesman?.name,
+            customerType: customerType as Customer['customerType'],
+            status: status as Customer['status'],
+            notes: normalizeText(row.notes)
+          },
+          openingBalance: readNumber(row.openingBalance, 0, rowNumber, 'Opening Balance')
+        };
+      });
+
+      const existing = customers.map(customer => ({
+        customer,
+        mobileKey: normalizeMobile(customer.mobile)
+      }));
+      const matchedIds = new Set<string>();
+      const matches = incoming.map(item => {
+        const match = (item.code
+          ? existing.find(entry => entry.customer.customerCode.toLowerCase() === item.code.toLowerCase())
+          : undefined) || existing.find(entry => entry.mobileKey === item.mobileKey);
+        if (match && matchedIds.has(match.customer.id)) {
+          throw new Error(`Row ${item.rowNumber}: multiple rows match the same existing customer.`);
+        }
+        if (match) matchedIds.add(match.customer.id);
+        return match?.customer;
+      });
+
+      let nextCode = customers.length + 1;
+      const usedCodes = new Set(customers.map(customer => customer.customerCode));
+      const now = Date.now();
+      const updatedCustomers = incoming.map((item, index): Customer => {
+        const current = matches[index];
+        const customer: Customer = current
+          ? { ...current, ...item.values }
+          : {
+              ...item.values,
+              id: `cust-import-${now}-${index}`,
+              customerCode: (() => {
+                let code = `CUST-${String(nextCode).padStart(3, '0')}`;
+                while (usedCodes.has(code)) {
+                  nextCode += 1;
+                  code = `CUST-${String(nextCode).padStart(3, '0')}`;
+                }
+                usedCodes.add(code);
+                nextCode += 1;
+                return code;
+              })(),
+              openingBalance: item.openingBalance,
+              currentDue: item.openingBalance
+            };
+        return customer;
+      });
+      const importedById = new Map(updatedCustomers.map(customer => [customer.id, customer]));
+      const newIds = new Set(updatedCustomers.filter(customer => !matches.some(match => match?.id === customer.id)).map(customer => customer.id));
+      setCustomers(prev => [
+        ...prev.map(customer => importedById.get(customer.id) || customer),
+        ...updatedCustomers.filter(customer => newIds.has(customer.id))
+      ]);
+      updatedCustomers.forEach(customer => {
+        const isNew = newIds.has(customer.id);
+        enqueueChange('customers', isNew ? 'INSERT' : 'UPDATE', customer.id, customer, `Excel ${isNew ? 'import' : 'update'} (${customer.shopName})`);
+        addAudit(`${isNew ? 'Imported' : 'Updated'} Customer / Dealer`, 'Customer Master', customer.customerCode, undefined, customer.shopName);
+      });
+      return { success: true, count: updatedCustomers.length };
+    }
+
+    const { suppliers, setSuppliers, enqueueChange, addAudit } = ctx;
+    const usedKeys = new Set<string>();
+    const incoming = rows.map((row, index) => {
+      const rowNumber = index + 2;
+      const name = normalizeText(row.name);
+      const mobile = normalizeText(row.mobile);
+      if (!name || !mobile) throw new Error(`Row ${rowNumber}: Supplier Name and Mobile are required.`);
+      const status = normalizeText(row.status) || 'Active';
+      if (!['Active', 'Inactive'].includes(status)) throw new Error(`Row ${rowNumber}: invalid Status "${status}".`);
+
+      const code = normalizeText(row.supplierCode);
+      const mobileKey = normalizeMobile(mobile);
+      const key = code ? `code:${code.toLowerCase()}` : `mobile:${mobileKey}`;
+      if (usedKeys.has(key)) throw new Error(`Row ${rowNumber}: duplicate supplier code or mobile in this file.`);
+      usedKeys.add(key);
+
+      return {
+        rowNumber,
+        code,
+        mobileKey,
+        openingBalance: readNumber(row.openingBalance, 0, rowNumber, 'Opening Balance'),
+        values: {
+          name,
+          companyName: normalizeText(row.companyName) || name,
+          contactPerson: normalizeText(row.contactPerson),
+          mobile,
+          alternativeMobile: normalizeText(row.alternativeMobile),
+          email: normalizeText(row.email),
+          address: normalizeText(row.address),
+          district: normalizeText(row.district),
+          taxVatNumber: normalizeText(row.taxVatNumber),
+          tradeLicense: normalizeText(row.tradeLicense),
+          creditLimit: readNumber(row.creditLimit, 10000000, rowNumber, 'Credit Limit'),
+          paymentTermsDays: readNumber(row.paymentTermsDays, 15, rowNumber, 'Payment Terms'),
+          bankInfo: normalizeText(row.bankInfo),
+          status: status as Supplier['status'],
+          notes: normalizeText(row.notes)
+        }
+      };
+    });
+
+    const existing = suppliers.map(supplier => ({
+      supplier,
+      mobileKey: normalizeMobile(supplier.mobile)
+    }));
+    const matchedIds = new Set<string>();
+    const matches = incoming.map(item => {
+      const match = (item.code
+        ? existing.find(entry => entry.supplier.supplierCode.toLowerCase() === item.code.toLowerCase())
+        : undefined) || existing.find(entry => entry.mobileKey === item.mobileKey);
+      if (match && matchedIds.has(match.supplier.id)) {
+        throw new Error(`Row ${item.rowNumber}: multiple rows match the same existing supplier.`);
+      }
+      if (match) matchedIds.add(match.supplier.id);
+      return match?.supplier;
+    });
+
+    let nextCode = suppliers.length + 1;
+    const usedCodes = new Set(suppliers.map(supplier => supplier.supplierCode));
+    const now = Date.now();
+    const updatedSuppliers = incoming.map((item, index): Supplier => {
+      const current = matches[index];
+      if (current) return { ...current, ...item.values };
+      let code = `SUP-${String(nextCode).padStart(3, '0')}`;
+      while (usedCodes.has(code)) {
+        nextCode += 1;
+        code = `SUP-${String(nextCode).padStart(3, '0')}`;
+      }
+      usedCodes.add(code);
+      nextCode += 1;
+      return {
+        ...item.values,
+        id: `sup-import-${now}-${index}`,
+        supplierCode: code,
+        openingBalance: item.openingBalance,
+        currentDue: item.openingBalance
+      };
+    });
+    const importedById = new Map(updatedSuppliers.map(supplier => [supplier.id, supplier]));
+    const newIds = new Set(updatedSuppliers.filter(supplier => !matches.some(match => match?.id === supplier.id)).map(supplier => supplier.id));
+    setSuppliers(prev => [
+      ...prev.map(supplier => importedById.get(supplier.id) || supplier),
+      ...updatedSuppliers.filter(supplier => newIds.has(supplier.id))
+    ]);
+    updatedSuppliers.forEach(supplier => {
+      const isNew = newIds.has(supplier.id);
+      enqueueChange('suppliers', isNew ? 'INSERT' : 'UPDATE', supplier.id, supplier, `Excel ${isNew ? 'import' : 'update'} (${supplier.name})`);
+      addAudit(`${isNew ? 'Imported' : 'Updated'} Supplier`, 'Supplier Master', supplier.supplierCode, undefined, supplier.name);
+    });
+    return { success: true, count: updatedSuppliers.length };
+  } catch (error) {
+    return {
+      success: false,
+      count: 0,
+      error: error instanceof Error ? error.message : 'Excel profile data is invalid.'
+    };
+  }
+};
+
+export type ProductImportContext = Pick<
+  MasterDataContextBundle,
+  'products' | 'setProducts' | 'brands' | 'imeis' | 'setImeis' | 'enqueueChange' | 'addAudit'
+>;
+
+export const executeImportProducts = (
+  rows: Record<string, unknown>[],
+  ctx: ProductImportContext
+): { success: boolean; count: number; error?: string } => {
+  const text = (value: unknown): string => String(value ?? '').trim();
+  const number = (value: unknown, fallback: number, rowNumber: number, field: string): number => {
+    if (value === '' || value === undefined || value === null) return fallback;
+    const parsed = typeof value === 'number' ? value : Number(String(value).replace(/,/g, ''));
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      throw new Error(`Row ${rowNumber}: ${field} must be a non-negative number.`);
+    }
+    return parsed;
+  };
+
+  if (rows.length === 0) return { success: false, count: 0, error: 'Excel worksheet contains no product rows.' };
+
+  try {
+    type ImportedRow = {
+      rowNumber: number;
+      sourceProductId: string;
+      sourceVariantId: string;
+      brandId: string;
+      brandName: string;
+      model: string;
+      category: string;
+      networkRegion: string;
+      warrantyPeriodMonths: number;
+      description: string;
+      status: Product['status'];
+      variant: Omit<ProductVariant, 'id' | 'currentStock'> & { sourceId: string; currentStock: number };
+    };
+
+    const seenSkus = new Set<string>();
+    const importedRows: ImportedRow[] = rows.map((row, index) => {
+      const rowNumber = index + 2;
+      const brandName = text(row.brandName);
+      const model = text(row.model);
+      const sku = text(row.sku);
+      if (!brandName || !model || !sku) {
+        throw new Error(`Row ${rowNumber}: Brand, Model, and SKU are required.`);
+      }
+
+      const brandIdFromRow = text(row.brandId);
+      const brand = (brandIdFromRow ? ctx.brands.find(item => item.id === brandIdFromRow) : undefined)
+        || ctx.brands.find(item => item.name.trim().toLowerCase() === brandName.toLowerCase());
+      if (!brand) throw new Error(`Row ${rowNumber}: brand "${brandName}" was not found. Add the brand before importing products.`);
+      if (brandIdFromRow && brand.id !== brandIdFromRow) {
+        throw new Error(`Row ${rowNumber}: Brand ID does not match "${brandName}".`);
+      }
+
+      const status = text(row.status) || 'Active';
+      if (!['Active', 'Discontinued'].includes(status)) {
+        throw new Error(`Row ${rowNumber}: invalid product status "${status}".`);
+      }
+
+      const skuKey = sku.toLowerCase();
+      if (seenSkus.has(skuKey)) throw new Error(`Row ${rowNumber}: duplicate SKU "${sku}".`);
+      seenSkus.add(skuKey);
+
+      const sourceProductId = text(row.productId);
+      if (sourceProductId && !ctx.products.some(product => product.id === sourceProductId)) {
+        throw new Error(`Row ${rowNumber}: Product ID "${sourceProductId}" was not found.`);
+      }
+
+      const existingProduct = sourceProductId
+        ? ctx.products.find(product => product.id === sourceProductId)
+        : ctx.products.find(product => product.brandId === brand.id && product.model.trim().toLowerCase() === model.toLowerCase());
+      const sourceVariantId = text(row.variantId);
+      if (sourceVariantId && !existingProduct?.variants.some(variant => variant.id === sourceVariantId)) {
+        throw new Error(`Row ${rowNumber}: Variant ID "${sourceVariantId}" does not belong to the selected product.`);
+      }
+      const existingVariant = existingProduct?.variants.find(variant =>
+        (sourceVariantId && variant.id === sourceVariantId) || variant.sku.toLowerCase() === skuKey
+      );
+      const sameProductSku = existingProduct?.variants.find(variant => variant.sku.toLowerCase() === skuKey);
+      if (sourceVariantId && sameProductSku && sameProductSku.id !== sourceVariantId) {
+        throw new Error(`Row ${rowNumber}: SKU "${sku}" already belongs to another variant in this product.`);
+      }
+      const skuOwner = ctx.products.find(product =>
+        product.variants.some(variant => variant.sku.toLowerCase() === skuKey)
+      );
+      if (skuOwner && skuOwner.id !== existingProduct?.id) {
+        throw new Error(`Row ${rowNumber}: SKU "${sku}" already belongs to another product.`);
+      }
+
+      return {
+        rowNumber,
+        sourceProductId,
+        sourceVariantId,
+        brandId: brand.id,
+        brandName: brand.name,
+        model,
+        category: text(row.category) || 'Smartphone',
+        networkRegion: text(row.networkRegion) || 'Official BD (BTRC Approved)',
+        warrantyPeriodMonths: number(row.warrantyPeriodMonths, 12, rowNumber, 'Warranty Period'),
+        description: text(row.description),
+        status: status as Product['status'],
+        variant: {
+          sourceId: existingVariant?.id || '',
+          sku,
+          ram: text(row.ram),
+          storage: text(row.storage),
+          color: text(row.color),
+          purchasePrice: number(row.purchasePrice, existingVariant?.purchasePrice ?? 0, rowNumber, 'Purchase Price'),
+          dealerPrice: number(row.dealerPrice, existingVariant?.dealerPrice ?? 0, rowNumber, 'Dealer Price'),
+          wholesalePrice: number(row.wholesalePrice, existingVariant?.wholesalePrice ?? 0, rowNumber, 'Wholesale Price'),
+          retailPrice: number(row.retailPrice, existingVariant?.retailPrice ?? 0, rowNumber, 'Retail Price'),
+          minSellingPrice: number(row.minSellingPrice, existingVariant?.minSellingPrice ?? 0, rowNumber, 'Minimum Selling Price'),
+          maxDiscount: number(row.maxDiscount, existingVariant?.maxDiscount ?? 0, rowNumber, 'Maximum Discount'),
+          reorderLevel: number(row.reorderLevel, existingVariant?.reorderLevel ?? 0, rowNumber, 'Reorder Level'),
+          currentStock: existingVariant?.currentStock ?? 0
+        }
+      };
+    });
+
+    const groups = new Map<string, ImportedRow[]>();
+    importedRows.forEach(row => {
+      const key = row.sourceProductId
+        ? `id:${row.sourceProductId}`
+        : `brand-model:${row.brandId}:${row.model.toLowerCase()}`;
+      groups.set(key, [...(groups.get(key) || []), row]);
+    });
+
+    const updatedById = new Map<string, Product>();
+    const addedProducts: Product[] = [];
+    const now = Date.now();
+    let productIndex = 0;
+
+    groups.forEach(group => {
+      const first = group[0];
+      const existing = first.sourceProductId
+        ? ctx.products.find(product => product.id === first.sourceProductId)
+        : ctx.products.find(product =>
+            product.brandId === first.brandId && product.model.trim().toLowerCase() === first.model.toLowerCase()
+          );
+      if (existing && updatedById.has(existing.id)) {
+        throw new Error(`Rows ${group.map(row => row.rowNumber).join(', ')}: product rows use inconsistent IDs or identifiers.`);
+      }
+      if (group.some(row => row.brandId !== first.brandId || row.model.toLowerCase() !== first.model.toLowerCase())) {
+        throw new Error(`Rows ${group.map(row => row.rowNumber).join(', ')}: rows with one product ID must have matching brand and model.`);
+      }
+      if (group.some(row =>
+        row.category !== first.category ||
+        row.networkRegion !== first.networkRegion ||
+        row.warrantyPeriodMonths !== first.warrantyPeriodMonths ||
+        row.description !== first.description ||
+        row.status !== first.status
+      )) {
+        throw new Error(`Rows ${group.map(row => row.rowNumber).join(', ')}: product details must match for every variant of the same model.`);
+      }
+
+      const variantsById = new Map((existing?.variants || []).map(variant => [variant.id, variant]));
+      const variants = group.map((row, index): ProductVariant => {
+        const variant = row.variant;
+        const previous = variant.sourceId
+          ? variantsById.get(variant.sourceId)
+          : [...variantsById.values()].find(item => item.sku.toLowerCase() === variant.sku.toLowerCase());
+        return {
+          id: previous?.id || `var-import-${now}-${productIndex}-${index}`,
+          sku: variant.sku,
+          ram: variant.ram,
+          storage: variant.storage,
+          color: variant.color,
+          purchasePrice: variant.purchasePrice,
+          dealerPrice: variant.dealerPrice,
+          wholesalePrice: variant.wholesalePrice,
+          retailPrice: variant.retailPrice,
+          minSellingPrice: variant.minSellingPrice,
+          maxDiscount: variant.maxDiscount,
+          reorderLevel: variant.reorderLevel,
+          currentStock: previous?.currentStock ?? 0
+        };
+      });
+
+      const product: Product = {
+        id: existing?.id || `prod-import-${now}-${productIndex}`,
+        brandId: first.brandId,
+        brandName: first.brandName,
+        model: first.model,
+        category: first.category,
+        networkRegion: first.networkRegion,
+        warrantyPeriodMonths: first.warrantyPeriodMonths,
+        description: first.description,
+        status: first.status,
+        variants: existing
+          ? [
+              ...existing.variants.map(variant => variants.find(item => item.id === variant.id) || variant),
+              ...variants.filter(variant => !existing.variants.some(item => item.id === variant.id))
+            ]
+          : variants
+      };
+      productIndex += 1;
+      if (existing) updatedById.set(product.id, product);
+      else addedProducts.push(product);
+    });
+
+    const updatedProducts = [...updatedById.values()];
+    ctx.setProducts(prev => [
+      ...prev.map(product => updatedById.get(product.id) || product),
+      ...addedProducts
+    ]);
+    updatedProducts.forEach(product => {
+      const previous = ctx.products.find(item => item.id === product.id);
+      if (previous && previous.model !== product.model) {
+        ctx.setImeis(prev => prev.map(imei =>
+          imei.productId === product.id ? { ...imei, productName: product.model } : imei
+        ));
+      }
+    });
+
+    [...updatedProducts, ...addedProducts].forEach(product => {
+      const isNew = addedProducts.some(item => item.id === product.id);
+      ctx.enqueueChange('products', isNew ? 'INSERT' : 'UPDATE', product.id, product, `Excel ${isNew ? 'import' : 'update'} (${product.brandName} ${product.model})`);
+      ctx.addAudit(`${isNew ? 'Imported' : 'Updated'} Product Model`, 'Product Master', product.model, undefined, `${product.brandName} - ${product.model}`);
+    });
+
+    return { success: true, count: importedRows.length };
+  } catch (error) {
+    return {
+      success: false,
+      count: 0,
+      error: error instanceof Error ? error.message : 'Excel product data is invalid.'
+    };
+  }
 };
 
 // ---- SMS NOTIFICATIONS ----

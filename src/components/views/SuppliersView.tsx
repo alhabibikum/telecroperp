@@ -23,9 +23,10 @@ import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 import { HistoryInput } from '../common/HistoryInput';
 import { recordFieldHistory } from '../../services/formHistoryService';
 import { useToast } from '../common/ToastNotificationSystem';
+import { ExcelImportExportActions } from '../common/ExcelImportExportActions';
 
 export const SuppliersView: React.FC = () => {
-  const { suppliers, bankAccounts, imeis, paySupplier, addSupplier, updateSupplier, deleteSupplier } = useERP();
+  const { suppliers, bankAccounts, imeis, paySupplier, addSupplier, updateSupplier, deleteSupplier, importPartyProfiles } = useERP();
   const { showSuccess } = useToast();
   const [editing, setEditing] = useState<Supplier | null>(null);
 
@@ -154,13 +155,27 @@ export const SuppliersView: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-xs transition"
-        >
-          <PlusCircle className="w-4 h-4" />
-          + Add New Supplier
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <ExcelImportExportActions
+            entityName="সাপ্লায়ার"
+            fileName="FIROZA_Suppliers.xlsx"
+            sheetName="Suppliers"
+            columns={[
+              'id', 'supplierCode', 'name', 'companyName', 'contactPerson', 'mobile', 'alternativeMobile',
+              'email', 'address', 'district', 'taxVatNumber', 'tradeLicense', 'openingBalance',
+              'creditLimit', 'paymentTermsDays', 'currentDue', 'bankInfo', 'status', 'notes'
+            ]}
+            records={suppliers}
+            onImport={rows => importPartyProfiles('suppliers', rows)}
+          />
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-xs transition"
+          >
+            <PlusCircle className="w-4 h-4" />
+            + Add New Supplier
+          </button>
+        </div>
       </div>
 
       {message && (

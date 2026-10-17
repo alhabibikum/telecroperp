@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import type React from 'react';
 import type {
   PurchaseInvoice,
@@ -72,7 +73,7 @@ export const executeCreatePurchase = (
 
   const invoiceNo = generateDocNumber('PUR', purchaseInvoices.length);
   const purchaseId = `pur-${Date.now()}`;
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
 
   const newPurchase: PurchaseInvoice = {
     ...purchaseData,
@@ -354,7 +355,7 @@ export const executePaySupplier = (
   if (!supplier) return { success: false, error: 'Supplier not found' };
 
   const payNo = generateDocNumber('PAY', 50);
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
 
   const updatedDue = Math.max(0, supplier.currentDue - data.amount);
   const updatedSupplier = { ...supplier, currentDue: updatedDue };
@@ -445,7 +446,7 @@ export const executeProcessSupplierReturn = (
   if (!sup) return { success: false, error: 'Supplier not found' };
 
   const returnNo = generateDocNumber('RET', supplierReturns.length + 50);
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
 
   setImeis(prev =>
     prev.map(i => i.imei1 === data.imei ? {

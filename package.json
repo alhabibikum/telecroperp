@@ -1,12 +1,12 @@
 {
   "name": "firoza-erp",
   "private": true,
-  "version": "1.0.8",
+  "version": "1.0.9",
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
-    "test": "tsx --test src/utils/financialMetrics.test.ts src/utils/sanitizeApiIntegrations.test.ts src/utils/csvSafety.test.ts src/utils/dateInputUtils.test.ts",
+    "test": "tsx --test src/utils/financialMetrics.test.ts src/utils/sanitizeApiIntegrations.test.ts src/utils/csvSafety.test.ts src/utils/dateInputUtils.test.ts src/utils/dateUtils.test.ts src/context/actions/partyProfileImport.test.ts src/context/actions/productImport.test.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",

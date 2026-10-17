@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -78,7 +79,7 @@ export const SalesmenView: React.FC = () => {
     email: '',
     address: '',
     assignedArea: '',
-    joiningDate: new Date().toISOString().split('T')[0],
+    joiningDate: getLocalDateString(),
     basicSalary: 30000,
     monthlyTarget: 4000000,
     monthlyUnitTarget: 150,
@@ -115,7 +116,7 @@ export const SalesmenView: React.FC = () => {
       email: '',
       address: '',
       assignedArea: '',
-      joiningDate: new Date().toISOString().split('T')[0],
+      joiningDate: getLocalDateString(),
       basicSalary: 30000,
       monthlyTarget: 4000000,
       monthlyUnitTarget: 150,
@@ -137,7 +138,7 @@ export const SalesmenView: React.FC = () => {
       email: sm.email || '',
       address: sm.address || '',
       assignedArea: sm.assignedArea,
-      joiningDate: sm.joiningDate || new Date().toISOString().split('T')[0],
+      joiningDate: sm.joiningDate || getLocalDateString(),
       basicSalary: sm.basicSalary || 0,
       monthlyTarget: sm.monthlyTarget || 0,
       monthlyUnitTarget: sm.monthlyUnitTarget || 100,
@@ -220,7 +221,7 @@ export const SalesmenView: React.FC = () => {
         email: '',
         address: '',
         assignedArea: '',
-        joiningDate: new Date().toISOString().split('T')[0],
+        joiningDate: getLocalDateString(),
         basicSalary: 30000,
         monthlyTarget: 4000000,
         monthlyUnitTarget: 150,
@@ -282,7 +283,7 @@ export const SalesmenView: React.FC = () => {
       salesmanId: payoutSalesman.id,
       salesmanName: payoutSalesman.name,
       month: payoutForm.month,
-      date: new Date().toISOString().split('T')[0],
+      date: getLocalDateString(),
       salesAmount: payoutSalesman.currentMonthSales,
       collectionAmount: payoutSalesman.currentMonthCollection,
       salesCommission: calc.salesCommission,

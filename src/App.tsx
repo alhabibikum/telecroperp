@@ -482,6 +482,7 @@ const ERPAppContent: React.FC = () => {
   // Global Keyboard Shortcuts Coordinator
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
       const isCtrl = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
 
@@ -916,7 +917,7 @@ const ERPAppContent: React.FC = () => {
         />
 
         {/* Main Content Workspace (Executive Desktop Enterprise Canvas) */}
-        <main className="flex-1 h-full overflow-y-auto bg-[#f1f5f9] dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 p-3 sm:p-4 lg:p-6">
+        <main className="flex-1 min-h-0 min-w-0 overflow-y-auto bg-[#f1f5f9] dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 p-2 sm:p-3 lg:p-4">
           {!hasPermission(currentUserRole, currentView) ? (
             <div className="h-full flex items-center justify-center p-6">
               <div className="max-w-md w-full bg-white dark:bg-[#111726] rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 p-8 text-center space-y-4">

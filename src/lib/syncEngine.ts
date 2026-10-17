@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../utils/dateUtils';
 import { getSupabaseClient } from './supabase';
 import { erpStorage } from '../services/storageService';
 import { sanitizeApiIntegrations } from '../utils/sanitizeApiIntegrations';
@@ -239,7 +240,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         mobile: data.mobile,
         email: data.email || null,
         address: data.address || '',
-        joining_date: data.joiningDate || data.joining_date || new Date().toISOString().split('T')[0],
+        joining_date: data.joiningDate || data.joining_date || getLocalDateString(),
         basic_salary: data.basicSalary ?? data.basic_salary ?? 25000,
         commission_type: data.commissionType || data.commission_type || 'Percentage of Sales',
         commission_percentage: data.commissionRate ?? data.commission_percentage ?? 1,
@@ -300,7 +301,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         supplier_id: data.supplierId || data.supplier_id || null,
         supplier_name: data.supplierName || data.supplier_name || null,
         purchase_invoice_no: data.purchaseInvoiceNo || data.purchase_invoice_no || null,
-        purchase_date: data.purchaseDate || data.purchase_date || new Date().toISOString().split('T')[0],
+        purchase_date: data.purchaseDate || data.purchase_date || getLocalDateString(),
         warehouse_id: data.warehouseId || data.warehouse_id,
         warehouse_name: data.warehouseName || data.warehouse_name || 'Central Warehouse',
         status: data.status || 'In Stock',
@@ -327,7 +328,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         salesman_name: data.salesmanName || data.salesman_name || null,
         warehouse_id: data.warehouseId || data.warehouse_id,
         warehouse_name: data.warehouseName || data.warehouse_name,
-        invoice_date: data.invoiceDate || data.invoice_date || new Date().toISOString().split('T')[0],
+        invoice_date: data.invoiceDate || data.invoice_date || getLocalDateString(),
         due_date: data.dueDate || data.due_date || data.invoiceDate || null,
         items: data.items || [],
         subtotal: data.subTotal ?? data.subtotal ?? 0,
@@ -352,7 +353,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         invoice_no: data.invoiceNo || data.invoice_no,
         supplier_id: data.supplierId || data.supplier_id,
         supplier_name: data.supplierName || data.supplier_name,
-        purchase_date: data.purchaseDate || data.purchase_date || new Date().toISOString().split('T')[0],
+        purchase_date: data.purchaseDate || data.purchase_date || getLocalDateString(),
         due_date: data.dueDate || data.due_date || data.purchaseDate || null,
         warehouse_id: data.warehouseId || data.warehouse_id,
         warehouse_name: data.warehouseName || data.warehouse_name,
@@ -392,7 +393,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         id: data.id,
         bank_account_id: data.bankAccountId || data.bank_account_id,
         bank_name: data.bankName || data.bank_name || 'Bank',
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         type: data.type,
         reference_no: data.referenceNo || data.reference_no || null,
         amount: data.amount ?? 0,
@@ -404,7 +405,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
     case 'bank_statements':
       return {
         id: data.id,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         description: data.description || '',
         reference_no: data.referenceNo || data.reference_no || null,
         debit: data.debit ?? 0,
@@ -417,7 +418,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         voucher_no: data.voucherNo || data.referenceNo || data.voucher_no || `CSH-${Date.now()}`,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         type: data.type,
         category: data.category,
         amount: data.amount ?? 0,
@@ -430,7 +431,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         expense_no: data.expenseNo || data.expense_no,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         category_id: data.categoryId || data.category_id || null,
         category_name: data.categoryName || data.category_name,
         amount: data.amount ?? 0,
@@ -465,7 +466,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         voucher_no: data.voucherNo || data.voucher_no,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         voucher_type: data.voucherType || data.voucher_type || 'Journal Voucher',
         reference_no: data.referenceNo || data.reference_no || null,
         description: data.description || '',
@@ -479,7 +480,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         transfer_no: data.transferNo || data.transfer_no,
-        date: data.transferDate || data.date || new Date().toISOString().split('T')[0],
+        date: data.transferDate || data.date || getLocalDateString(),
         from_warehouse_id: data.sourceWarehouseId || data.from_warehouse_id,
         from_warehouse_name: data.sourceWarehouseName || data.from_warehouse_name,
         to_warehouse_id: data.destinationWarehouseId || data.to_warehouse_id,
@@ -498,7 +499,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         return_no: data.returnNo || data.return_no,
-        return_date: data.returnDate || data.return_date || new Date().toISOString().split('T')[0],
+        return_date: data.returnDate || data.return_date || getLocalDateString(),
         sales_invoice_no: data.originalInvoiceNo || data.sales_invoice_no,
         customer_id: data.customerId || data.customer_id,
         customer_name: data.customerName || data.customer_name,
@@ -523,7 +524,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         return_no: data.returnNo || data.return_no,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         supplier_id: data.supplierId || data.supplier_id,
         supplier_name: data.supplierName || data.supplier_name,
         purchase_invoice_no: data.purchaseInvoiceNo || data.purchase_invoice_no || null,
@@ -540,7 +541,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         receipt_no: data.receiptNo || data.receipt_no,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         customer_id: data.customerId || data.customer_id,
         customer_name: data.customerName || data.customer_name,
         customer_phone: data.customerPhone || data.customer_phone || null,
@@ -582,7 +583,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         interest_rate: data.interestRate ?? data.interest_rate ?? 0,
         tenure_months: data.tenureMonths ?? data.tenure_months ?? 6,
         monthly_installment: data.monthlyInstallment ?? data.monthly_installment ?? 0,
-        start_date: data.startDate || data.start_date || new Date().toISOString().split('T')[0],
+        start_date: data.startDate || data.start_date || getLocalDateString(),
         status: data.status || 'Active',
         guarantor: data.guarantor || {},
         documents: data.documents || {},
@@ -600,7 +601,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         salesman_id: data.salesmanId || data.salesman_id,
         salesman_name: data.salesmanName || data.salesman_name,
         month: data.month,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         sales_amount: data.salesAmount ?? data.sales_amount ?? 0,
         collection_amount: data.collectionAmount ?? data.collection_amount ?? 0,
         sales_commission: data.salesCommission ?? data.sales_commission ?? 0,
@@ -619,7 +620,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         rma_number: data.rmaNumber || data.rma_number,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         customer_id: data.customerId || data.customer_id,
         customer_name: data.customerName || data.customer_name,
         customer_phone: data.customerPhone || data.customer_phone || null,
@@ -647,8 +648,8 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         brand_name: data.brandName || data.brand_name,
         scheme_title: data.schemeTitle || data.scheme_title,
         period: data.period || 'Monthly',
-        start_date: data.startDate || data.start_date || new Date().toISOString().split('T')[0],
-        end_date: data.endDate || data.end_date || new Date().toISOString().split('T')[0],
+        start_date: data.startDate || data.start_date || getLocalDateString(),
+        end_date: data.endDate || data.end_date || getLocalDateString(),
         target_units: data.targetUnits ?? data.target_units ?? 0,
         achieved_units: data.achievedUnits ?? data.achieved_units ?? 0,
         slabs: data.slabs || [],
@@ -661,7 +662,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         challan_no: data.challanNo || data.challan_no,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         invoice_no: data.invoiceNo || data.invoice_no,
         customer_id: data.customerId || data.customer_id,
         customer_name: data.customerName || data.customer_name,
@@ -686,7 +687,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         claim_no: data.claimNo || data.claim_no,
-        claim_date: data.claimDate || data.claim_date || new Date().toISOString().split('T')[0],
+        claim_date: data.claimDate || data.claim_date || getLocalDateString(),
         brand_name: data.brandName || data.brand_name,
         supplier_id: data.supplierId || data.supplier_id,
         supplier_name: data.supplierName || data.supplier_name,
@@ -707,7 +708,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         exchange_no: data.exchangeNo || data.exchange_no,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         customer_id: data.customerId || data.customer_id,
         customer_name: data.customerName || data.customer_name,
         customer_phone: data.customerPhone || data.customer_phone || null,
@@ -744,7 +745,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         shop_name: data.shopName || data.shop_name,
         salesman_id: data.salesmanId || data.salesman_id || null,
         salesman_name: data.salesmanName || data.salesman_name || null,
-        scheduled_date: data.scheduledDate || data.scheduled_date || new Date().toISOString().split('T')[0],
+        scheduled_date: data.scheduledDate || data.scheduled_date || getLocalDateString(),
         contact_number: data.contactNumber || data.contact_number || '01700-000000',
         purpose,
         current_due_amount: data.currentDueAmount ?? data.current_due_amount ?? 0,
@@ -763,7 +764,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         customer_id: data.customerId || data.customer_id,
         customer_name: data.customerName || data.customer_name || null,
         shop_name: data.shopName || data.shop_name,
-        visit_date: data.visitDate || data.visit_date || new Date().toISOString().split('T')[0],
+        visit_date: data.visitDate || data.visit_date || getLocalDateString(),
         purpose: data.purpose || 'Route Visit',
         outcome_notes: data.outcomeNotes || data.outcome_notes || '',
         order_amount_booked: data.orderAmountBooked ?? data.order_amount_booked ?? 0,
@@ -776,7 +777,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         closing_no: data.closingNo || data.closing_no,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         cashier_name: data.cashierName || data.cashier_name,
         warehouse_id: data.warehouseId || data.warehouse_id,
         warehouse_name: data.warehouseName || data.warehouse_name || 'Central Warehouse',
@@ -836,7 +837,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
       return {
         id: data.id,
         bank_account_id: data.bankAccountId || data.bank_account_id || null,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || getLocalDateString(),
         description: data.description || '',
         reference_no: data.referenceNo || data.reference_no || '',
         debit: data.debit ?? 0,

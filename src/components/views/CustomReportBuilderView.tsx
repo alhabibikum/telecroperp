@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState, useMemo } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -133,7 +134,7 @@ export const CustomReportBuilderView: React.FC = () => {
     const encoded = encodeURI(csv);
     const link = document.createElement('a');
     link.href = encoded;
-    link.download = `Report_${dataset}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `Report_${dataset}_${getLocalDateString()}.csv`;
     link.click();
   };
 

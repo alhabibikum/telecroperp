@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -121,7 +122,7 @@ export const DeliveryDispatchView: React.FC = () => {
     });
 
     createDeliveryChallan({
-      date: new Date().toISOString().split('T')[0],
+      date: getLocalDateString(),
       invoiceNo: selectedInvoice.invoiceNo,
       customerId: selectedInvoice.customerId,
       customerName: selectedInvoice.customerName,

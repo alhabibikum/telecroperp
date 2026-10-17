@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState, useMemo } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -110,7 +111,7 @@ export const ExpensesView: React.FC = () => {
   const [filterPeriod, setFilterPeriod] = useState('all');
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
+  const [expenseDate, setExpenseDate] = useState(getLocalDateString());
   const [warehouseId, setWarehouseId] = useState(warehouses[0]?.id || '');
   const [categoryId, setCategoryId] = useState(expenseCategories[0]?.id || '');
   const [amount, setAmount] = useState<number>(5000);
@@ -158,7 +159,7 @@ export const ExpensesView: React.FC = () => {
     }
 
     createExpense({
-      date: expenseDate || new Date().toISOString().split('T')[0],
+      date: expenseDate || getLocalDateString(),
       categoryId: cat.id,
       categoryName: cat.name,
       amount,
@@ -196,7 +197,7 @@ export const ExpensesView: React.FC = () => {
     return expenses.filter(exp => {
       // Period filter
       if (filterPeriod !== 'all') {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateString();
         if (filterPeriod === 'today' && !exp.date.startsWith(today)) return false;
         if (filterPeriod === 'this_month') {
           const currentMonth = today.slice(0, 7);

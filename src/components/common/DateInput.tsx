@@ -23,6 +23,7 @@ export const DateInput: React.FC<DateInputProps> = ({
       lastEmittedValue.current = undefined;
       return;
     }
+    inputRef.current?.setCustomValidity('');
     setDraft(formatDateInputValue(value));
   }, [value]);
 
@@ -52,6 +53,7 @@ export const DateInput: React.FC<DateInputProps> = ({
   const handleBlur = (event: React.FocusEvent<HTMLInputElement>) => {
     const parsed = parseDateInput(draft);
     if (draft && parsed) {
+      inputRef.current?.setCustomValidity('');
       setDraft(formatDateInputValue(parsed));
       emitDate(parsed);
     } else if (!draft) {
@@ -63,6 +65,7 @@ export const DateInput: React.FC<DateInputProps> = ({
   const handleCalendarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const parsed = parseDateInput(event.target.value);
     if (!parsed) return;
+    inputRef.current?.setCustomValidity('');
     setDraft(formatDateInputValue(parsed));
     emitDate(parsed);
   };

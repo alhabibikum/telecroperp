@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState, useEffect } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -64,7 +65,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
   const [customerId, setCustomerId] = useState<string>(customers[0]?.id || '');
   const [warehouseId, setWarehouseId] = useState<string>(warehouses[0]?.id || '');
   const [salesmanId, setSalesmanId] = useState<string>(salesmen[0]?.id || '');
-  const [invoiceDate, setInvoiceDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [invoiceDate, setInvoiceDate] = useState<string>(getLocalDateString());
   const [notes, setNotes] = useState('');
 
   // Items
@@ -279,7 +280,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
   const dueDays = selectedCustomer?.allowedDueDays || 15;
   const dueDateObj = new Date(invoiceDate);
   dueDateObj.setDate(dueDateObj.getDate() + dueDays);
-  const calculatedDueDate = dueDateObj.toISOString().split('T')[0];
+  const calculatedDueDate = getLocalDateString(dueDateObj);
 
   // Totals
   const subTotal = items.reduce((acc, it) => acc + (it.unitPrice * it.quantity), 0);

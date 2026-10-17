@@ -89,7 +89,7 @@ export const WindowsModalFrame: React.FC<WindowsModalFrameProps> = ({
     >
       {/* Visual notice popup when user clicks outside */}
       {shakeNotice && !isMinimized && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[80] bg-amber-500 text-white px-4 py-2 rounded-xl font-medium text-xs flex items-center gap-2 shadow-xl animate-bounce">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[80] bg-amber-500 text-white px-4 py-2 rounded-xl font-medium text-xs flex items-center gap-2 shadow-xl">
           <ShieldAlert className="w-4 h-4 shrink-0" />
           <span>উইন্ডোর বাইরে ক্লিকে ডাটা হারাবে না। বন্ধ করতে লাল [✕] বোতাম চাপুন।</span>
         </div>

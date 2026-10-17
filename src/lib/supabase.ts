@@ -8,6 +8,7 @@ export const DEFAULT_SUPABASE_ANON_KEY = '';
 const SUPABASE_URL_KEY = 'telecorp_supabase_url';
 const SUPABASE_KEY_KEY = 'telecorp_supabase_anon_key';
 const SUPABASE_ENABLED_KEY = 'telecorp_supabase_enabled';
+const SUPABASE_CONFIGURED_KEY = 'telecorp_supabase_configured';
 
 export interface SupabaseConfig {
   url: string;
@@ -19,24 +20,35 @@ export const getSupabaseConfig = (): SupabaseConfig => {
   const envUrl = import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
   const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
 
-  const storedUrl = envUrl || localStorage.getItem(SUPABASE_URL_KEY) || '';
-  const storedKey = envKey || localStorage.getItem(SUPABASE_KEY_KEY) || '';
+  const storedUrl = localStorage.getItem(SUPABASE_URL_KEY);
+  const storedKey = localStorage.getItem(SUPABASE_KEY_KEY);
+  const resolvedUrl = storedUrl ?? envUrl;
+  const resolvedKey = storedKey ?? envKey;
   const storedEnabled = localStorage.getItem(SUPABASE_ENABLED_KEY);
 
   // Enabled by default if URL and key are present
-  const enabled = storedEnabled !== null ? storedEnabled === 'true' : Boolean(storedUrl && storedKey);
+  const enabled = storedEnabled !== null ? storedEnabled === 'true' : Boolean(resolvedUrl && resolvedKey);
 
   return {
-    url: storedUrl,
-    anonKey: storedKey,
+    url: resolvedUrl,
+    anonKey: resolvedKey,
     enabled
   };
+};
+
+export const hasSupabaseConfigBeenSaved = (): boolean => {
+  if (localStorage.getItem(SUPABASE_CONFIGURED_KEY) === 'true') return true;
+  const config = getSupabaseConfig();
+  return Boolean(config.url && config.anonKey);
 };
 
 export const saveSupabaseConfig = (url: string, anonKey: string, enabled: boolean) => {
   localStorage.setItem(SUPABASE_URL_KEY, url.trim());
   localStorage.setItem(SUPABASE_KEY_KEY, anonKey.trim());
   localStorage.setItem(SUPABASE_ENABLED_KEY, String(enabled));
+  if (url.trim() && anonKey.trim()) {
+    localStorage.setItem(SUPABASE_CONFIGURED_KEY, 'true');
+  }
   // Reset client instance so it re-initializes with the new configuration
   clientInstance = null;
 };

@@ -21,13 +21,14 @@ import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 import { HistoryInput } from '../common/HistoryInput';
 import { recordFieldHistory } from '../../services/formHistoryService';
 import { useToast } from '../common/ToastNotificationSystem';
+import { ExcelImportExportActions } from '../common/ExcelImportExportActions';
 
 interface CustomersViewProps {
   onOpenDueCollection: (customerId: string) => void;
 }
 
 export const CustomersView: React.FC<CustomersViewProps> = ({ onOpenDueCollection }) => {
-  const { customers, salesmen, imeis, addCustomer, updateCustomer, deleteCustomer } = useERP();
+  const { customers, salesmen, imeis, addCustomer, updateCustomer, deleteCustomer, importPartyProfiles } = useERP();
   const { showSuccess } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -127,13 +128,27 @@ export const CustomersView: React.FC<CustomersViewProps> = ({ onOpenDueCollectio
           </p>
         </div>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-xs transition"
-        >
-          <PlusCircle className="w-4 h-4" />
-          <span>+ Add Dealer Profile</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <ExcelImportExportActions
+            entityName="কাস্টমার / ডিলার"
+            fileName="FIROZA_Customers_Dealers.xlsx"
+            sheetName="Customers and Dealers"
+            columns={[
+              'id', 'customerCode', 'shopName', 'ownerName', 'mobile', 'alternativeMobile', 'email',
+              'address', 'area', 'district', 'tradeLicense', 'nid', 'creditLimit', 'allowedDueDays',
+              'salesmanId', 'salesmanName', 'customerType', 'openingBalance', 'currentDue', 'status', 'notes'
+            ]}
+            records={customers}
+            onImport={rows => importPartyProfiles('customers', rows)}
+          />
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-xs transition"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>+ Add Dealer Profile</span>
+          </button>
+        </div>
       </div>
 
       {/* Search */}

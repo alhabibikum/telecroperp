@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState, useEffect } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -34,7 +35,7 @@ export const BankReconciliationView: React.FC = () => {
   }, [selectedBankId]);
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newDate, setNewDate] = useState(getLocalDateString());
   const [newDesc, setNewDesc] = useState('');
   const [newRef, setNewRef] = useState('');
   const [newType, setNewType] = useState<'credit' | 'debit'>('credit');

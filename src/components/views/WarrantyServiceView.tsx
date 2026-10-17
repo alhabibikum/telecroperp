@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -60,7 +61,7 @@ export const WarrantyServiceView: React.FC = () => {
   const [intakeSerial, setIntakeSerial] = useState('');
   const [intakeModel, setIntakeModel] = useState('');
   const [intakeFaultDesc, setIntakeFaultDesc] = useState('');
-  const [intakeDate, setIntakeDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [intakeDate, setIntakeDate] = useState(() => getLocalDateString());
   const [intakeCondition, setIntakeCondition] = useState('DOA / Used Defective');
 
   // Auto-detect model when Serial/IMEI is typed

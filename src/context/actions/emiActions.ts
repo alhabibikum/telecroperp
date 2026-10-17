@@ -1,3 +1,4 @@
+import { addMonthsToDate, getLocalDateString } from '../../utils/dateUtils';
 import type React from 'react';
 import type {
   EMIPlan,
@@ -42,16 +43,7 @@ export interface EMIContextBundle {
   currentUser: AuthUser | null;
 }
 
-const todayStr = () => new Date().toISOString().split('T')[0];
-
-/**
- * Add months to a date string (YYYY-MM-DD)
- */
-const addMonthsToDate = (dateStr: string, monthsToAdd: number): string => {
-  const d = new Date(dateStr);
-  d.setMonth(d.getMonth() + monthsToAdd);
-  return d.toISOString().split('T')[0];
-};
+const todayStr = () => getLocalDateString();
 
 /**
  * Create a new Hire-Purchase / EMI Plan

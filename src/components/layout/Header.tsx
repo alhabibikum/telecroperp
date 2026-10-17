@@ -14,13 +14,8 @@ import {
   Building2,
   RefreshCw,
   QrCode,
-  Minimize2,
-  Maximize2,
-  X
 } from 'lucide-react';
 import { Notifications } from './Notifications';
-import { isTauri } from '@tauri-apps/api/core';
-import { getCurrentWindow } from '@tauri-apps/api/window';
 
 interface HeaderProps {
   isSidebarExpanded?: boolean;
@@ -63,18 +58,6 @@ export const Header: React.FC<HeaderProps> = ({
   const { theme, toggleTheme } = useTheme();
 
   const [showNotifications, setShowNotifications] = useState(false);
-  const isDesktopApp = isTauri();
-
-  const runWindowAction = (action: 'minimize' | 'toggleMaximize' | 'close') => {
-    const currentWindow = getCurrentWindow();
-    const operation = action === 'minimize'
-      ? currentWindow.minimize()
-      : action === 'toggleMaximize'
-        ? currentWindow.toggleMaximize()
-        : currentWindow.close();
-    void operation.catch(error => console.error(`Failed to ${action} the application window:`, error));
-  };
-
   return (
     <header className="h-14 bg-white dark:bg-[#111c30] border-b border-slate-300 dark:border-slate-800 px-4 flex items-center justify-between shrink-0 select-none z-30 transition-colors shadow-2xs">
       {/* Left: Sidebar Toggle, Brand & Active Branch */}
@@ -203,38 +186,6 @@ export const Header: React.FC<HeaderProps> = ({
         >
           {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
         </button>
-
-        {isDesktopApp && (
-          <div className="flex items-center gap-1 ml-1 border-l border-slate-300 dark:border-slate-700 pl-2">
-            <button
-              type="button"
-              onClick={() => runWindowAction('minimize')}
-              className="p-1.5 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-              title="Minimize"
-              aria-label="Minimize window"
-            >
-              <Minimize2 className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => runWindowAction('toggleMaximize')}
-              className="p-1.5 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-              title="Maximize / restore"
-              aria-label="Maximize or restore window"
-            >
-              <Maximize2 className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => runWindowAction('close')}
-              className="p-1.5 text-slate-600 hover:text-white hover:bg-rose-600 dark:text-slate-300 transition cursor-pointer"
-              title="Close"
-              aria-label="Close application"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
       </div>
     </header>
   );

@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -72,7 +73,7 @@ export const PriceDropClaimView: React.FC = () => {
     const brandSupplier = suppliers.find(s => s.name.toLowerCase().includes(currentProduct.brandName.toLowerCase())) || suppliers[0];
 
     createPriceDropClaim({
-      claimDate: new Date().toISOString().split('T')[0],
+      claimDate: getLocalDateString(),
       brandName: currentProduct.brandName,
       supplierId: brandSupplier?.id || 'sup-1',
       supplierName: brandSupplier?.name || 'Authorized Brand Distributor',

@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import type React from 'react';
 import type {
   SalesInvoice,
@@ -132,7 +133,7 @@ export const executeCreateSale = (
   }
 
   const invoiceNo = generateDocNumber('SAL', salesInvoices.length);
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
 
   let commissionEarned = 0;
   if (saleData.salesmanId) {
@@ -549,7 +550,7 @@ export const executeCollectCustomerPayment = (
   if (!customer) return { success: false, error: 'Customer not found' };
 
   const collectionNo = generateDocNumber('REC', 100);
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
 
   setCustomers(prev =>
     prev.map(c =>
@@ -733,7 +734,7 @@ export const executeProcessCustomerReturn = (
   }
 
   const returnNo = generateDocNumber('RET', customerReturns.length);
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
   const isDamaged = data.condition === 'Damaged' || data.condition === 'Defective';
   const imeiCondition = data.condition === 'Sealed'
     ? 'Brand New'
@@ -916,7 +917,7 @@ export const executeProcessPhoneExchange = (
     addAudit
   } = ctx;
   const exchangeNo = generateDocNumber('EXCH' as any, phoneExchanges.length);
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
 
   const newImeiRecord = imeis.find(i => i.imei1 === data.newIMEI);
   if (!newImeiRecord || newImeiRecord.status !== 'In Stock') {

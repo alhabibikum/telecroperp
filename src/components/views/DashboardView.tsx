@@ -1,3 +1,4 @@
+import { getLocalDateString } from '../../utils/dateUtils';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useERP } from '../../context/ERPContext';
 import {
@@ -193,7 +194,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   // -------------------------------------------------------------
   // CORE EXECUTIVE METRICS (Dynamic & Zero-Safe)
   // -------------------------------------------------------------
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const todayStr = useMemo(() => getLocalDateString(), []);
 
   const totalSalesRevenue = salesInvoices.reduce((acc, i) => acc + i.grandTotal, 0);
   const totalReceivableDue = customers.reduce((acc, c) => acc + c.currentDue, 0);
@@ -432,7 +433,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
-      list.push(d.toISOString().split('T')[0]);
+      list.push(getLocalDateString(d));
     }
     return list;
   }, []);
@@ -573,26 +574,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div
       ref={dashboardContainerRef}
-      className={`w-full min-h-full pb-20 transition-colors duration-200 overflow-y-auto ${
+      className={`w-full min-h-full pb-8 ${
         isFullscreen
-          ? 'bg-slate-950 text-slate-100 p-4 sm:p-6 lg:p-8 fixed inset-0 z-50'
-          : 'p-3 sm:p-5 md:p-6 lg:p-8 bg-slate-50/60 dark:bg-slate-950/60 text-slate-800 dark:text-slate-100'
+          ? 'bg-slate-950 text-slate-100 p-3 sm:p-4 fixed inset-0 z-50 overflow-y-auto'
+          : 'p-2 sm:p-3 lg:p-4 bg-slate-50/60 dark:bg-slate-950/60 text-slate-800 dark:text-slate-100'
       }`}
     >
-      <div className="max-w-[1720px] mx-auto space-y-5 sm:space-y-6 lg:space-y-8">
+      <div className="max-w-[1720px] mx-auto space-y-3 sm:space-y-4">
         {/* ============================================================== */}
         {/* FEATURE 1: EXECUTIVE COMMAND BAR & FULLSCREEN TOOLBAR          */}
         {/* ============================================================== */}
         <div className={`rounded-2xl border transition-all ${
           isFullscreen
-            ? 'bg-slate-900 border-slate-800 p-4 sm:p-5 text-white shadow-xl'
-            : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-xs'
+            ? 'bg-slate-900 border-slate-800 p-3 sm:p-4 text-white shadow-xl'
+            : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 p-3 sm:p-4 shadow-xs'
         }`}>
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
             {/* Header titles & Live pulse */}
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
-                <Compass className="w-6 h-6 animate-spin-slow" />
+                <Compass className="w-6 h-6" />
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -600,7 +601,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     {isBn ? 'FIROZA ERP এক্সিকিউটিভ ড্যাশবোর্ড' : 'FIROZA ERP Executive Mission Control'}
                   </h1>
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     Live Sync
                   </span>
                   {isFullscreen && (
@@ -758,7 +759,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
 
       {/* ============================================================== */}
-      <div className="bg-white dark:bg-[#1e293b] p-5 sm:p-6 border border-slate-200 dark:border-slate-700 shadow-xs">
+      <div className="bg-white dark:bg-[#1e293b] p-3 sm:p-4 border border-slate-200 dark:border-slate-700 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-700/80 pb-3.5 mb-5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-[#1d4ed8] dark:bg-blue-600 text-white flex items-center justify-center border border-blue-700 dark:border-blue-500">
@@ -778,16 +779,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Card 1: Today's Billed Sales vs Daily Target */}
           <div
             onClick={() => onSelectView('wholesale-sales')}
-            className="bg-slate-50 dark:bg-slate-800/80 hover:bg-blue-50/60 dark:hover:bg-slate-800 p-4 sm:p-5 border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500/60 space-y-3 cursor-pointer transition-all group shadow-2xs"
+            className="bg-slate-50 dark:bg-slate-800/80 hover:bg-blue-50/60 dark:hover:bg-slate-800 p-3 sm:p-4 border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500/60 space-y-2 cursor-pointer transition-all group shadow-2xs"
             title="পাইকারি বিক্রয় ও ইনভয়েস দেখতে ক্লিক করুন"
           >
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold">
               <span className="group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">{isBn ? 'আজকের মোট সেলস' : "Today's Billed Sales"}</span>
-              <div className="w-7 h-7 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-blue-700/50 group-hover:scale-105 transition-transform">
+              <div className="w-7 h-7 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-blue-700/50">
                 <Target className="w-3.5 h-3.5" />
               </div>
             </div>
@@ -811,12 +812,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Card 2: Today's Cash & Bank Inflow */}
           <div
             onClick={() => onSelectView('cash-bank')}
-            className="bg-slate-50 dark:bg-slate-800/80 hover:bg-emerald-50/60 dark:hover:bg-slate-800 p-4 sm:p-5 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 dark:hover:border-emerald-500/60 space-y-3 cursor-pointer transition-all group shadow-2xs"
+            className="bg-slate-50 dark:bg-slate-800/80 hover:bg-emerald-50/60 dark:hover:bg-slate-800 p-3 sm:p-4 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 dark:hover:border-emerald-500/60 space-y-2 cursor-pointer transition-all group shadow-2xs"
             title="ক্যাশ ও ব্যাংক লেজার দেখতে ক্লিক করুন"
           >
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold">
               <span className="group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">{isBn ? 'আজকের ক্যাশ ও ব্যাংক ইন-ফ্লো' : "Today's Inflow Liquidity"}</span>
-              <div className="w-7 h-7 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-700/50 group-hover:scale-105 transition-transform">
+              <div className="w-7 h-7 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-700/50">
                 <DollarSign className="w-3.5 h-3.5" />
               </div>
             </div>
@@ -834,12 +835,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Card 3: Handset Units Dispatched vs Procured */}
           <div
             onClick={() => onSelectView('inventory')}
-            className="bg-slate-50 dark:bg-slate-800/80 hover:bg-amber-50/60 dark:hover:bg-slate-800 p-4 sm:p-5 border border-slate-200 dark:border-slate-700 hover:border-amber-400 dark:hover:border-amber-500/60 space-y-3 cursor-pointer transition-all group shadow-2xs"
+            className="bg-slate-50 dark:bg-slate-800/80 hover:bg-amber-50/60 dark:hover:bg-slate-800 p-3 sm:p-4 border border-slate-200 dark:border-slate-700 hover:border-amber-400 dark:hover:border-amber-500/60 space-y-2 cursor-pointer transition-all group shadow-2xs"
             title="ইনভেন্টরি ও হ্যান্ডসেট স্টক দেখতে ক্লিক করুন"
           >
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold">
               <span className="group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">{isBn ? 'আজকের হ্যান্ডসেট ডেলিভারি / ক্রয়' : "Handsets Sold / Inflow"}</span>
-              <div className="w-7 h-7 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-700/50 group-hover:scale-105 transition-transform">
+              <div className="w-7 h-7 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-700/50">
                 <Smartphone className="w-3.5 h-3.5" />
               </div>
             </div>
@@ -857,12 +858,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Card 4: Field Force & Active Billing Orders */}
           <div
             onClick={() => onSelectView('salesmen')}
-            className="bg-slate-50 dark:bg-slate-800/80 hover:bg-purple-50/60 dark:hover:bg-slate-800 p-4 sm:p-5 border border-slate-200 dark:border-slate-700 hover:border-purple-400 dark:hover:border-purple-500/60 space-y-3 cursor-pointer transition-all group shadow-2xs"
+            className="bg-slate-50 dark:bg-slate-800/80 hover:bg-purple-50/60 dark:hover:bg-slate-800 p-3 sm:p-4 border border-slate-200 dark:border-slate-700 hover:border-purple-400 dark:hover:border-purple-500/60 space-y-2 cursor-pointer transition-all group shadow-2xs"
             title="সেলসম্যান ও ফিল্ড স্টাফ দেখতে ক্লিক করুন"
           >
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold">
               <span className="group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors">{isBn ? 'সক্রিয় সেলস প্রতিনিধি ও অর্ডার' : 'Active Reps & Open Invoices'}</span>
-              <div className="w-7 h-7 bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-200 dark:border-purple-700/50 group-hover:scale-105 transition-transform">
+              <div className="w-7 h-7 bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-200 dark:border-purple-700/50">
                 <Users className="w-3.5 h-3.5" />
               </div>
             </div>
@@ -890,18 +891,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* 4 CORE EXECUTIVE FINANCIAL KPI CARDS                          */}
 
       {/* ============================================================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Stock Valuation */}
         <div
           onClick={() => onSelectView('inventory')}
-          className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-blue-500/60 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group"
+          className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-blue-500/60 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group"
           title="ইনভেন্টরি ও স্টক লেজার পেজ খুলতে ক্লিক করুন"
         >
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-3">
             <span className="text-xs font-bold uppercase tracking-wider group-hover:text-blue-600 transition-colors">
               {isBn ? 'বর্তমান স্টক ভ্যালুয়েশন' : 'Current Stock Valuation'}
             </span>
-            <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+            <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
               <Layers className="w-5 h-5" />
             </div>
           </div>
@@ -919,14 +920,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Customer Accounts Receivable */}
         <div
           onClick={() => onSelectView('due-ageing')}
-          className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-amber-500/60 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group"
+          className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-amber-500/60 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group"
           title="বকেয়া এইজিং রিপোর্ট ও রিকভারি পেজ খুলতে ক্লিক করুন"
         >
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-3">
             <span className="text-xs font-bold uppercase tracking-wider group-hover:text-amber-600 transition-colors">
               {isBn ? 'কাস্টমার বকেয়া (রিসিভেবল)' : 'Total Customer Due (AR)'}
             </span>
-            <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
+            <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
               <CreditCard className="w-5 h-5" />
             </div>
           </div>
@@ -944,14 +945,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Net Operating Profit */}
         <div
           onClick={() => onSelectView('accounting')}
-          className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-emerald-500/60 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group"
+          className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-emerald-500/60 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group"
           title="অ্যাকাউন্টিং ও পিএন্ডএল রিপোর্ট খুলতে ক্লিক করুন"
         >
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-3">
             <span className="text-xs font-bold uppercase tracking-wider group-hover:text-emerald-600 transition-colors">
               {isBn ? 'মোট নেট প্রফিট (Estimated)' : 'Net Operating Profit'}
             </span>
-            <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+            <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
               <TrendingUp className="w-5 h-5" />
             </div>
           </div>
@@ -969,14 +970,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Liquid Cash & Bank */}
         <div
           onClick={() => onSelectView('cash-bank')}
-          className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-purple-500/60 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group"
+          className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-purple-500/60 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group"
           title="ক্যাশ ও ব্যাংক হিসাব খাতা খুলতে ক্লিক করুন"
         >
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-3">
             <span className="text-xs font-bold uppercase tracking-wider group-hover:text-purple-600 transition-colors">
               {isBn ? 'মোট লিকুইড ক্যাশ ও ব্যাংক' : 'Total Cash & Bank'}
             </span>
-            <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform">
+            <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400">
               <DollarSign className="w-5 h-5" />
             </div>
           </div>
@@ -995,9 +996,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* ============================================================== */}
       {/* SECTION: REAL-TIME CHARTS (AREA + TOP BRANDS)                  */}
       {/* ============================================================== */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         {/* CHART 1: Real-Time Sales & Collection Trends */}
-        <div className="xl:col-span-8 bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="lg:col-span-8 bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3.5">
             <div>
               <div className="flex items-center gap-2">
@@ -1065,7 +1066,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* CHART 2: TOP-SELLING PRODUCT BRANDS */}
-        <div className="xl:col-span-4 bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="lg:col-span-4 bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div>
               <div className="flex items-center gap-2">
@@ -1132,9 +1133,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* ============================================================== */}
       {/* FEATURE 3 & 4: IMEI STOCK HEALTH (DONUT) & WHOLESALE VS RETAIL */}
       {/* ============================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* FEATURE 3: IMEI Stock Lifecycle Donut Chart */}
-        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5">
             <div>
               <div className="flex items-center gap-2">
@@ -1208,7 +1209,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* FEATURE 4: B2B Wholesale vs B2C POS Retail Split */}
-        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5">
             <div>
               <div className="flex items-center gap-2">
@@ -1288,9 +1289,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* ============================================================== */}
       {/* FEATURE 5 & 6: SUPPLIER RADAR & TERRITORY DEALER MATRIX        */}
       {/* ============================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* FEATURE 5: Supplier Payables & Procurement Pipeline Radar */}
-        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5">
             <div>
               <div className="flex items-center gap-2">
@@ -1351,7 +1352,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* FEATURE 6: Territory & Area-wise Dealer Performance */}
-        <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5">
             <div>
               <div className="flex items-center gap-2">
@@ -1409,9 +1410,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* ============================================================== */}
       {/* FEATURE 7 & 8: SALES REPS LEADERBOARD & CATEGORY MARGIN MATRIX */}
       {/* ============================================================== */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         {/* FEATURE 7: Sales Reps Leaderboard */}
-        <div className="xl:col-span-7 bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="lg:col-span-7 bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5">
             <div>
               <div className="flex items-center gap-2">
@@ -1521,9 +1522,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* ============================================================== */}
       {/* FEATURE 9 & 10: WARRANTY/RMA MONITOR & EXPENSE BURN RATE       */}
       {/* ============================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         {/* FEATURE 9: Warranty, RMA & Service Center Monitor */}
-        <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div>
               <div className="flex items-center gap-2">
@@ -1577,7 +1578,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* FEATURE 10: Operational Expense Breakdown & Cash Burn Rate */}
-        <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div>
               <div className="flex items-center gap-2">
@@ -1629,7 +1630,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* ============================================================== */}
       {/* SECTION: DAILY PROFIT & LOSS TELEMETRY COMPOSED CHART           */}
       {/* ============================================================== */}
-      <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
+      <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
           <div>
             <div className="flex items-center gap-2">
@@ -1708,7 +1709,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* ============================================================== */}
       {/* MULTI-BRAND LINEUP & STOCK DISTRIBUTION GRID                    */}
       {/* ============================================================== */}
-      <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+      <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
@@ -1752,9 +1753,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* ============================================================== */}
       {/* RECENT SALES & HIGH OUTSTANDING DEALERS                         */}
       {/* ============================================================== */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         {/* Left: Recent Invoices */}
-        <div className="xl:col-span-7 bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="lg:col-span-7 bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
@@ -1813,7 +1814,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Right: Dealers with High Outstanding */}
-        <div className="xl:col-span-5 bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="lg:col-span-5 bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
