@@ -1,8 +1,8 @@
 [package]
-name = "telecorp_erp"
-version = "1.0.7"
-description = "TeleCorp ERP Desktop Application"
-authors = ["TeleCorp ERP"]
+name = "firoza_erp"
+version = "1.0.8"
+description = "FIROZA ERP Desktop Application"
+authors = ["FIROZA ENTERPRISE"]
 license = ""
 repository = ""
 edition = "2021"

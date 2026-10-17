@@ -19,6 +19,7 @@ import { useFormKeyboardNavigation } from '../../hooks/useFormKeyboardNavigation
 import { UnsavedChangesDialog } from '../common/UnsavedChangesDialog';
 import { WindowsModalFrame } from '../common/WindowsModalFrame';
 import { HistoryInput } from '../common/HistoryInput';
+import { DateInput } from '../common/DateInput';
 import { recordFieldHistory } from '../../services/formHistoryService';
 import { useToast } from '../common/ToastNotificationSystem';
 import { useQuickCreateMasterData } from '../common/QuickCreateMasterDataModal';
@@ -416,8 +417,7 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                 <label className="block text-xs font-bold mb-1">
                   Purchase / Inward Date *
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   value={purchaseDate}
                   onChange={(e) => setPurchaseDate(e.target.value)}
                   className="w-full text-xs"
@@ -429,8 +429,7 @@ export const NewPurchaseModal: React.FC<NewPurchaseModalProps> = ({
                 <label className="block text-xs font-bold mb-1">
                   Payment Due Date *
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
                   className="w-full text-xs"

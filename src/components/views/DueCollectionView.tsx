@@ -1167,7 +1167,7 @@ export const DueCollectionView: React.FC<DueCollectionViewProps> = ({ onOpenDueC
             <div className="border border-slate-300 p-6 rounded-2xl bg-amber-50/15 font-sans space-y-4">
               <div className="text-center border-b border-slate-300 pb-3">
                 <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">
-                  {settings.companyName || 'TeleCorp Mobile Distribution Ltd.'}
+                  {settings.companyName || 'FIROZA ENTERPRISE'}
                 </h2>
                 <p className="text-[10px] text-slate-500">
                   {settings.companyAddress || 'Motijheel C/A, Dhaka-1000'} | Phone: {settings.companyPhone || '+880 1711-002233'}

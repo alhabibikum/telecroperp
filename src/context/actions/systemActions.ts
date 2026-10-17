@@ -171,7 +171,7 @@ export const executeExportJSON = (ctx: SystemContextBundle) => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `TeleCorp_ERP_Backup_${new Date().toISOString().split('T')[0]}.json`;
+  link.download = `FIROZA_ERP_Backup_${new Date().toISOString().split('T')[0]}.json`;
   link.click();
   URL.revokeObjectURL(url);
 };

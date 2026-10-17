@@ -1,5 +1,5 @@
 -- =========================================================================
--- TELECORP MOBILE DISTRIBUTION ERP - SUPABASE CLOUD DATABASE SCHEMA
+-- FIROZA ERP - SUPABASE CLOUD DATABASE SCHEMA
 -- PostgreSQL / Supabase Enterprise Migration & Real Data Seed Script
 -- Covers ALL 35 Modules with 100% Real-Life Bangladeshi Telecom Data
 -- Version: 4.0.0 (Clean Production Enterprise Release - Zero Demo Data)
@@ -33,7 +33,7 @@ CREATE TABLE app_users (
 -- =========================================================================
 CREATE TABLE system_settings (
     id TEXT PRIMARY KEY DEFAULT 'primary_settings',
-    company_name TEXT NOT NULL DEFAULT 'FIROZA ENTERPRISES',
+    company_name TEXT NOT NULL DEFAULT 'FIROZA ENTERPRISE',
     company_address TEXT NOT NULL DEFAULT 'NADIM VILLA, Level 4, CENTRAL JAME MOSJID, KONABARI, GAZIPUR, Bangladesh',
     company_phone TEXT NOT NULL DEFAULT '+880 1122000 / +880 712996757',
     company_email TEXT NOT NULL DEFAULT 'info@fibrozaenterprises.com',
@@ -751,7 +751,7 @@ CREATE TABLE sms_logs (
     message_body TEXT NOT NULL,
     sent_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     status TEXT NOT NULL DEFAULT 'Sent' CHECK (status IN ('Delivered', 'Sent', 'Failed')),
-    masking TEXT DEFAULT 'TELECORP',
+    masking TEXT DEFAULT 'FIROZA',
     sms_units INTEGER DEFAULT 1
 );
 

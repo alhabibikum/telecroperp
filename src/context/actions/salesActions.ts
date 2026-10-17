@@ -355,13 +355,13 @@ export const executeCreateSale = (
 
   // Auto-send SMS to Customer if enabled
   if (ctx.sendSmsNotification && (settings.apiIntegrations?.autoSmsOnSale ?? true) && customer?.mobile) {
-    const text = `প্রিয় ${customer.ownerName || customer.shopName}, TeleCorp থেকে আপনার ইনভয়েস #${invoiceNo} সম্পন্ন হয়েছে। মোট: ৳${saleData.grandTotal.toLocaleString()}, পরিশোধ: ৳${saleData.paidAmount.toLocaleString()}, বকেয়া: ৳${saleData.dueAmount.toLocaleString()}। ধন্যবাদ!`;
+    const text = `প্রিয় ${customer.ownerName || customer.shopName}, FIROZA ENTERPRISE থেকে আপনার ইনভয়েস #${invoiceNo} সম্পন্ন হয়েছে। মোট: ৳${saleData.grandTotal.toLocaleString()}, পরিশোধ: ৳${saleData.paidAmount.toLocaleString()}, বকেয়া: ৳${saleData.dueAmount.toLocaleString()}। ধন্যবাদ!`;
     ctx.sendSmsNotification({
       recipientPhone: customer.mobile,
       recipientName: customer.shopName,
       messageType: 'Invoice Alert',
       messageBody: text,
-      masking: settings.apiIntegrations?.smsSenderId || 'TeleCorp',
+      masking: settings.apiIntegrations?.smsSenderId || 'FIROZA',
       smsUnits: 1
     });
   }
@@ -704,8 +704,8 @@ export const executeCollectCustomerPayment = (
       recipientPhone: customer.mobile,
       recipientName: customer.shopName,
       messageType: 'Payment Receipt',
-      messageBody: `প্রিয় ${customer.ownerName || customer.shopName}, TeleCorp-এ আপনার ৳${data.amount.toLocaleString()} জমা গ্রহণ করা হয়েছে। মানি রিসিট #${receiptNo}। বর্তমান অবশিষ্ট বকেয়া: ৳${remainingDue.toLocaleString()}। ধন্যবাদ!`,
-      masking: settings?.apiIntegrations?.smsSenderId || 'TeleCorp',
+      messageBody: `প্রিয় ${customer.ownerName || customer.shopName}, FIROZA ENTERPRISE-এ আপনার ৳${data.amount.toLocaleString()} জমা গ্রহণ করা হয়েছে। মানি রিসিট #${receiptNo}। বর্তমান অবশিষ্ট বকেয়া: ৳${remainingDue.toLocaleString()}। ধন্যবাদ!`,
+      masking: settings?.apiIntegrations?.smsSenderId || 'FIROZA',
       smsUnits: 1
     });
   }

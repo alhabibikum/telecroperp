@@ -105,7 +105,6 @@ export const BrandIncentivesView: React.FC = () => {
       claimStatus: 'In Progress'
     });
 
-    setShowAddModal(false);
     setSchemeTitle('');
   };
 

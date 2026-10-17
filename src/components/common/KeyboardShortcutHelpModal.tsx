@@ -124,7 +124,7 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
             </div>
             <div>
               <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                টেলিকর্প ইআরপি • অপারেশনাল সেন্টার ও সহায়িকা
+                FIROZA ERP • অপারেশনাল সেন্টার ও সহায়িকা
                 <span className="text-[10px] bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold px-2 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800/60">
                   v3.2 Enterprise
                 </span>
@@ -139,8 +139,8 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
           </div>
           <div className="flex items-center gap-2">
             <a
-              href="/telecorp_erp_operation_guide.pdf"
-              download="TeleCorp_ERP_Operation_Guide.pdf"
+              href="/firoza_erp_operation_guide.pdf"
+              download="FIROZA_ERP_Operation_Guide.pdf"
               target="_blank"
               rel="noopener noreferrer"
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-bold border border-red-200 dark:border-red-900/50 transition-colors shadow-xs"
@@ -151,8 +151,8 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
               <Download className="w-3 h-3 text-red-500" />
             </a>
             <a
-              href="/telecorp_erp_operation_guide.docx"
-              download="TeleCorp_ERP_Operation_Guide.docx"
+              href="/firoza_erp_operation_guide.docx"
+              download="FIROZA_ERP_Operation_Guide.docx"
               target="_blank"
               rel="noopener noreferrer"
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-900/50 transition-colors shadow-xs"
@@ -480,7 +480,7 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
         <div className="p-3 bg-slate-50 dark:bg-slate-800/70 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-5">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span className="text-[11px] font-medium">TeleCorp Pro Interactive Training & Help Engine</span>
+            <span className="text-[11px] font-medium">FIROZA ERP Interactive Training & Help Engine</span>
           </div>
           <button
             type="button"
@@ -494,4 +494,3 @@ export const KeyboardShortcutHelpModal: React.FC<KeyboardShortcutHelpModalProps>
     </div>
   );
 };
-

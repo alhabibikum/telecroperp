@@ -14,6 +14,7 @@ import {
 import { formatBDT, formatDate } from '../../utils/formatters';
 import { RowActions, EditModal } from '../common/CrudKit';
 import type { SalesmanVisit, CustomerFollowUp } from '../../types/erp';
+import { DateInput } from '../common/DateInput';
 
 export const FieldVisitsView: React.FC = () => {
   const {
@@ -71,10 +72,10 @@ export const FieldVisitsView: React.FC = () => {
       nextFollowUpDate: nextFollowUpDate || undefined
     });
 
-    setShowLogVisitModal(false);
     setOutcomeNotes('');
     setOrderCollected(0);
     setPaymentCollected(0);
+    setNextFollowUpDate('');
   };
 
   const handleCreateFollowUp = (e: React.FormEvent) => {
@@ -96,7 +97,6 @@ export const FieldVisitsView: React.FC = () => {
       notes: fupNotes
     });
 
-    setShowScheduleFupModal(false);
     setFupNotes('');
   };
 
@@ -330,8 +330,7 @@ export const FieldVisitsView: React.FC = () => {
                 </div>
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Next Follow-up Date</label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={nextFollowUpDate}
                     onChange={(e) => setNextFollowUpDate(e.target.value)}
                     className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg"
@@ -411,8 +410,7 @@ export const FieldVisitsView: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Scheduled Date *</label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={fupScheduledDate}
                     onChange={(e) => setFupScheduledDate(e.target.value)}
                     className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg"

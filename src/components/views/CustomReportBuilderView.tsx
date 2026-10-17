@@ -302,7 +302,7 @@ export const CustomReportBuilderView: React.FC = () => {
         {/* Printable Official Header (Shown during Print & Export) */}
         <div className="hidden print:block p-6 border-b border-slate-300">
           <h1 className="text-xl font-black text-slate-900 tracking-tight">
-            {settings?.companyName || 'TeleCorp Mobile Distribution & Trade Ltd.'}
+            {settings?.companyName || 'FIROZA ENTERPRISE'}
           </h1>
           <p className="text-xs text-slate-600 mt-0.5">
             {settings?.companyAddress || 'Level 8, Motijheel C/A, Dhaka-1000'} • Phone: {settings?.companyPhone || '+880 1711-002233'}

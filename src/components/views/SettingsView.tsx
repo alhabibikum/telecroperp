@@ -372,7 +372,7 @@ export const SettingsView: React.FC = () => {
               setErrorMsg('Invalid backup file schema: Missing essential ERP tables.');
             }
           } catch (err) {
-            setErrorMsg('Failed to parse JSON file. Please ensure it is a valid TeleCorp backup file.');
+            setErrorMsg('Failed to parse JSON file. Please ensure it is a valid FIROZA ERP backup file.');
           }
         }
       };
@@ -822,7 +822,7 @@ export const SettingsView: React.FC = () => {
               </h3>
             </div>
             <p className="text-xs text-slate-500">
-              টেলিকর্প ইআরপিতে প্রতিটি রোলের জন্য আলাদা প্রিভিলেজ ও মডিউল পারমিশন রিয়েলটাইমে কনফিগার করা হয়েছে:
+              FIROZA ERP-তে প্রতিটি রোলের জন্য আলাদা প্রিভিলেজ ও মডিউল পারমিশন রিয়েলটাইমে কনফিগার করা হয়েছে:
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs pt-1">
@@ -1467,7 +1467,7 @@ export const SettingsView: React.FC = () => {
                 value={companyEmail}
                 onChange={(e) => setCompanyEmail(e.target.value)}
                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono"
-                placeholder="operations@telecorp-bd.com"
+                placeholder="operations@firoza-enterprise.com"
               />
             </div>
           </div>
@@ -1529,7 +1529,7 @@ export const SettingsView: React.FC = () => {
                     </span>
                   </div>
                   <h3 className="text-xl font-black text-white mt-1.5">
-                    TeleCorp ERP - ডেস্কটপ অটো-আপডেট ইঞ্জিন
+                    FIROZA ERP - ডেস্কটপ অটো-আপডেট ইঞ্জিন
                   </h3>
                   <p className="text-xs text-slate-400 mt-1 max-w-xl leading-relaxed">
                     গিটহাবে নতুন .exe রিলিজ তৈরি হওয়া মাত্রই সফ্টওয়্যারটি স্বয়ংক্রিয়ভাবে নোটিফিকেশন পাঠাবে এবং ১-ক্লিক করলে কোনো অতিরিক্ত ইনস্টলার উইজার্ড বা ক্লিক ছাড়াই সম্পূর্ণ ইনস্টল ও রিস্টার্ট হবে।
@@ -1570,7 +1570,7 @@ export const SettingsView: React.FC = () => {
               <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60">
                 <span className="text-xs text-slate-400 block mb-1">রিলিজ চ্যানেল ও রেপো</span>
                 <div className="text-sm font-bold text-slate-200 font-mono truncate">
-                  alhabibikum/telecroperp
+                  FIROZA ERP Releases
                 </div>
                 <span className="text-[10px] text-cyan-400 mt-1 block">
                   GitHub Actions অটো বিল্ড (.exe)
@@ -1864,7 +1864,7 @@ export const SettingsView: React.FC = () => {
                   <input
                     type="email"
                     required
-                    placeholder="abrar@telecorp.com"
+                    placeholder="name@firoza-enterprise.com"
                     value={newUserForm.email}
                     onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white"

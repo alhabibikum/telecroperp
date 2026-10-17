@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
 import { RowActions, EditModal, FieldDef } from '../common/CrudKit';
+import { DateInput } from '../common/DateInput';
 import type { AccountCOA, JournalEntry, JournalLine } from '../../types/erp';
 import { useToast } from '../common/ToastNotificationSystem';
 
@@ -191,7 +192,6 @@ export const AccountingView: React.FC = () => {
 
     if (res.success) {
       showSuccess('ম্যানুয়াল জার্নাল ভাউচার সফলভাবে তৈরি এবং পোস্টিং সম্পন্ন হয়েছে!');
-      setShowAddJvModal(false);
       setJvDescription('');
       setJvRef('');
       setJvLines([
@@ -724,8 +724,7 @@ export const AccountingView: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Voucher Date *</label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={jvDate}
                     onChange={e => setJvDate(e.target.value)}
                     className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg font-bold"

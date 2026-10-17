@@ -38,6 +38,7 @@ import {
   Search
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
+import { DateInput } from '../common/DateInput';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -479,7 +480,7 @@ export const DynamicBusinessReportView: React.FC = () => {
 
       // SHEET 1: EXECUTIVE SUMMARY
       const summaryRows = [
-        [`${settings.companyName ? settings.companyName.toUpperCase() : 'TELECORP ERP'} - EXECUTIVE BUSINESS SUMMARY`, `(${fromDate} to ${toDate})`, ''],
+        [`${settings.companyName ? settings.companyName.toUpperCase() : 'FIROZA ERP'} - EXECUTIVE BUSINESS SUMMARY`, `(${fromDate} to ${toDate})`, ''],
         [],
         ['Key Executive Metric', 'Value (BDT / Units)', 'Remarks / Comparison'],
         ['Gross Invoiced Sales', totalSalesRevenue, `Wholesale: ৳${totalWholesaleRevenue.toLocaleString()} | Retail: ৳${totalRetailRevenue.toLocaleString()}`],
@@ -693,8 +694,7 @@ export const DynamicBusinessReportView: React.FC = () => {
           <div className="flex items-center gap-2 text-xs">
             <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200">
               <Calendar className="w-3.5 h-3.5 text-slate-400" />
-              <input
-                type="date"
+              <DateInput
                 value={fromDate}
                 onChange={e => {
                   setTimeframe('custom');
@@ -706,8 +706,7 @@ export const DynamicBusinessReportView: React.FC = () => {
             <span className="text-slate-400 font-bold">to</span>
             <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200">
               <Calendar className="w-3.5 h-3.5 text-slate-400" />
-              <input
-                type="date"
+              <DateInput
                 value={toDate}
                 onChange={e => {
                   setTimeframe('custom');
@@ -2014,7 +2013,7 @@ export const DynamicBusinessReportView: React.FC = () => {
               <div className="border-b-2 border-slate-900 pb-4 flex items-start justify-between">
                 <div>
                   <h1 className="text-2xl font-black tracking-tight text-slate-900">
-                    {settings.companyName || 'TeleCorp Mobile Distribution & Trade Ltd.'}
+                    {settings.companyName || 'FIROZA ENTERPRISE'}
                   </h1>
                   <p className="text-xs text-slate-600 mt-0.5">
                     Authorized National Distributor &amp; Importer • Multi-Brand Smartphones

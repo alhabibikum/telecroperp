@@ -142,7 +142,13 @@ export const DeliveryDispatchView: React.FC = () => {
     });
 
     showSuccess('নতুন ডেলিভারি চালান সফলভাবে তৈরি করা হয়েছে!');
-    setShowAddModal(false);
+    setConsignmentNo('');
+    setIsCOD(false);
+    setCodAmount(0);
+    setTotalCartons(1);
+    setDriverName('');
+    setDriverPhone('');
+    setRemarks('');
   };
 
   const filteredChallans = deliveryChallans.filter(ch => {
@@ -349,7 +355,7 @@ export const DeliveryDispatchView: React.FC = () => {
                   <div>
                     <div className="flex items-start justify-between border-b border-slate-300 pb-3 mb-3">
                       <div>
-                        <div className="font-black text-sm text-slate-900 uppercase">TeleCorp Logistics</div>
+                        <div className="font-black text-sm text-slate-900 uppercase">FIROZA ENTERPRISE Logistics</div>
                         <div className="text-[10px] text-slate-500">Dhaka Central Hub • Tel: 01700-000000</div>
                         <div className="text-[10px] text-slate-700 mt-1 font-semibold">
                           Client: {currentOrder.customer}

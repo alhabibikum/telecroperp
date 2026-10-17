@@ -587,7 +587,7 @@ export const executeSendEMIReminderSMS = (
   const inst = plan.installments.find(i => i.installmentNo === installmentNo);
   if (!inst) return { success: false, error: 'কিস্তি পাওয়া যায়নি' };
 
-  const msgBody = `প্রিয় ${plan.customerName}, আপনার স্মার্টফোন কিস্তি #${plan.planNo}-এর কিস্তি নং ${installmentNo} (টাকা: ${inst.amount.toLocaleString()}) আগামী ${inst.dueDate} তারিখের মধ্যে পরিশোধের জন্য অনুরোধ করা হচ্ছে। হটলাইন: 01711-002233। টেলিকর্প।`;
+  const msgBody = `প্রিয় ${plan.customerName}, আপনার স্মার্টফোন কিস্তি #${plan.planNo}-এর কিস্তি নং ${installmentNo} (টাকা: ${inst.amount.toLocaleString()}) আগামী ${inst.dueDate} তারিখের মধ্যে পরিশোধের জন্য অনুরোধ করা হচ্ছে। হটলাইন: 01711-002233। FIROZA ENTERPRISE।`;
 
   const newSms: SmsLog = {
     id: `sms-emi-${Date.now()}`,
@@ -597,7 +597,7 @@ export const executeSendEMIReminderSMS = (
     messageBody: msgBody,
     sentAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
     status: 'Delivered',
-    masking: 'TeleCorp',
+    masking: 'FIROZA',
     smsUnits: 1
   };
 

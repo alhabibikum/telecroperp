@@ -196,7 +196,7 @@ export const ReportsView: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `TeleCorp_${reportTitle}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `FIROZA_${reportTitle}_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1043,7 +1043,7 @@ export const ReportsView: React.FC = () => {
               {/* Document Disclaimer & Auditor Signatures */}
               <div className="pt-4 border-t border-slate-200 text-[10px] text-slate-500 space-y-1">
                 <p>• Certified that the above figures represent actual ledger records and serialized IMEI inventory counts.</p>
-                <p>• This document is computer-generated from TeleCorp ERP under ISO & NBR compliance rules.</p>
+                <p>• This document is computer-generated from FIROZA ERP under ISO & NBR compliance rules.</p>
               </div>
 
               <div className="grid grid-cols-3 gap-8 pt-8 text-[11px] font-semibold text-slate-700 text-center">

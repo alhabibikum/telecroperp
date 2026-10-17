@@ -23,9 +23,9 @@ const {
 
 // Source markdown file paths
 const possibleMdPaths = [
-  path.resolve('C:/Users/Times Digital/.gemini/antigravity-ide/brain/af353434-ed35-4afb-9c67-f7ecd3d85f76/telecorp_erp_master_user_operation_guide.md'),
-  path.resolve(__dirname, '../telecorp_erp_master_user_operation_guide.md'),
-  path.resolve(__dirname, 'telecorp_erp_master_user_operation_guide.md')
+  path.resolve('C:/Users/Times Digital/.gemini/antigravity-ide/brain/af353434-ed35-4afb-9c67-f7ecd3d85f76/firoza_erp_master_user_operation_guide.md'),
+  path.resolve(__dirname, '../firoza_erp_master_user_operation_guide.md'),
+  path.resolve(__dirname, 'firoza_erp_master_user_operation_guide.md')
 ];
 
 let mdPath = possibleMdPaths.find(p => fs.existsSync(p));
@@ -38,11 +38,11 @@ console.log('Reading markdown from:', mdPath);
 const markdownContent = fs.readFileSync(mdPath, 'utf8');
 
 // Target file locations
-const outputPdf = path.resolve('telecorp_erp_operation_guide.pdf');
-const outputDocx = path.resolve('telecorp_erp_operation_guide.docx');
+const outputPdf = path.resolve('firoza_erp_operation_guide.pdf');
+const outputDocx = path.resolve('firoza_erp_operation_guide.docx');
 const publicDir = path.resolve('public');
-const publicPdf = path.join(publicDir, 'telecorp_erp_operation_guide.pdf');
-const publicDocx = path.join(publicDir, 'telecorp_erp_operation_guide.docx');
+const publicPdf = path.join(publicDir, 'firoza_erp_operation_guide.pdf');
+const publicDocx = path.join(publicDir, 'firoza_erp_operation_guide.docx');
 
 // Ensure public directory exists
 if (!fs.existsSync(publicDir)) {
@@ -84,7 +84,7 @@ const fullHtml = `<!DOCTYPE html>
 <html lang="bn">
 <head>
   <meta charset="utf-8">
-  <title>TeleCorp Mobile Distribution & Trade ERP — User Operation Guide</title>
+  <title>FIROZA ERP — User Operation Guide</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
 
@@ -92,7 +92,7 @@ const fullHtml = `<!DOCTYPE html>
       size: A4 portrait;
       margin: 15mm 15mm 15mm 15mm;
       @bottom-left {
-        content: "TeleCorp Mobile Distribution & Trade ERP — User Operation Guide";
+        content: "FIROZA ERP — User Operation Guide";
         font-family: 'Inter', sans-serif;
         font-size: 7.5pt;
         color: #64748b;
@@ -378,12 +378,12 @@ const fullHtml = `<!DOCTYPE html>
 
   <div class="doc-header">
     <div class="doc-badge">ENTERPRISE PRODUCTION SOP & USER MANUAL</div>
-    <h1>TeleCorp Mobile Distribution & Trade ERP</h1>
+    <h1>FIROZA ENTERPRISE</h1>
     <div class="doc-subtitle">Complete Step-by-Step User Operation & Business Management Guide</div>
     <div class="meta-grid">
       <div class="meta-item"><strong>সংস্করণ:</strong> 3.2 Enterprise Production Edition</div>
       <div class="meta-item"><strong>টার্গেট ইউজার:</strong> Mobile Dealer Business Managers, Operations Directors, Accountants</div>
-      <div class="meta-item"><strong>সিস্টেম প্ল্যাটফর্ম:</strong> TeleCorp ERP (Dual IMEI, BTRC-Compliant, Multi-Branch Cloud)</div>
+      <div class="meta-item"><strong>সিস্টেম প্ল্যাটফর্ম:</strong> FIROZA ERP (Dual IMEI, BTRC-Compliant, Multi-Branch Cloud)</div>
       <div class="meta-item"><strong>ডকুমেন্ট রিলিজ:</strong> অক্টোবর ২০২৬ | গোপনীয় ও সংরক্ষিত</div>
     </div>
   </div>
@@ -479,7 +479,7 @@ docChildren.push(
     spacing: { before: 200, after: 100 },
     children: [
       new TextRun({
-        text: 'TeleCorp Mobile Distribution & Trade ERP',
+        text: 'FIROZA ENTERPRISE',
         bold: true,
         size: 36,
         color: '1E3A8A',
@@ -541,7 +541,7 @@ const metaTable = new Table({
         }),
         new TableCell({
           width: { size: 70, type: WidthType.PERCENTAGE },
-          children: [new Paragraph({ children: [new TextRun({ text: 'TeleCorp ERP (Multi-Branch, Dual IMEI, Cloud-Sync, BTRC-Compliant)', size: 18 })] })]
+          children: [new Paragraph({ children: [new TextRun({ text: 'FIROZA ERP (Multi-Branch, Dual IMEI, Cloud-Sync, BTRC-Compliant)', size: 18 })] })]
         })
       ]
     })
@@ -754,8 +754,8 @@ for (const token of tokens) {
 
 // Instantiate Document
 const doc = new Document({
-  creator: 'TeleCorp Systems Engineering',
-  title: 'TeleCorp Mobile Distribution & Trade ERP — User Operation Guide',
+  creator: 'FIROZA ENTERPRISE',
+  title: 'FIROZA ERP — User Operation Guide',
   description: 'Complete Step-by-Step User Operation & Business Management Guide',
   sections: [
     {
@@ -776,7 +776,7 @@ const doc = new Document({
               alignment: AlignmentType.RIGHT,
               children: [
                 new TextRun({
-                  text: 'TeleCorp Mobile Distribution & Trade ERP — Operational SOP Manual',
+                  text: 'FIROZA ERP — Operational SOP Manual',
                   font: 'Segoe UI',
                   size: 16,
                   color: '64748B'

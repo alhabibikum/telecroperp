@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useRef, useId } from 'react';
+import React, { useState, useEffect, useRef, useId, useMemo } from 'react';
 import { History, X, Sparkles } from 'lucide-react';
 import {
   getFieldHistory,
   recordFieldHistory,
-  removeFieldHistoryItem
+  removeFieldHistoryItem,
+  normalizeHistoryKey
 } from '../../services/formHistoryService';
+import { useERP } from '../../context/ERPContext';
 
 export interface HistoryInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   historyKey: string;
@@ -25,6 +27,7 @@ export const HistoryInput: React.FC<HistoryInputProps> = ({
   placeholder,
   ...rest
 }) => {
+  const { brands, products, imeis, customers, suppliers, warehouses, salesmen, bankAccounts, chartOfAccounts } = useERP();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -32,16 +35,62 @@ export const HistoryInput: React.FC<HistoryInputProps> = ({
   const datalistId = useId();
 
   const strValue = typeof value === 'number' || typeof value === 'string' ? String(value) : '';
+  const normalizedKey = normalizeHistoryKey(historyKey);
+  const databaseSuggestions = useMemo(() => {
+    switch (normalizedKey) {
+      case 'brand':
+        return brands.map(brand => brand.name);
+      case 'model':
+        return [...products.map(product => product.model), ...imeis.map(item => item.productName)];
+      case 'sku':
+        return products.flatMap(product => product.variants.map(variant => variant.sku));
+      case 'shopName':
+        return customers.map(customer => customer.shopName);
+      case 'ownerName':
+        return customers.map(customer => customer.ownerName);
+      case 'mobile':
+        return [
+          ...customers.flatMap(customer => [customer.mobile, customer.alternativeMobile || '']),
+          ...suppliers.flatMap(supplier => [supplier.mobile, supplier.alternativeMobile || ''])
+        ];
+      case 'area':
+        return customers.map(customer => customer.area);
+      case 'district':
+        return [...customers.map(customer => customer.district), ...suppliers.map(supplier => supplier.district)];
+      case 'address':
+        return [...customers.map(customer => customer.address), ...suppliers.map(supplier => supplier.address)];
+      case 'companyName':
+        return suppliers.flatMap(supplier => [supplier.companyName, supplier.name]);
+      case 'supplier':
+        return suppliers.flatMap(supplier => [supplier.name, supplier.companyName]);
+      case 'payee':
+        return [...suppliers.map(supplier => supplier.name), ...bankAccounts.map(account => account.bankName)];
+      case 'warehouse':
+        return warehouses.map(warehouse => warehouse.name);
+      case 'salesman':
+        return salesmen.map(salesman => salesman.name);
+      case 'bankAccount':
+        return bankAccounts.map(account => account.bankName);
+      case 'accountName':
+        return [...chartOfAccounts.map(account => account.name), ...bankAccounts.map(account => account.accountName)];
+      default:
+        return [];
+    }
+  }, [normalizedKey, brands, products, imeis, customers, suppliers, warehouses, salesmen, bankAccounts, chartOfAccounts]);
 
   // Retrieve matching suggestions
   const historyList = getFieldHistory(historyKey, strValue);
-  const extraFiltered = additionalSuggestions.filter(
-    item =>
-      Boolean(item) &&
-      item.toLowerCase().includes(strValue.toLowerCase()) &&
-      !historyList.some(h => h.toLowerCase() === item.toLowerCase())
+  const query = strValue.trim().toLowerCase();
+  const matching = (items: string[]) => items.filter(item => item && item.toLowerCase().includes(query));
+  const historyMatches = matching(historyList);
+  const databaseMatches = matching([...databaseSuggestions, ...additionalSuggestions]).filter(
+    item => !historyMatches.some(historyItem => historyItem.toLowerCase() === item.toLowerCase())
   );
-  const allSuggestions = [...historyList, ...extraFiltered].slice(0, 10);
+  const allSuggestions = (query
+    ? [...databaseMatches.slice(0, 5), ...historyMatches.slice(0, 5), ...databaseMatches.slice(5), ...historyMatches.slice(5)]
+    : [...historyMatches, ...databaseMatches]
+  ).filter((item, index, items) => items.findIndex(other => other.toLowerCase() === item.toLowerCase()) === index)
+    .slice(0, 10);
 
   // Close on outside click
   useEffect(() => {

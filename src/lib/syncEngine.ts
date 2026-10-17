@@ -631,7 +631,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         problem_description: data.problemDescription || data.problem_description,
         physical_condition: data.physicalCondition || data.physical_condition || '',
         accessories_included: data.accessoriesIncluded || data.accessories_included || '',
-        service_center_name: data.serviceCenterName || data.service_center_name || 'TeleCorp Central Service Center',
+        service_center_name: data.serviceCenterName || data.service_center_name || 'FIROZA ENTERPRISE Central Service Center',
         service_center_job_no: data.serviceCenterJobNo || data.service_center_job_no || null,
         status: data.status || 'Received',
         replacement_imei: data.replacementIMEI || data.replacement_imei || null,
@@ -802,7 +802,7 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
         message_body: data.messageBody || data.message_body,
         sent_at: data.sentAt || data.sent_at || new Date().toISOString(),
         status: data.status || 'Delivered',
-        masking: data.masking || 'TeleCorp',
+        masking: data.masking || 'FIROZA',
         sms_units: data.smsUnits ?? data.sms_units ?? 1
       };
 
@@ -848,10 +848,10 @@ export const mapToSupabasePayload = (table: string, data: any): any => {
     case 'system_settings':
       return {
         id: 'primary_settings',
-        company_name: data.companyName || data.company_name || 'TeleCorp Mobile Distribution & Trade Ltd.',
+        company_name: data.companyName || data.company_name || 'FIROZA ENTERPRISE',
         company_address: data.companyAddress || data.company_address || 'Level 8, Motijheel C/A, Dhaka-1000, Bangladesh',
         company_phone: data.companyPhone || data.company_phone || '+880 2-9568912 / +880 1711-002233',
-        company_email: data.companyEmail || data.company_email || 'operations@telecorp-bd.com',
+        company_email: data.companyEmail || data.company_email || 'operations@firoza-enterprise.com',
         vat_tax_number: data.vatTaxNumber || data.vat_tax_number || 'BIN: 002341890-0101 (BTRC Reg: D-88902)',
         default_vat_percent: data.defaultVatPercent ?? data.default_vat_percent ?? 5,
         currency: data.currency || 'BDT',

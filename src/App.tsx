@@ -64,6 +64,8 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { useAppZoom } from './hooks/useAppZoom';
 import { useAppUpdater } from './hooks/useAppUpdater';
 import { AppUpdaterModal } from './components/common/AppUpdaterModal';
+import { isTauri } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 
 const VIEW_CONFIG: Record<string, { title: string; subtitle: string; icon: string }> = {
   'dashboard': { title: 'ড্যাশবোর্ড (Dashboard)', subtitle: 'ব্যবসার সার্বিক ওভারভিউ ও বিশ্লেষণ', icon: '📊' },
@@ -242,6 +244,12 @@ const ERPAppContent: React.FC = () => {
   };
 
   const handleToggleFullscreen = () => {
+    if (isTauri()) {
+      void getCurrentWindow().toggleMaximize().catch(error => {
+        console.error('Failed to toggle the application window size:', error);
+      });
+      return;
+    }
     if (getIsFullscreen()) {
       exitFullScreenMode();
     } else {

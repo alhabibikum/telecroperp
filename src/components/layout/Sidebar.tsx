@@ -181,7 +181,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <div className="truncate">
                 <div className="text-[14px] font-black tracking-tight text-slate-900 dark:text-slate-100 leading-tight truncate">
-                  {settings?.companyName || 'TeleCorp ERP'}
+                  {settings?.companyName || 'FIROZA ERP'}
                 </div>
                 <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                   Enterprise Portal
@@ -214,7 +214,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       ) : (
         <div className="p-3 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-center bg-slate-50/70 dark:bg-slate-900/60">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-blue-700 to-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-sm shadow-blue-500/20" title={settings?.companyName || 'TeleCorp ERP'}>
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-blue-700 to-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-sm shadow-blue-500/20" title={settings?.companyName || 'FIROZA ERP'}>
             {settings?.companyName ? settings.companyName.trim().substring(0, 2).toUpperCase() : 'TC'}
           </div>
         </div>

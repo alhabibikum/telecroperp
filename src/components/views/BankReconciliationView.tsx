@@ -11,6 +11,7 @@ import {
   X
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
+import { DateInput } from '../common/DateInput';
 
 export const BankReconciliationView: React.FC = () => {
   const {
@@ -55,7 +56,6 @@ export const BankReconciliationView: React.FC = () => {
       status: 'Unmatched'
     });
 
-    setShowAddModal(false);
     setNewDesc('');
     setNewRef('');
     setNewAmount(0);
@@ -226,8 +226,7 @@ export const BankReconciliationView: React.FC = () => {
             <form onSubmit={handleAddEntry} className="p-5 space-y-4 text-xs">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Transaction Date</label>
-                <input
-                  type="date"
+                <DateInput
                   value={newDate}
                   onChange={(e) => setNewDate(e.target.value)}
                   className="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl"

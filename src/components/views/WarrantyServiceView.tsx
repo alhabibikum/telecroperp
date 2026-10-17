@@ -28,6 +28,7 @@ import { formatDate } from '../../utils/formatters';
 import { WarrantyStatus } from '../../types/erp';
 import { MultiBarcodeScannerModal } from '../common/MultiBarcodeScannerModal';
 import { useToast } from '../common/ToastNotificationSystem';
+import { DateInput } from '../common/DateInput';
 
 export const WarrantyServiceView: React.FC = () => {
   const {
@@ -300,8 +301,7 @@ export const WarrantyServiceView: React.FC = () => {
                     Received Date
                   </label>
                   <div className="sm:col-span-2">
-                    <input
-                      type="date"
+                    <DateInput
                       value={intakeDate}
                       onChange={(e) => setIntakeDate(e.target.value)}
                       className="w-full text-sm"

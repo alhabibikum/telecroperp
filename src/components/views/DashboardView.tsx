@@ -597,7 +597,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white">
-                    {isBn ? 'টেলিকর্প এক্সিকিউটিভ ড্যাশবোর্ড' : 'TeleCorp Executive Mission Control'}
+                    {isBn ? 'FIROZA ERP এক্সিকিউটিভ ড্যাশবোর্ড' : 'FIROZA ERP Executive Mission Control'}
                   </h1>
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />

@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "TeleCorp ERP",
-  "version": "1.0.7",
+  "productName": "FIROZA ERP",
+  "version": "1.0.8",
   "identifier": "com.telecorp.erp",
   "build": {
     "frontendDist": "../dist",
@@ -13,13 +13,14 @@
     "windows": [
       {
         "label": "main",
-        "title": "TeleCorp ERP - Multi-Brand Smartphone Dealer & Distribution",
+        "title": "FIROZA ERP - Mobile Dealer & Distribution",
         "width": 1440,
         "height": 900,
         "minWidth": 1024,
         "minHeight": 700,
         "resizable": true,
-        "fullscreen": true,
+        "decorations": true,
+        "fullscreen": false,
         "maximized": false
       }
     ],

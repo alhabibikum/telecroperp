@@ -1,9 +1,9 @@
 /* =========================================================================
-   TELECORP ERP - ADVANCED OFFLINE / ONLINE SERVICE WORKER
+   FIROZA ERP - ADVANCED OFFLINE / ONLINE SERVICE WORKER
    Version: 1.0.0
    ========================================================================= */
 
-const CACHE_NAME = 'telecorp-erp-v1';
+const CACHE_NAME = 'firoza-erp-v2';
 
 // Critical shell resources to cache on install
 const PRECACHE_ASSETS = [
@@ -80,7 +80,7 @@ self.addEventListener('fetch', (event) => {
           const rootFallback = await caches.match('/');
           if (rootFallback) return rootFallback;
 
-          return new Response('TeleCorp ERP is running in offline mode. Please reload.', {
+          return new Response('FIROZA ERP is running in offline mode. Please reload.', {
             headers: { 'Content-Type': 'text/plain; charset=utf-8' }
           });
         })

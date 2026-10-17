@@ -27,6 +27,7 @@ import { WindowsModalFrame } from '../common/WindowsModalFrame';
 import { playScanSuccessSound, playWarningBuzzer, playCashRegisterSound } from '../../utils/audioAlertUtils';
 import { shareInvoiceViaWhatsApp } from '../../utils/whatsappUtils';
 import { HistoryInput } from '../common/HistoryInput';
+import { DateInput } from '../common/DateInput';
 import { recordFieldHistory } from '../../services/formHistoryService';
 import { useToast } from '../common/ToastNotificationSystem';
 import { useQuickCreateMasterData } from '../common/QuickCreateMasterDataModal';
@@ -653,8 +654,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Invoice Date *
               </label>
-              <input
-                type="date"
+              <DateInput
                 value={invoiceDate}
                 onChange={(e) => setInvoiceDate(e.target.value)}
                 className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:bg-white dark:focus:bg-slate-800"

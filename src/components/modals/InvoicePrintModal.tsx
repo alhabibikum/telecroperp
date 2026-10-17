@@ -72,7 +72,7 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
       onSkip={onClose}
       modalId={`invoice-print-${invoice.invoiceNo}`}
       title={`ট্যাক্স ইনভয়েস প্রিন্ট ও প্রিভিউ: ${invoice.invoiceNo}`}
-      subtitle="TeleCorp Official Tax Invoice"
+      subtitle="FIROZA ENTERPRISE Official Tax Invoice"
       icon={<Printer className="w-4 h-4 text-blue-400" />}
       maxWidth="max-w-4xl"
     >

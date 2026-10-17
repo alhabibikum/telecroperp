@@ -1552,7 +1552,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           messageBody: s.message_body,
           sentAt: s.sent_at,
           status: s.status || 'Sent',
-          masking: s.masking || 'TELECORP',
+          masking: s.masking || 'FIROZA',
           smsUnits: Number(s.sms_units || 1)
         })));
       }
@@ -2810,8 +2810,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         recipientPhone: customer.mobile,
         recipientName: customer.shopName,
         messageType: 'Payment Receipt',
-        messageBody: `প্রিয় ${customer.ownerName || customer.shopName}, TeleCorp-এ আপনার ৳${data.amount.toLocaleString()} জমা গ্রহণ করা হয়েছে। মানি রিসিট #${receiptNo}। বর্তমান অবশিষ্ট বকেয়া: ৳${remainingDue.toLocaleString()}। ধন্যবাদ!`,
-        masking: settings.apiIntegrations?.smsSenderId || 'TeleCorp',
+        messageBody: `প্রিয় ${customer.ownerName || customer.shopName}, FIROZA ENTERPRISE-এ আপনার ৳${data.amount.toLocaleString()} জমা গ্রহণ করা হয়েছে। মানি রিসিট #${receiptNo}। বর্তমান অবশিষ্ট বকেয়া: ৳${remainingDue.toLocaleString()}। ধন্যবাদ!`,
+        masking: settings.apiIntegrations?.smsSenderId || 'FIROZA',
         smsUnits: 1
       }, masterDataBundle);
     }

@@ -22,7 +22,7 @@ const views = [
   { id: 'settings', filename: '10_settings.png' }
 ];
 
-console.log('Capturing real screenshots from TeleCorp ERP (http://localhost:3000)...');
+console.log('Capturing real screenshots from FIROZA ERP (http://localhost:3000)...');
 
 for (const v of views) {
   const targetFile = path.join(screenshotDir, v.filename);

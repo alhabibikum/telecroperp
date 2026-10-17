@@ -17,6 +17,7 @@ import {
   FileText
 } from 'lucide-react';
 import { formatBDT, formatDate } from '../../utils/formatters';
+import { DateInput } from '../common/DateInput';
 import type { DayClosingRecord } from '../../types/erp';
 
 export const DayClosingView: React.FC = () => {
@@ -246,8 +247,7 @@ export const DayClosingView: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block font-semibold text-slate-700 mb-1">Closing Business Date</label>
-              <input
-                type="date"
+              <DateInput
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg font-bold"
@@ -511,7 +511,7 @@ export const DayClosingView: React.FC = () => {
 
             <div className="p-6 overflow-y-auto space-y-4 text-xs font-mono" id="printable-slip">
               <div className="text-center pb-3 border-b border-dashed border-slate-300">
-                <h2 className="text-base font-black text-slate-900">TELECORP ERP BUSINESS CLOSING</h2>
+                <h2 className="text-base font-black text-slate-900">FIROZA ERP BUSINESS CLOSING</h2>
                 <p className="text-[11px] text-slate-500">Facility: {selectedSlipForPrint.warehouseName}</p>
                 <p className="text-[11px] text-slate-500">Business Date: {formatDate(selectedSlipForPrint.date)}</p>
                 <p className="text-[10px] text-slate-400">Printed: {new Date().toLocaleString()}</p>

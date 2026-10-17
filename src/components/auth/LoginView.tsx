@@ -101,7 +101,7 @@ export const LoginView: React.FC = () => {
               </div>
               <div>
                 <div className="font-black text-2xl tracking-tight leading-tight flex items-center gap-1.5">
-                  TeleCorp
+                  FIROZA
                   <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-blue-500/30 border border-blue-400/40 text-blue-200">
                     ERP
                   </span>
@@ -133,7 +133,7 @@ export const LoginView: React.FC = () => {
 
           <div className="pt-6 border-t border-white/15 text-[11px] text-blue-200/80 flex items-center justify-between relative z-10">
             <span className="font-semibold">Authorized operators only</span>
-            <span className="font-mono bg-white/15 px-2 py-0.5 rounded-lg border border-white/20">TeleCorp ERP</span>
+            <span className="font-mono bg-white/15 px-2 py-0.5 rounded-lg border border-white/20">FIROZA ERP</span>
           </div>
         </div>
 

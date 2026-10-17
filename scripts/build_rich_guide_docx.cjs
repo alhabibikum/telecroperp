@@ -21,7 +21,7 @@ const {
   ImageRun
 } = docx;
 
-console.log('--- শুরু হচ্ছে: TeleCorp ERP সমৃদ্ধ বাংলা ইউজার ম্যানুয়াল ও স্ক্রিনশট গাইড জেনারেটর ---');
+console.log('--- শুরু হচ্ছে: FIROZA ERP সমৃদ্ধ বাংলা ইউজার ম্যানুয়াল ও স্ক্রিনশট গাইড জেনারেটর ---');
 
 const FONT_NAME = 'Segoe UI';
 const CODE_FONT = 'Consolas';
@@ -403,7 +403,7 @@ docChildren.push(
     spacing: { before: 300, after: 120 },
     children: [
       new TextRun({
-        text: 'টেলিকর্প মোবাইল ডিস্ট্রিবিউশন ইআরপি (TeleCorp ERP)',
+        text: 'FIROZA ENTERPRISE (FIROZA ERP)',
         font: FONT_NAME,
         size: 38,
         bold: true,
@@ -444,7 +444,7 @@ docChildren.push(
   createDataTable(
     ['সিস্টেম ও ডকুমেন্ট প্রোপার্টিজ', 'বিবরণ ও কার্যপরিধি'],
     [
-      ['সফটওয়্যার প্ল্যাটফর্ম', 'TeleCorp ERP (Multi-Branch, Dual IMEI, Cloud-Sync, BTRC-Compliant)'],
+      ['সফটওয়্যার প্ল্যাটফর্ম', 'FIROZA ERP (Multi-Branch, Dual IMEI, Cloud-Sync, BTRC-Compliant)'],
       ['ডকুমেন্ট সংস্করণ', 'Version 3.2 Enterprise Production Edition'],
       ['টার্গেট অডিয়েন্স', 'Mobile Dealer Business Managers, Operations Directors, Accountants & Sales Staff'],
       ['কোর মডিউল কভারেজ', '৩৫টি পূর্ণাঙ্গ মডিউল, ৯-স্তরের রোল অ্যাক্সেস কন্ট্রোল (RBAC), দ্বিমুখী ক্লাউড সিঙ্ক'],
@@ -460,7 +460,7 @@ docChildren.push(
   createCallout(
     'tip',
     'সফটওয়্যার হেল্প সেন্টারে সরাসরি অ্যাক্সেস (In-App Shortcut)',
-    'টেলিকর্প ইআরপির যেকোনো স্ক্রিনে কাজ করার সময় কীবোর্ড থেকে Ctrl + / চাপলে সরাসরি ম্যানেজার অপারেশন এসওপি (Manager SOP) এবং নতুন কর্মী ট্রেনিং মোড (১৩-ধাপের ইন্টারেক্টিভ চেকলিস্ট) ভেসে উঠবে। এছাড়া স্ক্রিনের ওপরের হেডারের "?" আইকনে ক্লিক করেও এই নির্দেশিকা পাওয়া যায়।'
+    'FIROZA ERP-এর যেকোনো স্ক্রিনে কাজ করার সময় কীবোর্ড থেকে Ctrl + / চাপলে সরাসরি ম্যানেজার অপারেশন এসওপি (Manager SOP) এবং নতুন কর্মী ট্রেনিং মোড (১৩-ধাপের ইন্টারেক্টিভ চেকলিস্ট) ভেসে উঠবে। এছাড়া স্ক্রিনের ওপরের হেডারের "?" আইকনে ক্লিক করেও এই নির্দেশিকা পাওয়া যায়।'
   )
 );
 
@@ -498,7 +498,7 @@ docChildren.push(new Paragraph({ spacing: { before: 200, after: 200 } }));
 docChildren.push(createHeading('A. কমপ্লিট স্টার্ট-টু-ফিনিশ বিজনেস ওয়ার্কফ্লো', 1));
 docChildren.push(
   createPara(
-    'টেলিকর্প ইআরপিতে একটি মোবাইল ডিস্ট্রিবিউশন বা শোরুম ব্যবসার সম্পূর্ণ সাইকেল শুরু থেকে শেষ পর্যন্ত একটি সুসংগঠিত চেইনে পরিচালিত হয়:'
+    'FIROZA ERP-তে একটি মোবাইল ডিস্ট্রিবিউশন বা শোরুম ব্যবসার সম্পূর্ণ সাইকেল শুরু থেকে শেষ পর্যন্ত একটি সুসংগঠিত চেইনে পরিচালিত হয়:'
   )
 );
 
@@ -645,7 +645,7 @@ docChildren.push(new Paragraph({ spacing: { before: 160, after: 160 } }));
 docChildren.push(createHeading('E. প্রফেশনাল সেলস ও পিওএস গাইড (Wholesale & Retail POS)', 1));
 docChildren.push(
   createPara(
-    'টেলিকর্প ইআরপিতে পাইকারি ডিলার সেলস এবং দ্রুততম রিটেইল কাউন্টার বিলিংয়ের দুটি স্বতন্ত্র ইন্টারফেস রয়েছে:'
+    'FIROZA ERP-তে পাইকারি ডিলার সেলস এবং দ্রুততম রিটেইল কাউন্টার বিলিংয়ের দুটি স্বতন্ত্র ইন্টারফেস রয়েছে:'
   )
 );
 
@@ -818,7 +818,7 @@ docChildren.push(
   createCallout(
     'accounting',
     'ফিফো (FIFO) ইনভেন্টরি ভ্যালুয়েশন নীতি',
-    'টেলিকর্প ইআরপিতে প্রতিটি ফোনের কেনা রেট First-In First-Out (FIFO) পদ্ধতিতে নির্ধারিত হয়। এর ফলে পুরনো লটের ফোন আগে বিক্রি হলে কস্ট অব গুডস সোল্ড (COGS) হুবহু সঠিক থাকে এবং ব্যালেন্স শিটের অ্যাসেট ভ্যালু আন্তর্জাতিক মানদণ্ড অনুযায়ী সংরক্ষিত হয়।'
+    'FIROZA ERP-তে প্রতিটি ফোনের কেনা রেট First-In First-Out (FIFO) পদ্ধতিতে নির্ধারিত হয়। এর ফলে পুরনো লটের ফোন আগে বিক্রি হলে কস্ট অব গুডস সোল্ড (COGS) হুবহু সঠিক থাকে এবং ব্যালেন্স শিটের অ্যাসেট ভ্যালু আন্তর্জাতিক মানদণ্ড অনুযায়ী সংরক্ষিত হয়।'
   )
 );
 
@@ -965,7 +965,7 @@ docChildren.push(
     spacing: { before: 200, after: 80 },
     children: [
       new TextRun({
-        text: '— টেলিকর্প এন্টারপ্রাইজ সিস্টেমস ইঞ্জিনিয়ারিং টিম কর্তৃক অনুমোদিত ও প্রস্তুতকৃত —',
+        text: '— FIROZA ENTERPRISE সিস্টেমস ইঞ্জিনিয়ারিং টিম কর্তৃক অনুমোদিত ও প্রস্তুতকৃত —',
         font: FONT_NAME,
         size: 18,
         bold: true,
@@ -977,8 +977,8 @@ docChildren.push(
 
 // ডকুমেন্ট ইনিশিয়ালাইজেশন
 const richDoc = new Document({
-  creator: 'TeleCorp Systems Engineering',
-  title: 'TeleCorp Mobile Distribution & Trade ERP — User Operation & Business Management Guide',
+  creator: 'FIROZA ENTERPRISE',
+  title: 'FIROZA ERP — User Operation & Business Management Guide',
   description: 'Complete Step-by-Step User Operation Guide in Bengali Unicode with Real Screenshots, Diagrams, Indicators & Charts',
   sections: [
     {
@@ -999,7 +999,7 @@ const richDoc = new Document({
               alignment: AlignmentType.RIGHT,
               children: [
                 new TextRun({
-                  text: 'TeleCorp Mobile Distribution ERP — প্রফেশনাল ইউজার গাইড (বাংলা সংস্করণ)',
+                  text: 'FIROZA ERP — প্রফেশনাল ইউজার গাইড (বাংলা সংস্করণ)',
                   font: FONT_NAME,
                   size: 16,
                   color: '64748B'
@@ -1051,8 +1051,8 @@ const richDoc = new Document({
 });
 
 // আউটপুট ফাইল পাথ
-const outputDocx = path.resolve('telecorp_erp_operation_guide.docx');
-const publicDocx = path.resolve('public/telecorp_erp_operation_guide.docx');
+const outputDocx = path.resolve('firoza_erp_operation_guide.docx');
+const publicDocx = path.resolve('public/firoza_erp_operation_guide.docx');
 
 // ফাইল রাইট
 Packer.toBuffer(richDoc).then(buffer => {
@@ -1073,8 +1073,8 @@ Packer.toBuffer(richDoc).then(buffer => {
 // পিডিএফ তৈরি ফাংশন
 function generateMatchingPdf() {
   const edgeExecutable = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
-  const outputPdf = path.resolve('telecorp_erp_operation_guide.pdf');
-  const publicPdf = path.resolve('public/telecorp_erp_operation_guide.pdf');
+  const outputPdf = path.resolve('firoza_erp_operation_guide.pdf');
+  const publicPdf = path.resolve('public/firoza_erp_operation_guide.pdf');
   const tempHtml = path.resolve('scripts/temp_rich_screenshot_guide.html');
 
   // স্ক্রিনশটের রিলেটিভ ইউআরএল
@@ -1093,14 +1093,14 @@ function generateMatchingPdf() {
 <html lang="bn">
 <head>
   <meta charset="utf-8">
-  <title>TeleCorp Mobile Distribution & Trade ERP — ইউজার অপারেশন গাইড</title>
+  <title>FIROZA ERP — ইউজার অপারেশন গাইড</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
     @page {
       size: A4 portrait;
       margin: 14mm;
       @bottom-left {
-        content: "TeleCorp Mobile Distribution ERP — ব্যবহারিক অপারেশন নির্দেশিকা";
+        content: "FIROZA ERP — ব্যবহারিক অপারেশন নির্দেশিকা";
         font-family: 'Hind Siliguri', sans-serif;
         font-size: 8pt;
         color: #64748b;
@@ -1203,7 +1203,7 @@ function generateMatchingPdf() {
 <body>
   <div class="header-box">
     <div class="badge">ENTERPRISE PRODUCTION SOP & USER MANUAL</div>
-    <h1>TeleCorp Mobile Distribution & Trade ERP</h1>
+    <h1>FIROZA ENTERPRISE</h1>
     <div style="font-size: 11pt; color: #cbd5e1;">প্রফেশনাল মোবাইল ডিলার বিজনেস ম্যানেজার – কমপ্লিট স্টেপ-বাই-স্টেপ ইউজার অপারেশন গাইড</div>
     <div style="font-size: 8pt; color: #94a3b8; margin-top: 10px;">বাস্তব স্ক্রিনশট, স্ট্যাটাস ইন্ডিকেটর, গ্রাফ/চার্ট, কলআউট নোটস ও চেকলিস্ট সহ সম্পূর্ণ ব্যবহারিক নির্দেশিকা</div>
   </div>

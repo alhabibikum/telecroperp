@@ -240,9 +240,24 @@ export function setupGlobalEnterKeyNavigation() {
   if (typeof window === 'undefined' || globalEnterNavInitialized) return;
   globalEnterNavInitialized = true;
 
+  document.addEventListener('submit', (event: SubmitEvent) => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement)) return;
+
+    window.setTimeout(() => {
+      if (!form.isConnected) return;
+      const firstField = getFocusableFormFields(form).find(
+        field => !(field instanceof HTMLButtonElement) &&
+          !(field instanceof HTMLInputElement && ['button', 'submit', 'reset', 'hidden'].includes(field.type))
+      );
+      if (firstField) focusAndSelect(firstField);
+    }, 0);
+  });
+
   document.addEventListener(
     'keydown',
     (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
       // Leave Ctrl / Alt / Meta combinations for global shortcuts
       if (e.ctrlKey || e.altKey || e.metaKey) return;
 
@@ -288,8 +303,7 @@ export function setupGlobalEnterKeyNavigation() {
           focusNextFormField(target, { allowSubmitOnLast: true });
         }
       }
-    },
-    true
+    }
   );
 }
 

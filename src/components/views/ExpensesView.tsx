@@ -17,6 +17,7 @@ import { formatBDT, formatDate } from '../../utils/formatters';
 import { PaymentMethodType, Expense, ExpenseCategory } from '../../types/erp';
 import { RowActions, EditModal } from '../common/CrudKit';
 import { HistoryInput } from '../common/HistoryInput';
+import { DateInput } from '../common/DateInput';
 import { recordFieldHistory } from '../../services/formHistoryService';
 import { useToast } from '../common/ToastNotificationSystem';
 
@@ -438,8 +439,7 @@ export const ExpensesView: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Expense Date (তারিখ) *</label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={expenseDate}
                     onChange={e => setExpenseDate(e.target.value)}
                     className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg font-bold"
@@ -620,7 +620,7 @@ export const ExpensesView: React.FC = () => {
 
             <div className="p-6 overflow-y-auto space-y-4 text-xs font-mono">
               <div className="text-center pb-3 border-b border-dashed border-slate-300">
-                <h2 className="text-base font-black text-slate-900">TELECORP ERP EXPENSE VOUCHER</h2>
+                <h2 className="text-base font-black text-slate-900">FIROZA ERP EXPENSE VOUCHER</h2>
                 <p className="text-[11px] text-slate-500">Official Payment Disbursement Slip</p>
                 <p className="text-[11px] text-slate-500">Date: {formatDate(selectedVoucherForPrint.date)}</p>
               </div>

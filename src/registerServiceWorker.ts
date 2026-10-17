@@ -34,7 +34,7 @@ export function registerServiceWorker() {
                 if (navigator.serviceWorker.controller) {
                   console.log('[PWA] New version available! Refresh to update.');
                 } else {
-                  console.log('[PWA] TeleCorp ERP content is cached for offline use.');
+                  console.log('[PWA] FIROZA ERP content is cached for offline use.');
                 }
               }
             };

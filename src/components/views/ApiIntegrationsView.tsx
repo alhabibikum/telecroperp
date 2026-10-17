@@ -149,7 +149,7 @@ export const ApiIntegrationsView: React.FC = () => {
       recipientPhone: testSmsPhone,
       recipientName: 'Test Recipient',
       messageType: 'Promotional Campaign',
-      messageBody: `[TeleCorp ERP] Gateway Test. API: ${smsProvider}, SenderID: ${smsSenderId}. Time: ${new Date().toLocaleTimeString()}`,
+      messageBody: `[FIROZA ERP] Gateway Test. API: ${smsProvider}, SenderID: ${smsSenderId}. Time: ${new Date().toLocaleTimeString()}`,
       masking: smsSenderId,
       smsUnits: 1
     });
@@ -341,7 +341,7 @@ export const ApiIntegrationsView: React.FC = () => {
                     type="text"
                     value={smsSenderId}
                     onChange={(e) => setSmsSenderId(e.target.value)}
-                    placeholder="e.g. TELECORP"
+                    placeholder="e.g. FIROZA"
                     className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
                   />
                 </div>

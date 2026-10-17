@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const schemaSql = `-- =========================================================================
--- TELECORP MOBILE DISTRIBUTION ERP - SUPABASE CLOUD DATABASE SCHEMA
+-- FIROZA ERP - SUPABASE CLOUD DATABASE SCHEMA
 -- PostgreSQL / Supabase Enterprise Migration & Real Data Seed Script
 -- Covers ALL 35 Modules with 100% Real-Life Bangladeshi Telecom Data
 -- Version: 3.1.0 (Full Cloud Production Release - No Dummies)
@@ -37,10 +37,10 @@ CREATE TABLE app_users (
 -- =========================================================================
 CREATE TABLE system_settings (
     id TEXT PRIMARY KEY DEFAULT 'primary_settings',
-    company_name TEXT NOT NULL DEFAULT 'TeleCorp Mobile Distribution & Trade Ltd.',
+    company_name TEXT NOT NULL DEFAULT 'FIROZA ENTERPRISE',
     company_address TEXT NOT NULL DEFAULT 'Level 8, Motijheel C/A, Dhaka-1000, Bangladesh',
     company_phone TEXT NOT NULL DEFAULT '+880 2-9568912 / +880 1711-002233',
-    company_email TEXT NOT NULL DEFAULT 'operations@telecorp-bd.com',
+    company_email TEXT NOT NULL DEFAULT 'operations@firoza-enterprise.com',
     vat_tax_number TEXT DEFAULT 'BIN: 002341890-0101 (BTRC Reg: D-88902)',
     default_vat_percent NUMERIC(5, 2) DEFAULT 5.00,
     currency TEXT DEFAULT 'BDT',
@@ -688,7 +688,7 @@ CREATE TABLE sms_logs (
     message_body TEXT NOT NULL,
     sent_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     status TEXT NOT NULL DEFAULT 'Sent' CHECK (status IN ('Delivered', 'Sent', 'Failed')),
-    masking TEXT DEFAULT 'TELECORP',
+    masking TEXT DEFAULT 'FIROZA',
     sms_units INTEGER DEFAULT 1
 );
 
@@ -840,7 +840,7 @@ $$ LANGUAGE plpgsql;
 
 -- SYSTEM SETTINGS
 INSERT INTO system_settings (id, company_name, company_address, company_phone, company_email, vat_tax_number, default_vat_percent, currency, currency_symbol, valuation_method, negative_stock_allowed, credit_limit_hard_block, max_discount_without_approval, language)
-VALUES ('primary_settings', 'TeleCorp Mobile Distribution & Trade Ltd.', 'Level 8, Motijheel C/A, Dhaka-1000, Bangladesh', '+880 2-9568912 / +880 1711-002233', 'operations@telecorp-bd.com', 'BIN: 002341890-0101 (BTRC Reg: D-88902)', 5.00, 'BDT', '৳', 'FIFO', false, true, 1000.00, 'bn');
+VALUES ('primary_settings', 'FIROZA ENTERPRISE', 'Level 8, Motijheel C/A, Dhaka-1000, Bangladesh', '+880 2-9568912 / +880 1711-002233', 'operations@firoza-enterprise.com', 'BIN: 002341890-0101 (BTRC Reg: D-88902)', 5.00, 'BDT', '৳', 'FIFO', false, true, 1000.00, 'bn');
 
 -- User accounts must be provisioned through Supabase Auth.
 
@@ -880,10 +880,10 @@ INSERT INTO customers (id, customer_code, shop_name, owner_name, mobile, alterna
 
 -- SALESMEN
 INSERT INTO salesmen (id, employee_code, name, mobile, email, target_monthly_bdt, achieved_monthly_bdt, commission_percentage, active_routes, assigned_area, status) VALUES
-('sm-1', 'EMP-01', 'Md. Rafiqul Islam', '+880 1711-998811', 'rafiq.sales@telecorp.com', 2500000.00, 1950000.00, 1.25, ARRAY['Uttara', 'Mirpur', 'Gazipur'], 'Dhaka North Zone', 'Active'),
-('sm-2', 'EMP-02', 'Tanvir Hasan', '+880 1819-776622', 'tanvir.sales@telecorp.com', 2000000.00, 1680000.00, 1.25, ARRAY['Motijheel', 'Elephant Road', 'Old Dhaka'], 'Dhaka South Zone', 'Active'),
-('sm-3', 'EMP-03', 'Kamrul Ahsan', '+880 1914-332211', 'kamrul.sales@telecorp.com', 3000000.00, 2420000.00, 1.50, ARRAY['Agrabad', 'GEC Circle', 'Coxs Bazar'], 'Chittagong Division', 'Active'),
-('sm-4', 'EMP-04', 'Shahriar Kabir', '+880 1612-445566', 'shahriar.sales@telecorp.com', 1500000.00, 1150000.00, 1.25, ARRAY['Zindabazar', 'Amberkhana', 'Moulvibazar'], 'Sylhet Division', 'Active');
+('sm-1', 'EMP-01', 'Md. Rafiqul Islam', '+880 1711-998811', 'rafiq.sales@firoza-enterprise.com', 2500000.00, 1950000.00, 1.25, ARRAY['Uttara', 'Mirpur', 'Gazipur'], 'Dhaka North Zone', 'Active'),
+('sm-2', 'EMP-02', 'Tanvir Hasan', '+880 1819-776622', 'tanvir.sales@firoza-enterprise.com', 2000000.00, 1680000.00, 1.25, ARRAY['Motijheel', 'Elephant Road', 'Old Dhaka'], 'Dhaka South Zone', 'Active'),
+('sm-3', 'EMP-03', 'Kamrul Ahsan', '+880 1914-332211', 'kamrul.sales@firoza-enterprise.com', 3000000.00, 2420000.00, 1.50, ARRAY['Agrabad', 'GEC Circle', 'Coxs Bazar'], 'Chittagong Division', 'Active'),
+('sm-4', 'EMP-04', 'Shahriar Kabir', '+880 1612-445566', 'shahriar.sales@firoza-enterprise.com', 1500000.00, 1150000.00, 1.25, ARRAY['Zindabazar', 'Amberkhana', 'Moulvibazar'], 'Sylhet Division', 'Active');
 
 -- PRODUCTS
 INSERT INTO products (id, brand_id, brand_name, model, category, network_region, warranty_period_months, description, status) VALUES
@@ -922,10 +922,10 @@ INSERT INTO imeis (id, imei1, imei2, serial_number, product_id, product_name, va
 
 -- BANK ACCOUNTS
 INSERT INTO bank_accounts (id, bank_name, account_name, account_number, branch_name, routing_number, account_type, opening_balance, current_balance, status) VALUES
-('bank-1', 'BRAC Bank PLC', 'TeleCorp Distribution Ltd', '1501203948201001', 'Motijheel Corporate Branch', '060271928', 'Current', 5000000.00, 12450000.00, 'Active'),
-('bank-2', 'The City Bank Ltd', 'TeleCorp Distribution Ltd', '1102938475001', 'Gulshan Avenue Branch', '225271829', 'Current', 3000000.00, 8920000.00, 'Active'),
-('bank-3', 'Dutch-Bangla Bank Ltd', 'TeleCorp Distribution Ltd', '105110294812', 'Foreign Exchange Branch', '090271182', 'Current', 2000000.00, 4310000.00, 'Active'),
-('bank-4', 'bKash Merchant Vault', 'TeleCorp Trade Hub', '01888-990011', 'bKash Tokenized Merchant', 'BKASH001', 'MFS Merchant (bKash/Nagad)', 200000.00, 540000.00, 'Active');
+('bank-1', 'BRAC Bank PLC', 'FIROZA ENTERPRISE', '1501203948201001', 'Motijheel Corporate Branch', '060271928', 'Current', 5000000.00, 12450000.00, 'Active'),
+('bank-2', 'The City Bank Ltd', 'FIROZA ENTERPRISE', '1102938475001', 'Gulshan Avenue Branch', '225271829', 'Current', 3000000.00, 8920000.00, 'Active'),
+('bank-3', 'Dutch-Bangla Bank Ltd', 'FIROZA ENTERPRISE', '105110294812', 'Foreign Exchange Branch', '090271182', 'Current', 2000000.00, 4310000.00, 'Active'),
+('bank-4', 'bKash Merchant Vault', 'FIROZA ENTERPRISE', '01888-990011', 'bKash Tokenized Merchant', 'BKASH001', 'MFS Merchant (bKash/Nagad)', 200000.00, 540000.00, 'Active');
 
 -- CHART OF ACCOUNTS (COA Double-Entry Foundation)
 INSERT INTO chart_of_accounts (id, code, name, type, nature, balance, description, is_system) VALUES
@@ -1031,9 +1031,9 @@ INSERT INTO salesman_visits (id, salesman_id, salesman_name, customer_id, custom
 
 -- SMS MARKETING LOGS
 INSERT INTO sms_logs (id, recipient_phone, recipient_name, message_type, message_body, sent_at, status, masking, sms_units) VALUES
-('sms-001', '+8801711234567', 'Popular Telecom', 'Invoice Alert', 'Dear Popular Telecom, your invoice INV-2026-0042 of BDT 90,000 has been generated. Thank you for choosing TeleCorp.', NOW(), 'Delivered', 'TELECORP', 1),
-('sms-002', '+8801819876543', 'Trust Mobile World', 'Payment Receipt', 'Dear Trust Mobile World, we have received BDT 63,600 via Bank Transfer. Your current due is BDT 0. TeleCorp.', NOW(), 'Delivered', 'TELECORP', 1),
-('sms-003', '+8801715667788', 'Rajdhani Gadget', 'Due Reminder', 'Dear Valued Dealer, payment of BDT 72,000 for INV-2026-0044 is due on 2026-10-13. Please deposit on time to maintain credit rating.', NOW(), 'Sent', 'TELECORP', 1);
+('sms-001', '+8801711234567', 'Popular Telecom', 'Invoice Alert', 'Dear Popular Telecom, your invoice INV-2026-0042 of BDT 90,000 has been generated. Thank you for choosing FIROZA ENTERPRISE.', NOW(), 'Delivered', 'FIROZA', 1),
+('sms-002', '+8801819876543', 'Trust Mobile World', 'Payment Receipt', 'Dear Trust Mobile World, we have received BDT 63,600 via Bank Transfer. Your current due is BDT 0. FIROZA ENTERPRISE.', NOW(), 'Delivered', 'FIROZA', 1),
+('sms-003', '+8801715667788', 'Rajdhani Gadget', 'Due Reminder', 'Dear Valued Dealer, payment of BDT 72,000 for INV-2026-0044 is due on 2026-10-13. Please deposit on time to maintain credit rating.', NOW(), 'Sent', 'FIROZA', 1);
 
 -- SYSTEM ALERTS
 INSERT INTO system_alerts (id, type, title, message, timestamp, read, link_module, reference_id) VALUES
@@ -1043,13 +1043,13 @@ INSERT INTO system_alerts (id, type, title, message, timestamp, read, link_modul
 
 -- GATEWAY CONFIGS
 INSERT INTO gateway_configs (id, service_name, provider, credentials, is_active, environment) VALUES
-('gw-sms', 'sms', 'Greenweb Bangladesh SMS Gateway', '{"apiUrl":"https://api.greenweb.com.bd/api.php","token":"GW_LIVE_TOKEN_99281","senderId":"TELECORP"}'::jsonb, true, 'Live'),
+('gw-sms', 'sms', 'Greenweb Bangladesh SMS Gateway', '{"apiUrl":"https://api.greenweb.com.bd/api.php","token":"GW_LIVE_TOKEN_99281","senderId":"FIROZA"}'::jsonb, true, 'Live'),
 ('gw-bkash', 'bkash', 'bKash Tokenized Checkout API', '{"appKey":"bKash_prod_app_key_88192","merchantNumber":"01888990011"}'::jsonb, true, 'Live'),
 ('gw-courier', 'steadfast', 'Steadfast Courier API', '{"apiKey":"st_live_key_99281928","secretKey":"st_sec_00291"}'::jsonb, true, 'Live');
 
 -- JOURNAL ENTRIES (Opening Balance Ledger Check)
 INSERT INTO journal_entries (id, voucher_no, date, voucher_type, reference_no, description, lines, total_debit, total_credit, created_by) VALUES
-('jv-001', 'JV-2026-0001', '2026-10-01', 'Journal Voucher', 'OP-BAL-2026', 'Opening balanced trial ledger for TeleCorp Enterprise Cloud', '[{"accountCode":"1020","accountName":"Bank Operating Accounts","debit":25680000,"credit":0,"memo":"Opening bank balance"},{"accountCode":"1040","accountName":"Merchandise Inventory Asset","debit":18450000,"credit":0,"memo":"Opening handset inventory"},{"accountCode":"3010","accountName":"Shareholder Paid-Up Capital","debit":0,"credit":30000000,"memo":"Equity capital"},{"accountCode":"3020","accountName":"Retained Earnings","debit":0,"credit":14130000,"memo":"Retained earnings"}]'::jsonb, 44130000.00, 44130000.00, 'Shabbir Ahmed');
+('jv-001', 'JV-2026-0001', '2026-10-01', 'Journal Voucher', 'OP-BAL-2026', 'Opening balanced trial ledger for FIROZA ENTERPRISE Cloud', '[{"accountCode":"1020","accountName":"Bank Operating Accounts","debit":25680000,"credit":0,"memo":"Opening bank balance"},{"accountCode":"1040","accountName":"Merchandise Inventory Asset","debit":18450000,"credit":0,"memo":"Opening handset inventory"},{"accountCode":"3010","accountName":"Shareholder Paid-Up Capital","debit":0,"credit":30000000,"memo":"Equity capital"},{"accountCode":"3020","accountName":"Retained Earnings","debit":0,"credit":14130000,"memo":"Retained earnings"}]'::jsonb, 44130000.00, 44130000.00, 'Shabbir Ahmed');
 `;
 
 fs.writeFileSync(path.join(__dirname, '..', 'supabase_schema.sql'), schemaSql, 'utf8');

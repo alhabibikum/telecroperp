@@ -102,7 +102,10 @@ export const PhoneExchangeView: React.FC = () => {
 
     if (res.success) {
       setMessage(`Exchange #${res.exchangeNo} successfully processed! Pre-owned stock updated.`);
-      setShowExchangeModal(false);
+      setOldIMEI('');
+      setSelectedNewIMEI('');
+      setAmountPaidNow(0);
+      setNotes('');
       setTimeout(() => setMessage(null), 4000);
     }
   };

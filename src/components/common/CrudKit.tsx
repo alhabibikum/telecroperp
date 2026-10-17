@@ -3,6 +3,7 @@ import { Pencil, Trash2, Ban, X, AlertTriangle, CheckCircle2 } from 'lucide-reac
 import type { CrudResult } from '../../context/ERPContext';
 import { useFormKeyboardNavigation } from '../../hooks/useFormKeyboardNavigation';
 import { HistoryInput, HistoryTextarea } from './HistoryInput';
+import { DateInput } from './DateInput';
 import { recordFormHistory } from '../../services/formHistoryService';
 import { useToast } from './ToastNotificationSystem';
 import { useQuickCreateMasterData } from './QuickCreateMasterDataModal';
@@ -152,6 +153,13 @@ export const EditModal: React.FC<EditModalProps> = ({ title, fields, initial, on
                   <HistoryTextarea
                     historyKey={f.key}
                     rows={3}
+                    className={inputCls}
+                    value={values[f.key] ?? ''}
+                    disabled={f.readOnly}
+                    onChange={ev => setValues(v => ({ ...v, [f.key]: ev.target.value }))}
+                  />
+                ) : f.type === 'date' ? (
+                  <DateInput
                     className={inputCls}
                     value={values[f.key] ?? ''}
                     disabled={f.readOnly}
